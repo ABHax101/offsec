@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="[YOUR BLOG DESCRIPTION - e.g., Ethical hacking writeups, CTF solutions, and security research]">
+  <meta name="author" content="[YOUR NAME]">
+  
+  <title>The Offsec Journal | [POST TITLE]</title>
+  
+  <link rel="stylesheet" href="pico.green.min.css">
+  
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .toc h3 {
+      margin-top: 0;
+    }
+    
+    .toc ul {
+      margin-bottom: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1>[TITLE]</h1>
+        <div class="post-meta">
+          <time datetime="[YYYY-MM-DD]">[DATE]</time> • 
+        </div>
+        <div>
+          <span class="tag">[TAG 1]</span>
+          <span class="tag">[TAG 2]</span>
+          <span class="tag">[TAG 3]</span>
+        </div>
+      </header>
+
+      <!-- Table of Contents (Optional) -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul>
+          <li><a href="#recon">[SECTION 1]</a></li>
+          <li><a href="#exploitation">[SECTION 2]</a></li>
+          <li><a href="#privesc">[SECTION 3]</a></li>
+          <li><a href="#conclusion">[SECTION 4]</a></li>
+        </ul>
+      </aside>
+
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>
+          [INTRODUCTION - Brief overview of the challenge/machine. What'll be covered, difficulty, key techniques, etc.]
+        </p>
+      </section>
+
+      <!-- Main Content Sections -->
+      <section id="SECTION 1">
+        <h2>[SECTION HEADING]</h2>
+        
+        <h3>[SUBSECTION - e.g., Nmap Scan]</h3>
+        <p>[TEXT CONTENT - What's going on]</p>
+        
+        <pre><code>[COMMAND OR CODE BLOCK
+e.g., 
+nmap -sC -sV -oA nmap/initial 10.10.10.84
+
+Starting Nmap 7.94 ( https://nmap.org )
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.4
+80/tcp open  http    Apache httpd 2.4.29]</code></pre>
+        
+        <p>[ANALYSIS - Explain the output, what was found, next steps, etc.]</p>
+        
+        <h3>[ANOTHER SUBSECTION]</h3>
+        <p>[MORE CONTENT]</p>
+        
+        <blockquote>
+          [TIP OR IMPORTANT NOTE - Use blockquotes for tips, warnings, or key insights]
+        </blockquote>
+      </section>
+
+      <section id="SECTION2">
+        <h2>[SECTION 2 HEADING]</h2>
+        
+        <p>[CONTENT FOR SECTION 2]</p>
+        
+        <h3>[SUBSECTION]</h3>
+        <p>[TEXT]</p>
+        
+        <pre><code>[CODE/EXPLOIT/PAYLOAD]</code></pre>
+        
+        <p>[EXPLANATION]</p>
+        
+        <!-- For screenshots -->
+        <!-- <img src="[PATH/TO/IMAGE]" alt="[DESCRIPTION]"> -->
+        
+        <h4>[SUB-SUBSECTION]</h4>
+        <p>[DETAILED STEPS]</p>
+        
+        <ul>
+          <li>[BULLET POINT 1]</li>
+          <li>[BULLET POINT 2]</li>
+          <li>[BULLET POINT 3]</li>
+        </ul>
+      </section>
+
+      <section id="SECTION3">
+        <h2>[SECTION 3 HEADING]</h2>
+        
+        <p>[CONTENT]</p>
+        
+        <h3>[SUBSECTION]</h3>
+        <p>[TEXT]</p>
+        
+        <pre><code>[COMMANDS/CODE]</code></pre>
+        
+        <p>[ANALYSIS]</p>
+        
+        <ol>
+          <li>[NUMBERED STEP 1]</li>
+          <li>[NUMBERED STEP 2]</li>
+          <li>[NUMBERED STEP 3]</li>
+        </ol>
+      </section>
+
+      <section id="SECTION4">
+        <h2>Conclusion</h2>
+        <p>
+          [CONCLUSION - Summary of what was learned, takeaways, reflections on challenge, things to do differently, etc.]
+        </p>
+        
+        <h3>Key Takeaways</h3>
+        <ul>
+          <li>[LESSON 1]</li>
+          <li>[LESSON 2]</li>
+          <li>[LESSON 3]</li>
+        </ul>
+      </section>
+
+      <!-- Flag Section (if applicable) -->
+      <section>
+        <details>
+          <summary>🚩 Flags (Click to reveal spoilers)</summary>
+          <pre><code>User Flag: [USER FLAG]
+Root Flag: [ROOT FLAG]</code></pre>
+        </details>
+      </section>
+
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 Aditya Bhardwaj | 
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+</body>
+</html>
