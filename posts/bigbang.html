@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="[YOUR BLOG DESCRIPTION - e.g., Ethical hacking writeups, CTF solutions, and security research]">
-  <meta name="author" content="[YOUR NAME]">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
   
-  <title>The Offsec Journal | The Big Bang</title>
+  <title>The Offsec Journal | [POST TITLE]</title>
   
   <link rel="stylesheet" href="pico.green.min.css">
   
@@ -98,8 +98,8 @@
       <li><strong>The Offsec Journal</strong></li>
     </ul>
     <ul>
-      <li><a href="../index.html">Home</a></li>
-      <li><a href="../about.html">About</a></li>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
     </ul>
   </nav>
 
@@ -107,65 +107,23 @@
     <article>
       <!-- Post Header -->
       <header>
-        <h1>The Big Bang</h1>
+        <h1 id="bigtitle"></h1>
         <div class="post-meta">
-          <time datetime="[YYYY-MM-DD]">18 December, 2025</time> • 
+          <time id="date"></time> 
         </div>
-        <div>
-          <span class="tag">Journey</span>
-          <span class="tag">About Me</span>
-        </div>
+        <div id="tags"></div>
       </header>
 
       <!-- Table of Contents (Optional) -->
       <aside class="toc">
         <h3>Table of Contents</h3>
-        <ul>
-          <li><a href="#recon">[SECTION 1]</a></li>
-          <li><a href="#exploitation">[SECTION 2]</a></li>
-          <li><a href="#privesc">[SECTION 3]</a></li>
-          <li><a href="#conclusion">[SECTION 4]</a></li>
-        </ul>
+        <ul id="toc_ul"></ul>
       </aside>
 
-      <!-- Introduction -->
-      <section>
-        <h2>Introduction</h2>
-        <p>
-          [INTRODUCTION]
-        </p>
-      </section>
-
-      <!-- Main Content Sections -->
-      <section id="SECTION 1">
-        <h2>[SECTION HEADING]</h2>
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
         
-        <h3>[SUBSECTION - e.g., Nmap Scan]</h3>
-        <p>[TEXT CONTENT - What's going on]</p>
-        
-        <pre><code>[COMMAND OR CODE BLOCK
-e.g., 
-nmap -sC -sV -oA nmap/initial 10.10.10.84
-
-Starting Nmap 7.94 ( https://nmap.org )
-PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 7.4
-80/tcp open  http    Apache httpd 2.4.29]</code></pre>
-        
-        <p>[ANALYSIS - Explain the output, what was found, next steps, etc.]</p>
-        
-        <h3>[ANOTHER SUBSECTION]</h3>
-        <p>[MORE CONTENT]</p>
-        
-        <blockquote>
-          [TIP OR IMPORTANT NOTE - Use blockquotes for tips, warnings, or key insights]
-        </blockquote>
-      </section>
-
-      <section id="SECTION2">
-        <h2>[SECTION 2 HEADING]</h2>
-        
-        <p>[CONTENT FOR SECTION 2]</p>
+        <p>[SECTION - HOW IT ALL BEGAN]</p>
         
         <h3>[SUBSECTION]</h3>
         <p>[TEXT]</p>
@@ -187,10 +145,10 @@ PORT   STATE SERVICE VERSION
         </ul>
       </section>
 
-      <section id="SECTION3">
-        <h2>[SECTION 3 HEADING]</h2>
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
         
-        <p>[CONTENT]</p>
+        <p>[SECTION - WHERE AM I NOW]</p>
         
         <h3>[SUBSECTION]</h3>
         <p>[TEXT]</p>
@@ -206,10 +164,10 @@ PORT   STATE SERVICE VERSION
         </ol>
       </section>
 
-      <section id="SECTION4">
-        <h2>Conclusion</h2>
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
         <p>
-          [CONCLUSION - Summary of what was learned, takeaways, reflections on challenge, things to do differently, etc.]
+          [SECTION - THE PLAN]
         </p>
         
         <h3>Key Takeaways</h3>
@@ -220,15 +178,8 @@ PORT   STATE SERVICE VERSION
         </ul>
       </section>
 
-      <!-- Flag Section (if applicable) -->
-      <section>
-        <details>
-          <summary>🚩 Flags (Click to reveal spoilers)</summary>
-          <pre><code>User Flag: [USER FLAG]
-Root Flag: [ROOT FLAG]</code></pre>
-        </details>
-      </section>
-
+      <!-- Flags (if applicable) -->
+      <div id="flagbool"></div>
     </article>
 
     <!-- Footer -->
@@ -240,5 +191,38 @@ Root Flag: [ROOT FLAG]</code></pre>
     </footer>
   </main>
 
+  <script>
+    // Variables for specifically this blog post
+
+    const TITLE = "The Big Bang - Where am I now, and why am I doing this?";
+    const DATE = "2025-12-18";
+    const TAGS = ["Journey", "About Me"];
+    const SECTIONS = ["How It All Began", "Where Am I now", "The Plan"];
+    
+    
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
 </body>
 </html>
