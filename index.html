@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="[YOUR NAME]">
+  
+  <title>The Offsec Journal | Home</title>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.green.min.css">
+  
+  <style>
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    .hero {
+      text-align: center;
+      padding: 3rem 0;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--pico-muted-border-color);
+    }
+    
+    .hero h1 {
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+    }
+    
+    .hero p {
+      color: var(--pico-muted-color);
+      font-size: 1.1rem;
+    }
+    
+    .post-card {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--pico-muted-border-color);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    
+    .post-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--pico-primary);
+    }
+    
+    .post-card h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    
+    .post-card h2 a {
+      text-decoration: none;
+      color: var(--pico-color);
+    }
+    
+    .post-card h2 a:hover {
+      color: var(--pico-primary);
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    
+    .post-excerpt {
+      color: var(--pico-muted-color);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+    
+    #loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--pico-muted-color);
+    }
+    
+    #no-posts {
+      text-align: center;
+      padding: 3rem;
+      color: var(--pico-muted-color);
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <!-- Hero Section -->
+    <header class="hero">
+      <h1>The Offsec Journal</h1>
+      <p>Documenting my journey from a Security+ script kiddie to a (at least somewhat proper) security researcher</p>
+    </header>
+
+    <!-- Posts Container -->
+    <div id="posts-container">
+      <div id="loading">Loading posts...</div>
+    </div>
+    
+    <div id="no-posts">
+      <h3>No posts yet!</h3>
+      <p>Check back soon for writeups and security research.</p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | 
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    async function loadPosts() {
+      try {
+        const response = await fetch('posts.json');
+        const posts = await response.json();
+        
+        const container = document.getElementById('posts-container');
+        const loading = document.getElementById('loading');
+        const noPosts = document.getElementById('no-posts');
+        
+        loading.style.display = 'none';
+        
+        if (!posts || posts.length === 0) {
+          noPosts.style.display = 'block';
+          return;
+        }
+        
+        posts.sort((a, b) => new Date(b.date) - new Date(a.date)); // sort newest to oldest
+
+        
+        posts.forEach(post => {
+          const card = document.createElement('article');
+          card.className = 'post-card';
+          
+          const tagsHTML = post.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+          
+          card.innerHTML = `
+            <h2><a href="${post.file}">${post.title}</a></h2>
+            <div class="post-meta">
+              <time datetime="${post.date}">${formatDate(post.date)}</time>
+            </div>
+            <p class="post-excerpt">${post.excerpt}</p>
+            <div>${tagsHTML}</div>
+          `;
+          
+          container.appendChild(card);
+        });
+        
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        document.getElementById('loading').innerHTML = 'Error loading posts...';
+      }
+    }
+    
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    loadPosts();
+  </script>
+</body>
+</html>
