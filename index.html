@@ -189,13 +189,9 @@
     
     function formatDate(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
+      return date.toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
     }
-    
+
     loadPosts();
   </script>
 </body>
