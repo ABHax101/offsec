@@ -219,7 +219,7 @@
     document.querySelector("h1#bigtitle").innerText = TITLE;
     
     document.querySelector("time#date").setAttribute("datetime", DATE);
-    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long" });
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
     
     document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_") });
     document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
