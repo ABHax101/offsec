@@ -124,11 +124,11 @@
         <h2 class="sectheading"></h2>
         
         <p>
-          Hi! My name is Aditya, and I'm currently trying to get on my way to becoming an ethical hacker of some sort. <br>
+          Hi! My name is Aditya, and I'm currently trying to get on my way to becoming an ethical hacker of some sort. <br><br>
           <strong>But why?</strong> <br><br>
 
           
-          To understand that, we need to step back in time. <br>
+          To understand that, we need to step back in time. <br><br>
           
           Let's go back to 8th grade science class, that magical time when the classwork wasn't actually hard (just somewhat time consuming) and I spent my spare time pushing the limits of Android's freedom instead of doing my homework. <br><br>
           
@@ -139,7 +139,7 @@
 
           From that day on, I spent the greater half of Q4 in 8th grade doing random easy HTB boxes, purely because it made me feel really cool—I was actually hacking stuff, and I actually understood a lot of what I was doing. When other kids asked me what I was wasting my time on, I could tell them that I was quite literally hacking some machine on the internet because I was bored. <br><br>
           
-          It was around that time that I decided that security was actually pretty dang interesting, and perhaps something worth pursuing. <br>
+          It was around that time that I decided that security was actually pretty dang interesting, and perhaps something worth pursuing. <br><br>
           Although the start of the high school workload ate most of my time and I wasn't messing around on HTB at all anymore, there was always that sense of intrigue surrounding the fact that I could literally get paid to be a hacker—legally too—and even learn most of what I needed with sheer will and the vast internet. <br><br>
 
           And so it began.
@@ -197,11 +197,48 @@
 
           It's either been "What is Linux?" videos, or proper writeups that assume I'm fluent in hacker. Evidently, there's a lot in between. I think I've just needed a structured path from where I am now to where I aim to be, rather than trying to reinvent that structure myself. <br><br><br>
 
-          Here's the plan: (Coming Soon!)
+          Here's the plan: <br><br>
+
+          For the next couple of months, I'll be working through structured learning platforms, like TryHackMe's offensive security paths, HTB Academy, and real boxes from various sources like VulnHub and PicoCTF. The goal isn't to complete challenges just to complete challenges; the goal is to understand the methodology behind each and every step. Why this tool? Why this approach? What was I missing that I should try on the next one? <br><br>
+
+          The list goes on. Every box I work through, I'll write it up here. Not just "here's how I rooted this one," but more importantly "here's what I tried that didn't work," and "here's what I learned; here's what clicked."
+
+          Once I've gotten comfortable with the fundamentals, I'll pick a security domain that excites me the most, whether it be web app security, Active Directory, network pentesting, etc. After the fundamentals, the goal is to become genuinely competent in a specific area. Ideally, by then, I'd have figured out my own methodology and have completed 10+ in that domain. <br><br>
+
+          Then, once I've gotten a good handle on that, I'll work on essentially a 'capstone' project—something that proves I can do real work. The plan is to find 3-4 open-source projects that I can audit and professionally document. It would be something that I'm proud to show people, something that demonstrates that I didn't just follow tutorials. Something that shows that I can apply what I'd have learned to create something valuable. <br><br>
+
+          And of course, each one I work through will (with the developers' permission) end up here on this blog as well.
         </p>
       </section><br>
 
-      Eventually, I'll add a section about why I'm documenting this whole thing at all, and probably end this post off with what's next for me.
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>
+          So, there we have it. <br><br>
+          
+          Starting January, I'll hit the ground running with TryHackMe's Jr. Penetration Tester pathway, which seems to be just the level that I need—past the most basic of the basics, and a good fit to launch me into the intermediate stage. <br><br>
+
+          My goal for the first month is to complete at least 4 boxes and 4 of the 8 modules in the TryHackMe course, building the habit and rhythm to keep me going. <br><br>
+
+          As I said, I'll be documenting everything, publishing detailed writeups for each box I complete as I go. I have a couple good reasons for that: <br><br>
+
+          First, making this public means that now, I <i>have</i> to keep going with this. If I ghost this blog after 2 posts and everybody knows, that's embarrassing. Essentially, I'm betting on my ego to keep me consistent. <br><br>
+
+          Second, it reinforces my understanding pretty significantly. The fact stands that if I can't explain or reteach something, I haven't learned it well enough. If I can't explain why something worked in a writeup, I don't actually understand it yet. Thus, by explaining everything thoroughly, I'll ensure that I actually understand all of what I'm doing. <br><br>
+
+          Third, it builds a portfolio. By the time I'm applying to colleges, and eventually jobs, I won't just have a resume line that says "Interested in offensive security." Instead, I'll have months of documented proof showing exactly what I can do and how I got there. <br><br>
+
+          Beyond that, it's just cool. Becoming a hacker is something that I'm geninely passionate about, and I have a feeling it would be awesome to look back on this in the future. Plus, maybe it helps someone else in the same boat as me—gives them ideas for their own. <br><br>
+
+          So, if you want to follow along, bookmark this site. I'll be posting frequently, whether it be writeups, lessons learned, character development, and probably some failures along the way. <br><br>
+
+          Let's see where I can get in 8 months. <br><br><br>
+
+
+          Cheers!
+        </p>
+      </section><br>
     </article>
 
     <!-- Footer -->
@@ -219,7 +256,7 @@
     const TITLE = "The Big Bang - Where am I now, and why am I doing this?";
     const DATE = "2025-12-18";
     const TAGS = ["Journey", "About Me"];
-    const SECTIONS = ["How It All Began", "Where Am I now", "The Plan"];
+    const SECTIONS = ["How It All Began", "Where Am I now", "The Plan", "Conclusion"];
     
     
     
@@ -243,7 +280,7 @@
     document.querySelector("time#date").setAttribute("datetime", DATE);
     document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
     
-    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_") });
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
     document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
   </script>
 </body>
