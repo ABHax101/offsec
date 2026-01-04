@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal | [POST TITLE]</title>
+  
+  <link rel="stylesheet" href="pico.green.min.css">
+  
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .toc h3 {
+      margin-top: 0;
+    }
+    
+    .toc ul {
+      margin-bottom: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>
+          [WHAT YOU WORKED ON THIS WEEK - Just 2-3 sentences of context. Which modules/rooms? What was the general focus area?]
+        </p>
+      </section>
+    
+      <!-- The Click Moment -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>[THE BIG REALIZATION - What concept finally made sense this week? Explain it in your own words like you're teaching someone else.]</p>
+        
+        <blockquote>
+          [PULL OUT THE CORE INSIGHT - The "aha!" moment in a single sentence]
+        </blockquote>
+        
+        <p>[WHY IT MATTERS - How does this change your approach? What can you do now that you couldn't before?]</p>
+        
+        <h3>Putting It Into Practice</h3>
+        <p>[CONCRETE EXAMPLE - When did you actually use this concept? What happened?]</p>
+        
+        <pre><code>[MAYBE A COMMAND OR TECHNIQUE THAT DEMONSTRATES THE CONCEPT]</code></pre>
+      </section>
+    
+      <!-- Struggles & Failures -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>[BE HONEST - What confused you? Where did you get stuck? What took way longer than it should have?]</p>
+        
+        <h3>The Specific Problem</h3>
+        <p>[DETAIL THE STRUGGLE - What were you trying to do? Why wasn't it working?]</p>
+        
+        <ul>
+          <li>[THING YOU TRIED #1 - and why it didn't work]</li>
+          <li>[THING YOU TRIED #2]</li>
+          <li>[WHAT FINALLY WORKED - or how you moved past it]</li>
+        </ul>
+        
+        <p>[THE LESSON - What did this struggle teach you? Was it a conceptual gap? A procedural mistake? A tool you didn't understand?]</p>
+        
+        <blockquote>
+          [NOTE TO SELF - A reminder or tip you want to remember for next time]
+        </blockquote>
+      </section>
+    
+      <!-- New Skills/Tools -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>[WHAT'S NEW IN YOUR TOOLKIT - This could be a technical tool, a methodology step, or even a mental model]</p>
+        
+        <h3>The Technique/Tool</h3>
+        <p>[EXPLAIN WHAT IT IS - What does it do? When would you use it?]</p>
+        
+        <pre><code>[EXAMPLE USAGE - Show a practical example or command]</code></pre>
+        
+        <p>[WHY IT'S USEFUL - How does this fit into your methodology? What problems does it solve?]</p>
+        
+        <h3>My Current Methodology (Updated)</h3>
+        <p>[OPTIONAL - If your approach has evolved, briefly outline your current step-by-step process. This will be cool to look back on later.]</p>
+        
+        <ol>
+          <li>[STEP 1 in your current approach]</li>
+          <li>[STEP 2]</li>
+          <li>[STEP 3]</li>
+          <li>[And so on...]</li>
+        </ol>
+      </section>
+    
+      <!-- Looking Ahead -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>[NEXT WEEK'S FOCUS - What are you working on next? What are you curious about or hoping to learn?]</p>
+        
+        <p>[QUICK REFLECTION - How do you feel about your progress? Are you on track? Any adjustments needed?]</p>
+      </section>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    // Variables for specifically this blog post
+
+    const TITLE = "Week X: [Catchy title about what clicked or what you struggled with]";
+    const DATE = "2026-1-3";
+    const TAGS = ["Weekly Update", "TryHackMe", "Learning Journey"];
+    const SECTIONS = ["The Click Moment", "Struggles & Failures", "New Skills Added to Arsenal", "Looking Ahead"];
+    const FLAGS = null; // No flags for weekly posts
+    
+    
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+
+
+    if (FLAGS) {
+      const flagLines = [];
+      if (FLAGS.user) flagLines.push(`User Flag: ${FLAGS.user}`);
+      if (FLAGS.root) flagLines.push(`Root Flag: ${FLAGS.root}`);
+      
+      const flagText = flagLines.join("\n");
+      
+      document.querySelector("div#flagbool").innerHTML = `<section id="flags">
+          <details>
+            <summary>Flags (Click to Reveal)</summary>
+            <pre><code>${flagText}</code></pre>
+          </details>
+        </section>`;
+    }
+  </script>
+</body>
+</html>
