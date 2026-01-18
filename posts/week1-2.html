@@ -163,11 +163,12 @@
         <p>
           After running gobuster and discovering the hidden directory, the rest of the room was super straightforward. But that initial moment of "wait a minute, what am I even looking for" was important.
           It reinforced the methodology that I'd heard about, and even used a couple times, but never truly internalized: recon comes before action, always.
-        </p>
-        
+        </p><br>
+
+        <strong>All it took was:</strong>
         <pre><code>gobuster dir -u http://(target IP) -w /usr/share/wordlists/dirb/common.txt</code></pre>
 
-        <p>Simple command, but using it at the right time in the process made all the difference.</p>
+        <p>Simple command, but using it at the right time made all the difference.</p>
       </section><br>
 
       <!-- Struggles & Failures -->
@@ -212,7 +213,7 @@
           I also learned that the Bell-LaPadula and Biba models—concepts I vaguely understood—actually have formal names and specific use cases. Bell-LaPadula is all about confidentiality (no read up, no write down), while Biba focuses on integrity (no write up, no read down). Having the proper terminology makes it way easier to talk about these concepts and understand when to apply them.
         </p>
         
-        <p>Essentially, SEC-110 taught me about these concepts to tie the whole security picture together; TryHackMe taught me that the stuff we glossed over a name and a purpose, too.</p>
+        <p>Essentially, SEC-110 taught me that these concepts existed; TryHackMe taught me their actual names and when and where to use them.</p>
       </section><br>
 
       <!-- Looking Ahead -->
