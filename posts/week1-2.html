@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal | [POST TITLE]</title>
+  
+  <link rel="stylesheet" href="pico.green.min.css">
+  
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .toc h3 {
+      margin-top: 0;
+    }
+    
+    .toc ul {
+      margin-bottom: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>
+          Well, would you look at that.<br><br>
+          
+          The first two weeks of 2026 are already over, and all the work from my AP classes made sure it absolutely flew by. Nevertheless, I started working through TryHackMe's Jr. Penetration Tester pathway, knocking out the first two modules: Intro to Cybersecurity and Intro to Pentesting.
+          As expected, they were pretty basic and foundational—most of it was recap from my Security+ coursework at Wake Tech—but there were still some solid takeaways, a couple of realizations, and one important decision I had to make about certifications.<br><br>
+        </p>
+      </section>
+
+      <!-- The Click Moment -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>
+          The very first room in the pathway was an offensive security intro where they had me hack my first machine.
+          I initially didn't realize it was a guided room and tried to proceed completely on my own. I figured it would probably be a simple "inspect element" kind of problem and that I could knock it out real quick.
+        </p>
+
+        <strong>As per usual, I was wrong.</strong>
+        
+        <p>
+          I poked around the target website and quickly realized it was just one page.
+          Every link on it looped back to the same page, and there was nothing interesting in the page source as I'd initially hoped—no conveniently placed URLs I could visit.
+        </p>
+
+        <p>That's when it clicked: as if the stars had aligned, I needed to use <code>gobuster</code> to actually see what else was there—the same tool I almost failed to even install during middle school. This time, I used it <i>correctly</i>, not like in 8th grade when I was messing with it on my phone.</p>
+
+        <strong>The point that stuck with me this time was:</strong>
+        
+        <blockquote>
+          Enumeration isn't optional. You can't hack what you can't see.
+        </blockquote>
+        
+        <p>
+          It feels obvious now (and it kind of <i>is</i>), but at the time I felt lost because there was nothing immediately useful staring me in the face.
+          The lesson here was clear: <strong>know the full scope of what's actually there before you start trying to exploit anything</strong>. You can't find the hidden admin panel if you don't know it exists.
+        </p>
+        
+        <p>
+          After running gobuster and discovering the hidden directory, the rest of the room was super straightforward. But that initial moment of "wait a minute, what am I even looking for" was important.
+          It reinforced the methodology that I'd heard about, and even used a couple times, but never truly internalized: recon comes before action, always.
+        </p>
+        
+        <pre><code>gobuster dir -u http://(target IP) -w /usr/share/wordlists/dirb/common.txt</code></pre>
+
+        <p>Simple command, but using it at the right time in the process made all the difference.</p>
+      </section>
+
+      <!-- Struggles & Failures -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>
+          One of the things I want to improve on this year, unrelated from security, is not overthinking everything. But alas, if you know me, you know that I just can't let go of something this important to me without doing <i>way</i> too much research first.
+          Thus, the main struggle these two weeks wasn't technical—it was figuring out whether I was even on the right path with TryHackMe's PT1 certification.
+        </p>
+        
+        <p>
+          I noticed that the Jr. Penetration Tester pathway leads to the PT1 cert, so naturally I went down a research rabbit hole trying to figure out if it was actually worth pursuing or if I should pivot to something like eJPT or PJPT instead.
+        </p>
+        
+        <p>Here's what I found:</p>
+        <ul>
+          <li><strong>eJPT and PJPT are significantly more established</strong>: they have bigger name recognition in the industry right now (especially eJPT).</li>
+          <li><strong>PT1 is brand new</strong>: it's heavily reliant on TryHackMe rooms and doesn't have the same reputation yet.</li>
+          <li><strong>Neither is perfect</strong>: eJPT has really solid prep materials but the exam itself is considered easier and more foundational. PT1's exam covers way more ground which may make it more impressive to earn, but the THM pathway alone probably won't be enough to pass it.</li>
+          <li><strong>Cost matters</strong>:an INE subscription for eJPT prep is expensive. The PT1 pathway on TryHackMe is cheaper, but I realized about 80% of the rooms are premium, so I need to keep up my pace of one module per week or this'll get pricey fast.</li>
+          <li><strong>Neither one guarantees a job</strong>: seeing as both are junior-level certifications, most online sources emphasize that PT1 and eJPT are <strong>stepping stones</strong> to higher-level certs like OSCP, which is more important in the long term anyway.</li>
+        </ul>
+        
+        <p>
+          After considering everything I could, I decided to stick with PT1. While it is newer and less acclaimed, it exposes me to a wider range of content; seeing as it is a stepping stone for REVIEWMEE
+          After weighing everything, I decided to stick with PT1. Yes, it's newer and less acclaimed, but it exposes me to more content, it's harder (which means I'll actually learn more), and it seems like a better stepping stone for where I want to go. Plus, if I'm documenting everything along the way, the cert itself is just a bonus—the real value is in the skills I'm building.
+        </p>
+        
+        <blockquote>
+          Note to self: Save all the content locally for future reference. Premium rooms are expensive and I don't want to lose access to what I've already learned.
+        </blockquote>
+      </section>
+
+      <!-- New Skills/Tools -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Most of what I covered in these first two modules was review—CIA triad, access control models, the pentesting methodology at a surface level. That said, there were a few new pieces of knowledge that filled in gaps I didn't even know I had.</p>
+        
+        <h3>What a SIEM Actually Is</h3>
+        <p>I'd heard the term "SIEM" thrown around in my SEC-110 class, but we never really dug into what it <em>feels like</em> to use one. TryHackMe's defensive security intro gave me a high-level walkthrough of how security teams actually use SIEM tools to detect and respond to threats in real time. It's one thing to know the acronym; it's another to understand the workflow.</p>
+        
+        <h3>PIM vs. PAM</h3>
+        <p>In the Principles of Security module, I learned about Privileged Identity Management (PIM) and Privileged Access Management (PAM) for the first time. I'd worked with basic access control concepts before, but I didn't know there were formal frameworks specifically for managing high-privilege accounts. Makes sense in hindsight—those are the accounts attackers <em>really</em> want.</p>
+
+        <h3>Security Models Have Names</h3>
+        <p>I also learned that the Bell-LaPadula and Biba models—concepts I vaguely understood—actually have formal names and specific use cases. Bell-LaPadula is all about confidentiality (no read up, no write down), while Biba focuses on integrity (no write up, no read down). Having the proper terminology makes it way easier to talk about these concepts and understand when to apply them.</p>
+
+        <h3>My Current Methodology (So Far)</h3>
+        <p>It's still pretty basic, but here's what I'm working with right now:</p>
+        
+        <ol>
+          <li><strong>Reconnaissance</strong> — Start with nmap, use gobuster or other enumeration tools to map out what's actually there</li>
+          <li><strong>Analysis</strong> — Figure out what services are running, what versions they are, and look for known vulnerabilities</li>
+          <li><strong>Exploitation</strong> — Find the entry point and get initial access</li>
+          <li><strong>Privilege Escalation</strong> — Enumerate the system post-exploit and escalate to root/admin</li>
+          <li><strong>Documentation</strong> — Write everything down (hence this blog)</li>
+        </ol>
+
+        <p>Nothing groundbreaking yet, but it's a framework I can build on as I get more experience.</p>
+      </section>
+
+      <!-- Looking Ahead -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Next up is Module 3: Introduction to Web Hacking. This is where things start getting more interesting—actual web application vulnerabilities, OWASP Top 10, all that good stuff. I'm genuinely excited for this one because web app security is where a lot of the real-world action is.</p>
+        
+        <p>My goal for the next two weeks is to finish that module and do at least one standalone box writeup on the side—something beyond the guided rooms. I want to start applying what I'm learning independently, not just following walkthroughs.</p>
+
+        <p>As for how I'm feeling about progress: honestly, pretty good. Yeah, these first two modules were mostly review, but that's not a bad thing. It means I have a solid foundation to build on, and I'm already starting to see the gaps in my knowledge fill in. The real test will be when I get into unfamiliar territory and have to figure things out on my own.</p>
+
+        <p>Let's see what web hacking has in store.</p>
+      </section>
+
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    // WEEKLY MODULE CONFIGURATION
+    const TITLE = "Weeks 1 and 2 in TryHackMe - Enumeration Isn't Optional (and Neither is Choosing the Right Cert)";
+    const DATE = "2025-01-18";
+    const TAGS = ["Weekly Update", "TryHackMe", "Learning Journey", "PT1"];
+    const SECTIONS = ["The Click Moment", "Struggles & Failures", "New Skills Added to Arsenal", "Looking Ahead"];
+    const FLAGS = null;
+    
+    
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
