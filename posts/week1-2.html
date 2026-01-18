@@ -126,10 +126,10 @@
         <p>
           Well, would you look at that.<br><br>
           
-          The first two weeks of 2026 are already over, and all the work from my AP classes made sure it absolutely flew by. Nevertheless, I started working through TryHackMe's Jr. Penetration Tester pathway, knocking out the first two modules: Intro to Cybersecurity and Intro to Pentesting.
+          The first two weeks of 2026 are already over, and all of my AP work made sure the time flew by. Nevertheless, I started working through TryHackMe's Jr. Penetration Tester pathway and knocked out the first two modules: Intro to Cybersecurity and Intro to Pentesting.
           As expected, they were pretty basic and foundational—most of it was recap from my Security+ coursework at Wake Tech—but there were still some solid takeaways, a couple of realizations, and one important decision I had to make about certifications.<br><br>
         </p>
-      </section>
+      </section><br>
 
       <!-- The Click Moment -->
       <section class="blog-section">
@@ -168,7 +168,7 @@
         <pre><code>gobuster dir -u http://(target IP) -w /usr/share/wordlists/dirb/common.txt</code></pre>
 
         <p>Simple command, but using it at the right time in the process made all the difference.</p>
-      </section>
+      </section><br>
 
       <!-- Struggles & Failures -->
       <section class="blog-section">
@@ -189,18 +189,14 @@
           <li><strong>PT1 is brand new</strong>: it's heavily reliant on TryHackMe rooms and doesn't have the same reputation yet.</li>
           <li><strong>Neither is perfect</strong>: eJPT has really solid prep materials but the exam itself is considered easier and more foundational. PT1's exam covers way more ground which may make it more impressive to earn, but the THM pathway alone probably won't be enough to pass it.</li>
           <li><strong>Cost matters</strong>:an INE subscription for eJPT prep is expensive. The PT1 pathway on TryHackMe is cheaper, but I realized about 80% of the rooms are premium, so I need to keep up my pace of one module per week or this'll get pricey fast.</li>
-          <li><strong>Neither one guarantees a job</strong>: seeing as both are junior-level certifications, most online sources emphasize that PT1 and eJPT are <strong>stepping stones</strong> to higher-level certs like OSCP, which is more important in the long term anyway.</li>
+          <li><strong>Neither one guarantees a job</strong>: seeing as both are junior-level certifications, most online sources emphasize that PT1 and eJPT are <i>stepping stones</i> to higher-level certs like OSCP, which is more important in the long term anyway.</li>
         </ul>
         
         <p>
-          After considering everything I could, I decided to stick with PT1. While it is newer and less acclaimed, it exposes me to a wider range of content; seeing as it is a stepping stone for REVIEWMEE
-          After weighing everything, I decided to stick with PT1. Yes, it's newer and less acclaimed, but it exposes me to more content, it's harder (which means I'll actually learn more), and it seems like a better stepping stone for where I want to go. Plus, if I'm documenting everything along the way, the cert itself is just a bonus—the real value is in the skills I'm building.
+          After considering everything I could, I decided to stick with PT1. While it is newer and less acclaimed, it exposes me to a wider range of content. If a junior pentest cert is a stepping stone to an intermediate or advanced cert, then I think I'd prefer to stand on a wider foundation and plug a few holes, over stamdomg on a shinier but smaller foundation where I could lose my balance.
+          Plus, if I'm still documenting everything along the way, the cert itself is really just a bonus—the real value for me is in the skills I build while trying to figure all this stuff out.
         </p>
-        
-        <blockquote>
-          Note to self: Save all the content locally for future reference. Premium rooms are expensive and I don't want to lose access to what I've already learned.
-        </blockquote>
-      </section>
+      </section><br>
 
       <!-- New Skills/Tools -->
       <section class="blog-section">
@@ -208,42 +204,31 @@
         
         <p>Most of what I covered in these first two modules was review—CIA triad, access control models, the pentesting methodology at a surface level. That said, there were a few new pieces of knowledge that filled in gaps I didn't even know I had.</p>
         
-        <h3>What a SIEM Actually Is</h3>
-        <p>I'd heard the term "SIEM" thrown around in my SEC-110 class, but we never really dug into what it <em>feels like</em> to use one. TryHackMe's defensive security intro gave me a high-level walkthrough of how security teams actually use SIEM tools to detect and respond to threats in real time. It's one thing to know the acronym; it's another to understand the workflow.</p>
+        <p><strong>For example, what a SIEM actually is</strong>: I'd heard the term "SIEM" used a lot in my SEC-110 class, but we never really dug into what it <em>feels like</em> to use one. TryHackMe's defensive security intro gave me a high-level walkthrough of how security teams actually use SIEM tools to detect and respond to threats in real time. It's one thing to know the acronym; it's another to understand what it means in practice.</p>
         
-        <h3>PIM vs. PAM</h3>
-        <p>In the Principles of Security module, I learned about Privileged Identity Management (PIM) and Privileged Access Management (PAM) for the first time. I'd worked with basic access control concepts before, but I didn't know there were formal frameworks specifically for managing high-privilege accounts. Makes sense in hindsight—those are the accounts attackers <em>really</em> want.</p>
+        <p>In the Principles of Security module, I learned about Privileged Identity Management (PIM) and Privileged Access Management (PAM) for the first time. I'd worked with access control concepts before, both more basic <i>and</i> more complex, but I didn't know there were formal frameworks specifically for managing those concepts.</p>
 
-        <h3>Security Models Have Names</h3>
-        <p>I also learned that the Bell-LaPadula and Biba models—concepts I vaguely understood—actually have formal names and specific use cases. Bell-LaPadula is all about confidentiality (no read up, no write down), while Biba focuses on integrity (no write up, no read down). Having the proper terminology makes it way easier to talk about these concepts and understand when to apply them.</p>
-
-        <h3>My Current Methodology (So Far)</h3>
-        <p>It's still pretty basic, but here's what I'm working with right now:</p>
+        <p>
+          I also learned that the Bell-LaPadula and Biba models—concepts I vaguely understood—actually have formal names and specific use cases. Bell-LaPadula is all about confidentiality (no read up, no write down), while Biba focuses on integrity (no write up, no read down). Having the proper terminology makes it way easier to talk about these concepts and understand when to apply them.
+        </p>
         
-        <ol>
-          <li><strong>Reconnaissance</strong> — Start with nmap, use gobuster or other enumeration tools to map out what's actually there</li>
-          <li><strong>Analysis</strong> — Figure out what services are running, what versions they are, and look for known vulnerabilities</li>
-          <li><strong>Exploitation</strong> — Find the entry point and get initial access</li>
-          <li><strong>Privilege Escalation</strong> — Enumerate the system post-exploit and escalate to root/admin</li>
-          <li><strong>Documentation</strong> — Write everything down (hence this blog)</li>
-        </ol>
-
-        <p>Nothing groundbreaking yet, but it's a framework I can build on as I get more experience.</p>
-      </section>
+        <p>Essentially, SEC-110 taught me about these concepts to tie the whole security picture together; TryHackMe taught me that the stuff we glossed over a name and a purpose, too.</p>
+      </section><br>
 
       <!-- Looking Ahead -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
         
-        <p>Next up is Module 3: Introduction to Web Hacking. This is where things start getting more interesting—actual web application vulnerabilities, OWASP Top 10, all that good stuff. I'm genuinely excited for this one because web app security is where a lot of the real-world action is.</p>
+        <p>Next up is Module 3: Introduction to Web Hacking. This is where things start getting more interesting—actual web application vulnerabilities (that my own code is probably full of), OWASP Top 10, all that good stuff. I'm genuinely excited for this one because web app security is where a lot of the real-world action is, and as an amateur web developer, it's probably something I should have learned about sooner.</p>
         
-        <p>My goal for the next two weeks is to finish that module and do at least one standalone box writeup on the side—something beyond the guided rooms. I want to start applying what I'm learning independently, not just following walkthroughs.</p>
+        <p>After that comes a small crash course in Burp Suite (Module 4). The plan is to focus on module 3 this coming week and then wrap up web security with module 4 the following week. Since module 4 seems to be significantly shorter than module 3, I also plan to do at least one standalone box writeup that week—something beyond the guided rooms. I want to start applying what I'm learning independently, not just following walkthroughs.
 
-        <p>As for how I'm feeling about progress: honestly, pretty good. Yeah, these first two modules were mostly review, but that's not a bad thing. It means I have a solid foundation to build on, and I'm already starting to see the gaps in my knowledge fill in. The real test will be when I get into unfamiliar territory and have to figure things out on my own.</p>
+        <p>As for how I'm feeling about progress: honestly, pretty good. Sure, these first two modules were mostly review, but that's not a bad thing. It means I have a solid foundation to build on, and I'm already starting to see the gaps in my knowledge fill in. The real test will be when I get into unfamiliar territory and have to figure things out on my own.</p>
 
-        <p>Let's see what web hacking has in store.</p>
-      </section>
+        <p>I have a feeling that unfamiliar territory is closer than I think—let's see what web hacking can throw at me.</p>
+      </section><br>
 
+      <h3>Cheers!</h3>
     </article>
 
     <!-- Footer -->
