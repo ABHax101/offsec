@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal | [POST TITLE]</title>
+  
+  <link rel="stylesheet" href="pico.green.min.css">
+  
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .toc h3 {
+      margin-top: 0;
+    }
+    
+    .toc ul {
+      margin-bottom: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>
+          Web Hacking is trickier than I remember.<br><br>
+          
+          This week was all about the third section in TryJackMe's Jr. Pentester course, Introduction to Web Hacking. Frankly, it's way longer than I thought, and I may have been a bit overzealous when I assumed I'd finish it in a week. I'm about halfway through at this point, but there's already been a good few learning moments worth documenting.
+          Overall, there was one main theme that kept coming back to bite me: <strong>everything is guilty until proven innocent.</strong> Random unsuspecting JS file? Not so unsuspecting. That innocent looking favicon? It might be advertising CVEs. That AJAX call in the network tab? Might be a red flag too. I've learned that if it exists on the page, it deserves scrutiny.<br><br>
+        </p>
+      </section><br>
+
+      <!-- The Click Moment -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>
+          The big realization came early this week, during the "walking an application" room. I was kinda just staring at the page, not really knowing what to do next, but then I saw a mention of "page source" in the guide. I tried viewing the page source and immediately found two flags in the HTML comments.<br><br>
+          
+          It hit even harder when I found another flag purely by accident: I deleted a paywall element using the "inspect element" tool, and wouldn't you know it, there it was. It existed pretty unassumingly on the page, and it was hiding something—why wouldn't it?
+        </p>
+        
+        <p>
+          Above all, it made me recognize how important enumeration is. I can't just look at a page, see nothing, and assume it's empty. I need to find <strong>everything</strong>. <br><br>
+
+          The "suspicious-by-default" approach paid off multiple times during the module:<br><br>
+
+          <ul>
+            <li><strong>Directory listings:</strong> Found a flag.txt sitting in /assets because I actually checked if such directories were listable. This was another moment where I realized why tools like gobuster should be a default first step.</li>
+            <li><strong>HTML comments:</strong> At the very beginning I saw "Page Generated in 0.03572 Seconds using the THM Framework v1.2." I didn't know it at first, but THM Framework v1.2 turned out to be vulnerable.</li>
+            <li><strong>Obfuscated JS:</strong> There was a file called flash.min.js that seemed like a page dependency; however, while I could verify that the jQuery and Bootstrap files were legit, I couldn't figure out what "flash" was supposed to be. I used the debugger to deobfuscate it, and adding a breakpoint revealed a flag being flashed on screen for a split second. Blew my mind.</li>
+            <li><strong>AJAX calls:</strong> The contact form made a POST request to /contact-msg which seemed pretty normal. Didn't question it until I saw the word "AJAX" in the activity. Wouldn't you know it, the AJAX flag was hiding there.</li>
+          </ul>
+        </p>
+
+        <p> All of these would have been super easy to ignore if I was just clicking through the app as I'd been doing. The lesson is clear: </p>
+
+        <blockquote> Enumerate everything; trust nothing. </blockquote>
+      </section><br>
+
+      <!-- Struggles & Failures -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p> This week's biggest struggle was more conceptual than technical. The "logic flaw" section in the Authentication Bypass room left me genuinely confused for a solid chunk of time. </p>
+        
+        <p>
+          It was like this - <br><br>
+
+          There's a password reset function, into which you pass an email from the URL query string (<code>/?email=anybody@prdox.me</code>). But later in the PHP code, it references <code>$_REQUEST</code>; if you've used PHP before, you might know that if a key exists in the URL query string <i>and</i> in <code>$_REQUEST</code>, <code>$_REQUEST</code> takes priority. <br><br>
+
+          I understood this concept once it was explained, but I didn't understand how I was even supposed to figure that out in the first place. I didn't even know it was a PHP app, let alone that it may have been using <code>$_REQUEST</code> instead of <code>$_GET</code> and <code>$_POST</code>. <br><br>
+
+          Eventually I figured out that the assumption is that the app simply has bad code. It makes sense that many PHP apps might use <code>$_REQUEST</code> because it's just convenient (albeit a common bad practice). It's not something I'm just supposed to <i>know</i> upfront—it's something I'm supposed to test for by giving the app some nonsense and seeing what it does with it.
+        </p>
+
+        <p>
+          The struggle taught me something important: hacking isn't a separate discipline from computing, and it'll only make sense when I treat it as an <i>extension</i> of what I already know about computing. I can't go on treating it as something isolated; everything that I've learnt about computers—from SEC-110, from writing my own code, from that one networking course, etc—matters in some way in the hacking world as well.<br><br>
+          
+          Not everything will announce itself, and learning to read between the lines is part of the work.
+        </p>
+      </section><br>
+
+      <!-- New Skills/Tools -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p> This week was a <i>lot</i> on web recon. Some new additions to the toolkit are: </p>
+
+        <h4>ffuf - gobuster but better?</h4>
+        <p>eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee</p>
+      </section><br>
+
+      <!-- Looking Ahead -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    // WEEKLY MODULE CONFIGURATION
+    const TITLE = "Week 3 in TryHackMe - Everything is officially guilty until proven innocent";
+    const DATE = "2025-01-28";
+    const TAGS = ["Weekly Update", "TryHackMe", "Learning Journey"];
+    const SECTIONS = ["The Click Moment", "Struggles & Failures", "New Skills Added to Arsenal", "Looking Ahead"];
+    const FLAGS = null;
+    
+    
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
