@@ -1,5 +1,12 @@
 [
   {
+    "title": "Week 3 in TryHackMe",
+    "file": "posts/week3.html",
+    "date": "2026-1-28",
+    "excerpt": "Everything is officially guilty until proven innocent",
+    "tags": ["Weekly Update", "TryHackMe", "Learning Journey"]
+  },
+  {
     "title": "Weeks 1 and 2 in TryHackMe",
     "file": "posts/week1-2.html",
     "date": "2026-1-18",
