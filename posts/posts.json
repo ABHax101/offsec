@@ -1,5 +1,12 @@
 [
   {
+    "title": "My First Box: TakeOver",
+    "file": "posts/week3.html",
+    "date": "2026-2-1",
+    "excerpt": "The 4-Minute box that took me 2 whole hours",
+    "tags": ["TryHackMe", "Easy", "Subdomain Enumeration"]
+  },
+  {
     "title": "Week 3 in TryHackMe",
     "file": "posts/week3.html",
     "date": "2026-1-28",
