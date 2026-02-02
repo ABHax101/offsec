@@ -189,14 +189,80 @@
         <p> This week was a <i>lot</i> on web recon. Some new additions to the toolkit are: </p>
 
         <h4>ffuf - gobuster but better?</h4>
-        <p>eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee</p>
+        <p>While gobuster has always been that one iconic tool for me, I was introduced to <strong>ffuf</strong> (Fuzz Faster U Fool) this week and it's quickly becoming my new favorite. It's incredibly flexible—directory fuzzing, subdomain discovery, parameter mining, username enum, password brute-forcing, you name it. The best part is how similar ffuf syntax and curl syntax are. As someone who's used curl somewhat extensively, getting the hang of ffuf took minutes, not hours.</p>
+
+        <p>For example, enumerating valid usernames on a signup form was as easy as:</p>
+        <pre><code>ffuf -u http://<TARGET IP>/customers/signup \
+-X "POST" \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=FUZZ&email=e&password=e&cpassword=e" \
+-w names.txt \
+-mr "already exists"
+        </code></pre>
+
+        <p>The only new things I really had to learn with this were where to put the "FUZZ" placeholder with a wordlist, as well as how ffuf's matching/filtering system works (the <code>-mr</code> flag above). The beauty of ffuf is that if the matcher and wordlist weren't in the command above, I could replace the <code>ffuf</code> with <code>curl</code>, <code>FUZZ</code> with an actual username, and it would behave exactly how I'd expect.</p>
+
+        <p>Even more awesome is that you can use as many wordlists as you'd like!</p>
+        
+        <pre><code>ffuf -u http://<TARGET IP>/customers/signup \
+-X "POST" \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=NAMES&password=PASSWORDS" \
+-w valid_usernames.txt:NAMES \
+-w passwords.txt:PASSWORDS \
+-fr "Invalid"
+        </code></pre>
+
+        <p>This one blew my mind a little bit - instead of using the default "FUZZ" keyword calling to a specific wordlist, we can just make more keywords that call to their own wordlists and test <i>everything</i>. I'm starting to see why this tool is so popular.</p>
+
+        <br>
+
+        <h4>Subdomain enumeration beyond brute force?</h4>
+        <p>Apparently, there are much smarter ways to find subdomains than simply hoping the right ones are in my wordlist. For instance, Certificate Transparency (CT) logs exist, which can help us see which subdomains have been registered with another domain.</p>
+
+        <p><a href="https://crt.sh/">crt.sh</a> is a pretty cool website which lets you see those CT logs:</p>
+
+        <img src="/assets/crt-sh-example.png" alt="A screenshot of the search results for google.com on crt.sh"></img>
+
+        <p>If that doesn't work, you could even try to discover subdomains with a simple Google search query like:</p>
+        <pre><code>site:*.example.com -site:www.example.com</code></pre>
+
+        <p>
+          Moreover, if that wasn't good enough, tools like <code>sublist3r</code> and <code>dnsrecon</code> can do all of that digging for you! <br><br>
+        
+          <strong>Why use these tools over something simple like gobuster?</strong> Well, gobuster's simplicity is also its weakness here: it's fast, but dumb. If a word from the list resolves, gobuster will tell you. Tools like sublist3r automate smarter discovery methods (CT logs, search engines), and dnsrecon can enumerate other DNS records like MX, NS, TXT, and even detect DNSSEC. They're just better suited to actual DNS applications than gobuster can ever be.
+        </p>
+
+        <br>
+
+        <h4>Virtual host fuzzing</h4>
+        <p>Another cool technique - our regular dns fuzzing as listed above is great when each subdomain has its own separate DNS record, but what happens when multiple sites are hosted on one server? ffuf to the rescue!</p>
+
+        <p>With ffuf, we can fuzz the HTTP Host header to discover them:</p>
+        <pre><code>ffuf -w namelist.txt -H "Host: FUZZ.example.com" -u http://<TARGET IP> -fs 3000</code></pre>
+        <p>The <code>-fs</code> flag filters out responses by size, which is important becasue most invalid hosts will return the same default error page; the responses that we're concerned with will be much different.</p>
+
+        <br>
+
+        <h4>IDOR (Insecure Direct Object Reference)</h4>
+        <p>The name scared me a little bit, but it actually sounds much more complicated than it is. Essentially, it's when the server forgets to check if you're allowed to access something, and gives it to you anyway.</p>
+
+        <p>This one's easier to explain with an example. Say that we're on an e-commerce site; the ID of my most recent order is 24, and the ID of some other guy's (we'll call him Maurice) order is 65. We can visit <code>https://example.com/order/ID</code> in order to view an order, but we're only allowed to view our <i>own</i> orders. If I can visit <code>/order/65</code> to see Maurice's order, while I'm logged into my own account, we've found an IDOR.</p>
+
+        <p>Found one in a user portal where an AJAX call to fetch account info used <code>id=50</code>, and it turned out IDs 1-49 were all accessible without any auth check. Simple concept, but surprisingly common in the real world.</p>
       </section><br>
 
       <!-- Looking Ahead -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
         
-        eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+        <p>Once again, at this point, I'm about halfway through Module 3, with the second half covering more advanced web vulnerabilities and exploits, like XSS, request forgery, and race conditions. I'm a little late, but the goal is to finish this up by the end of this first week of February.</p>
+
+        <p>Since this module ended up stretching through the weekend, I decided to do my first box then and there, using my knowledge up until this new checkpoint that I've gotten to. As expected, the problem wasn't that hard, and I felt a little stupid afterwards. Writeup coming soon!</p>
+
+        <p>After this is a module on Burp Suite, which has significantly less tasks in it—hopefully it's really as short as it seems! If I <i>do</i> have extra time that week, I plan to take a crack at a longer, more involved box beyond the guided rooms, just to see what happens. Hopefully I don't make the same mistakes again!</p>
+
+        <p>This dive into web hacking has really been where things started feeling 'real'—these are the same vulnerabilities that exist in actual production apps, not just textbooks. The fact that I'm building a methodology that I can actually apply in the real world makes it feel way more valuable than following a bunch of walkthroughs, and I'm excited to see where the second half of this module takes me.</p>
       </section><br>
 
       <h3>Cheers!</h3>
