@@ -323,7 +323,7 @@
       SECTIONS.forEach(section => {
         tocUl.insertAdjacentHTML(
           "beforeend",
-          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
         );
       });
     }
@@ -349,7 +349,7 @@
       
       document.querySelector("div#flagbool").innerHTML = `<section id="flags">
           <details>
-            <summary>Flags (Click to Reveal)</summary>
+            <summary><strong>Flags (Click to Reveal)</strong></summary>
             <pre><code>${flagText}</code></pre>
           </details>
         </section><br>`;
