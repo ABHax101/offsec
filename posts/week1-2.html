@@ -258,7 +258,7 @@
       SECTIONS.forEach(section => {
         tocUl.insertAdjacentHTML(
           "beforeend",
-          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
         );
       });
     }
