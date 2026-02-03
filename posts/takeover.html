@@ -123,110 +123,169 @@
       <!-- Introduction -->
       <section>
         <h2>Introduction</h2>
+        <p>Hi there! After a lot of monkey business, this is my first writeup for a box I've completed entirely on my own—I did it (sort of)!</p>
+
         <p>
-          [INTRODUCTION - Brief overview of the box. Difficulty rating, platform (HTB/THM/VulnHub), what made it interesting, key techniques you'll be using, etc.]
+          <strong>Box Name</strong>: TakeOver
+          <strong>Platform</strong>: TryHackMe
+          <strong>Difficulty</strong>: Easy
+          <strong>Estimated Time</strong>: 4 minutes (according to THM)
+          <strong>My Time</strong>: 2 hours (oh boy)
         </p>
-      </section>br>
+
+        <p>The description was simple: "Recently blackhat hackers approached us saying they could takeover and are asking us for a big ransom. Please help us to find what they can takeover." The box is focused on subdomain enumeration, which is what I just finished learning about early on in module 3. Naturally, I thought this super easy 4-minute-long room would be a good test of my skills—it's just subdomain enumeration right, how hard could it be?</p>
+
+        <p>Spoiler alert: it was harder than I thought, I had to break out a walkthrough at the end, and the solution made me feel real stupid. For my first box though, I learned a ton, and that's what matters most.</p>
+
+        <p>By the way, the content in this writeup is all based on notes I took while doing the box. Essentially, it's a live recreation of every thought that went through my mind as I was running through this thing. What you're about to read isn't just a story I concocted about the TakeOver box—it's all real, and I won't sugarcoat anything.</p>
+      </section><br>
     
-      <!-- Reconnaissance -->
+      <!-- Initial Enum -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <h4>The First Attempts</h4>
+        
+        <p>The box gave me a target domain <code>futurevera.thm</code>. With the context that it's a subdomain enumeration box, I immediately started with DNS-based tools. In my mind, there was no way it could be much more complicated than that, given that it was an easy 4-minute box.</p>
+
+        <p>The first thing I tried was visiting the page in a web browser. It gave me a warning about a self-signed SSL cert, but after that, the page loaded just fine, and as expected, it was pretty mundane. Since it did warn me about it, I figured I might as well view the SSL cert, in case something was hiding there, but there wasn't—just normal SSL cert things.</p>
+        
+        <p>Next, I tried <code>gobuster</code> in DNS mode:</p>
+        <pre><code>gobuster dns -d futurevera.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/namelist.txt</code></pre>
+        <p>Huh, that's funny. <i>Literally nothing.</i> Zero results.</p>
+
+        <p>Okay, maybe the wordlist was too small?</p>
+        <pre><code>gobuster dns -d futurevera.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-110000.txt</code></pre>
+        <p>Damn. Once again, a whole lot of <i>nothing</i>. It was taking forever and I was clearly doing something wrong.</p>
+
+        <h4>Trying Other Approaches</h4>
+        
+        <p>Since brute-forcing wasn't working, I looked back at my notes to see what smarter approaches I could use. The first thing I tried was checking the Certificate Transparency (CT) logs with <code>sublist3r</code>. Then, I realized that was kinda stupid, since it was a self-signed cert—Firefox warned me about that like 2 minutes ago. Since it was self-signed, there were no public records that I could scrape.</p>
+
+        <p>At this point I was running out of ideas. This was supposed to be a 4-minute subdomain room, and I'd already spent 15 minutes finagling with all my subdomain tools.</p>
+
+        <p>I clicked on the hint button in the corner (the hint was kinda useless, can't lie) and the little "Echo AI" character on the TryHackMe page opened up. I decided to ask it where I could go and why nothing was working. After the usual "try a longer wordlist," "make sure the domain name is correct," "use X tool instead of Y," Echo struck gold.</p>        
+      </section><br>
+      
+      <!-- vhost discovery -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Echo told me to try using ffuf to brute-force it again. At first I thought it wouldn't yield anything new, since brute force hadn't been fruitful earlier, but then I remembered something from the TryHackMe subdomain enum room: sometimes "subdomains" aren't actually separate DNS records—they're virtual hosts on the same server, differentiated by the HTTP Host header.</p>
+        <p>Alright, that had to be it! Time to try vhost enumeration with ffuf:</p>
+        <pre><code>ffuf -u http://futurevera.thm/ -H "Host: FUZZ.futurevera.thm" \
+  -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-110000.txt \
+  -fs 0
+        </code></pre>
+        <p>
+          Woah! Actual results! This found two virtual hosts:
+          <ul>
+            <li><code>portal.futurevera.thm</code></li>
+            <li><code>payroll.futurevera.thm</code></li>
+          </ul>
+        </p>
+        <p>Unfortunately, visiting either one in Firefox returned to the same page as visiting the root domain, and curl'ing them returned messages saying they were "only available via internal VPN." Interesting, but not particularly useful.</p>
+
+        <h4>HTTP vs. HTTPS</h4>
+
+        <p>Once again, I was out of ideas, and I'd already sunk <i>way</i> more than 4 minutes into this box. I decided to look at the problem description again to see if I'd missed anything. That's when it hit—I'd been enumerating on port 80, but the description said the website was at <code><strong>https</strong>://futurevera.thm</code>. What if there were different vhosts on HTTP and HTTPS?</p>
+
+        <p>I decided to try the same <code>ffuf</code> command but this time on HTTPS with the <code>-k</code> flag to ignore SSL errors.</p>
+        <pre><code>ffuf -u https://futurevera.thm/ -H "Host: FUZZ.futurevera.thm" \
+  -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-110000.txt \
+  -fs 4605 \
+  -k
+        </code></pre>
+        <p>Wow! Back to <i>literally nothing!</i> That was weird.</p>
+
+        <p>After some googling, I learned that my friend <code>gobuster</code> has a vhost mode:</p>
+        <pre><code>gobuster vhost -u "https://futurevera.thm" \
+  -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt \
+  --append-domain \
+  -k
+        </code></pre>
+        <p>
+          <strong>Finally!</strong> This one found:
+          <ul>
+            <li><code>blog.futurevera.thm</code></li>
+            <li><code>support.futurevera.thm</code></li>
+          </ul>
+
+          <p>By the way, I was over an hour and a half in at this point. I figured from the start that I'd go over the 4 minutes, but this was starting to get a little crazy.</p>
+        </p>
+      </section><br>
+
+      <!-- SSL Cert Hunting -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
         
-        <h3>Nmap Scan</h3>
-        <p>[What you're scanning for, initial thoughts before running the scan]</p>
-        
-        <pre><code>[NMAP COMMAND AND OUTPUT
-    e.g., 
-    nmap -sC -sV -oA nmap/initial 10.10.10.84
-    
-    Starting Nmap 7.94 ( https://nmap.org )
-    PORT   STATE SERVICE VERSION
-    22/tcp open  ssh     OpenSSH 7.4
-    80/tcp open  http    Apache httpd 2.4.29]</code></pre>
-        
-        <p>[ANALYSIS - What ports are open? What services? What versions? Any immediate red flags or interesting findings?]</p>
-        
-        <h3>Service Enumeration</h3>
-        <p>[Deeper dive into interesting services found. Web servers, databases, unusual ports, etc.]</p>
-        
-        <blockquote>
-          [TIP - Maybe a lesson learned about enumeration or a tool you discovered here]
-        </blockquote>
-      </section>br>
-    
-      <!-- Exploitation -->
+        <p>I started manually exploring <code>blog.futurevera.thm</code> and <code>support.futurevera.thm</code> as the "Walking an Application" room had taught me. Blog seemed normal, with nothing interesting in page source or surrounding directories. Support was similar.</p>
+
+        <p>Once again feeling lost, I looked back through my notes of this box. Remembering the very first thing I tried on this box, I decided to view Blog's and Support's SSL certificates.</p>
+
+        <p>
+          It was a stretch, but it was absolutely worth it. When I viewed the SSL certificate for support.futurevera.thm, I found something interesting in the Subject Alternative Names: <br>
+          <code>secrethelpdesk934752.support.futurevera.thm</code>
+
+          Oddly specific, and definitely worth looking into.
+        </p>
+
+        <h4>Things that didn't work</h4>
+
+        <p>
+          Here's where I started going in circles. I knew damn well that this super-secret SAN had to be connected to the answer somehow, so I tried pretty much everything I could:
+
+          <ul>
+            <li>Added it to /etc/hosts and visited it in the browser on HTTPS. It just redirected to the main site</li>
+            <li>Curled it with the Host header, got a "misdirected request" error about SNI mismatch. It was cool, but I didn't know what to do with it.</li>
+            <li>Checked if it had anything on <a href="https://crt.sh/">crt.sh</a>. Still nothing—still a self-signed cert.</li>
+            <li>Tried to <code>dig</code> on all of the domains. You guessed it, nothing.</li>
+            <li>Went back to <code>blog.futurevera.thm</code> thinking maybe the secrethelpdesk SAN was a distraction; figured out that <code>blog.futurevera.thm</code> itself was probably the distraction.</li>
+          </ul>
+
+          I'd crossed the 2-hour mark by now, wiped clean of ideas, and starting to go a little bit crazy. With genuinely no idea what else to try, I did something I really didn't want to do, and looked up a walkthrough.
+        </p>
+      </section><br>
+
+      <!-- the solution -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
         
-        <p>[How you identified the vulnerability. Was it through banner grabbing? Directory busting? Searchsploit?]</p>
-        
-        <h3>Finding the Entry Point</h3>
-        <p>[The process of finding what to exploit - include failed attempts!]</p>
-        
-        <pre><code>[COMMANDS YOU RAN - gobuster, nikto, searchsploit, etc.]</code></pre>
-        
-        <p>[What you found and why it's exploitable]</p>
-        
-        <h3>Initial Foothold</h3>
-        <p>[How you got your first shell/access]</p>
-        
-        <pre><code>[EXPLOIT CODE OR COMMANDS]</code></pre>
-        
-        <!-- For screenshots of successful exploitation -->
-        <!-- <img src="[PATH/TO/IMAGE]" alt="Getting initial shell"> -->
-        
-        <h4>Things That Didn't Work</h4>
-        <p>[Be honest - what did you try that failed? This is important for learning!]</p>
-        
-        <ul>
-          <li>[FAILED ATTEMPT 1 - and why it didn't work]</li>
-          <li>[FAILED ATTEMPT 2]</li>
-          <li>[WHAT YOU LEARNED FROM THESE FAILURES]</li>
-        </ul>
-      </section>br>
-    
-      <!-- Privilege Escalation -->
-      <section class="blog-section">
-        <h2 class="sectheading"></h2>
-        
-        <p>[How you approached privesc. What enumeration you did after getting initial access.]</p>
-        
-        <h3>Enumeration</h3>
-        <p>[LinPEAS, manual checks, interesting files, SUID binaries, sudo permissions, etc.]</p>
-        
-        <pre><code>[ENUMERATION COMMANDS AND KEY FINDINGS]</code></pre>
-        
-        <h3>The Privilege Escalation Vector</h3>
-        <p>[What vulnerability or misconfiguration allowed you to escalate]</p>
-        
-        <ol>
-          <li>[STEP 1 of privesc]</li>
-          <li>[STEP 2]</li>
-          <li>[STEP 3]</li>
-        </ol>
-        
-        <pre><code>[FINAL PRIVESC COMMANDS]</code></pre>
-        
-        <p>[Explanation of why this worked]</p>
-      </section>br>
-    
+        <p>The answer was almost insultingly straightforward.</p>
+
+        <p>Remember when I realized that we needed to do vhost enumeration on HTTPS and not HTTP? Well, they switched it up on me. I had been visiting <code>secrethelpdesk934752.support.futurevera.thm</code> on HTTPS (port 443), just like everything else, but the flag was on HTTP (port 80).</p>
+
+        <p>Upon visiting <code>secrethelpdesk934752.support.futurevera.thm</code> (after adding it to <code>/etc/hosts</code>), it immediately redirected me to an S3 bucket URL, and the flag was right there in the address bar, staring me in the face:</p>
+        <pre><code>https://flag{beea0d6edfcee06a59b83fb50ae81b2f}.s3-website-us-west-3.amazonaws.com/</code></pre>
+
+        <p>That's it. That's the whole solution.</p>
+      </section><br>
+      
       <!-- Lessons Learned -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
-        <p>
-          [REFLECTION - What was the main lesson from this box? What clicked for you? What would you do differently next time? How does this fit into the bigger picture of your learning?]
-        </p>
         
-        <h3>Key Takeaways</h3>
+        <p>The big lesson from this box ties nicely into the big theme from week 3:</p>
+        <blockquote>Assumptions are evil; everything is guilty until proven innocent.</blockquote>
+
+        <p>I <i>assumed</i> that since the other subdomains were on HTTPS, this one would be too. I <i>assumed</i> that since port 80 hadn't revealed much earlier, it wouldn't reveal anything here either. Both assumptions were wrong, and they cost me hours of solving the wrong problem.</p>
+
+        <p>All in all, this box was humbling: even when I did <i>basically everything</i> right, the smallest assumption derailed everything. But honestly, I feel like I've learned way more from this ordeal than I would have from breezing through it in the intended 4 minutes, and that's still a huge win to me. At the very least, it made for a more interesting writeup.</p>
+
+        <h4>Key Takeaways:</h4>
         <ul>
-          <li>[TECHNICAL LESSON - e.g., "Always check for default credentials before trying complex exploits"]</li>
-          <li>[METHODOLOGY LESSON - e.g., "Enumeration is never complete - go back and enumerate again when stuck"]</li>
-          <li>[TOOL/TECHNIQUE LEARNED - e.g., "Learned how to properly use Burp Suite for parameter fuzzing"]</li>
+          <li>Virtual hosts exist! Remembering this earlier could have saved me a whole hour. This is why <code>ffuf</code> or <code>gobuster vhost</code> are so important in the beginning.</li>
+          <li>Always check SSL certificates. Had I not randomly tried this, I'd have missed the <code>secrethelpdesk</code> entirely; it's a great way to find subdomains that don't appear in any wordlists.</li>
+          <li>Test both HTTP and HTTPS. This one's pretty obvious now—never making that mistake again!</li>
+          <li>Question your assumptions constantly. If something that should be working just <i>isn't</i>, remember that it might just be you.</li>
         </ul>
-        
-        <h3>What I'd Do Differently</h3>
-        <p>[Be honest about mistakes or inefficiencies in your approach]</p>
-      </section>br>
+
+        <h4>Final Thoughts</h4>
+        <p>Yeah, I feel a bit stupid now, but this is exactly why I'm documenting this—so I can look back and see where I went wrong, and so I don't make the same mistake twice.</p>
+        <p>This has confirmed yet again that when something feels impossible, it's probably just me overthinking it. Sometimes the answer really is as simple as "try the other port."</p>
+
+        <p>On to the next one.</p>
+      </section><br>
     
       <!-- Flags -->
       <div id="flagbool"></div><br>
@@ -249,7 +308,7 @@
     const TITLE = "TakeOver - The 4-Minute box that took me 2 whole hours";
     const DATE = "2026-2-1";
     const TAGS = ["TryHackMe", "Easy", "Subdomain Enumeration"]; // Adjust as needed
-    const SECTIONS = ["Initial Enumeration", "Virtual Host Discovery", "SSL Certificate Hunting", "The Solution (and the Facepalm)", "Lessons Learned"];
+    const SECTIONS = ["Initial Enumeration", "Virtual Host Discovery", "SSL Certificate Hunting", "The Solution (Yes, It Was That Simple)", "Lessons Learned"];
     const FLAGS = {
       user: null,
       root: "flag{beea0d6edfcee06a59b83fb50ae81b2f}"
@@ -293,7 +352,7 @@
             <summary>Flags (Click to Reveal)</summary>
             <pre><code>${flagText}</code></pre>
           </details>
-        </section>br>`;
+        </section><br>`;
     }
   </script>
 </body>
