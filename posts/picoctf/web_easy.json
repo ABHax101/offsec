@@ -265,15 +265,15 @@
                 "text": "\"Welcome to my flag distribution website! If you're reading this, your browser has succesfully received the flag. Here's a bookmarklet for you to try:",
                 "subNodes": [
                   {
-                    "text": "javascript:(function() {",
-                    "text": "var encryptedFlag = \"àÒÆÞ¦È¬ëÙ£ÖÓÚåÛÑ¢ÕÓÒËÉ§©í\";",
-                    "text": "var key = \"picoctf\";",
-                    "text": "var decryptedFlag = \"\";",
-                    "text": "for (var i = 0; i < encryptedFlag.length; i++) {",
-                    "text": "decryptedFlag += String.fromCharCode((encryptedFlag.charCodeAt(i) - key.charCodeAt(i % key.length) + 256) % 256);",
-                    "text": "}",
-                    "text": "alert(decryptedFlag);",
-                    "text": "})();\""
+                    "text": "javascript:(function() {"},{
+                    "text": "var encryptedFlag = \"àÒÆÞ¦È¬ëÙ£ÖÓÚåÛÑ¢ÕÓÒËÉ§©í\";"},{
+                    "text": "var key = \"picoctf\";"},{
+                    "text": "var decryptedFlag = \"\";"},{
+                    "text": "for (var i = 0; i < encryptedFlag.length; i++) {"},{
+                    "text": "decryptedFlag += String.fromCharCode((encryptedFlag.charCodeAt(i) - key.charCodeAt(i % key.length) + 256) % 256);"},{
+                    "text": "}"},{
+                    "text": "alert(decryptedFlag);"},{
+                    "text": "})();\""}
                   }
                 ]
               }
