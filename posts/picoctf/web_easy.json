@@ -456,10 +456,10 @@
                 "text": "oh, nevermind. found it. description says \"Your goal is to explore the application and find the endpoint that generates files holding the server's memory\" right - that sounds a lot like this /heapdump endpoint. let's curl it",
                 "subNodes": [
                   {
-                    "text": "WOAH, bad idea lol. who woulda thought the server memory has a LOT of stuff in it? so, supposedly the flag is in here huh?"
+                    "text": "WOAH, bad idea lol. who woulda thought the server memory has a LOT of stuff in it? let's output to a file instead of the terminal"
                   },
                   {
-                    "text": "oh. it's just plaintext lol. i just searched for \"pico\" within the file, it was just in the middle somewhere. easy peasy."
+                    "text": "oh. it's just in plaintext lol. i just searched for \"pico\" within the file, it was just in the middle somewhere. easy peasy."
                   }
                 ]
               }
