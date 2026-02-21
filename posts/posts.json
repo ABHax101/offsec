@@ -1,9 +1,9 @@
 [
   {
-    "title": "picoCTF: The Easier Easy Boxes",
+    "title": "picoCTF: The Easier Easy Web Boxes",
     "file": "posts/pico-easier-easy.html",
     "date": "2026-2-20",
-    "excerpt": "The 4-Minute box that took me 2 whole hours",
+    "excerpt": "I guess they weren't kidding when they said 'easy'.",
     "tags": ["picoCTF", "Web Exploitation", "Timeline", "Easy"]
   },
   {
