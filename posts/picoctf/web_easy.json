@@ -274,7 +274,6 @@
                     "text": "}"},{
                     "text": "alert(decryptedFlag);"},{
                     "text": "})();\""}
-                  }
                 ]
               }
             ]
