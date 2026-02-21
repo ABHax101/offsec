@@ -1,0 +1,905 @@
+{
+  "boxes": [
+    {
+      "title": "SSTI1",
+      "difficulty": "easy",
+      "order": 1,
+      "content": {
+        "nodes": [
+          {
+            "text": "Easy difficulty lmao, we'll see about that",
+            "subNodes": []
+          },
+          {
+            "text": "\"I made a cool website where you can announce whatever you want! Try it out! I heard templating is a cool and modular way to build web apps! Check out my website here!\"",
+            "subNodes": [
+              {
+                "text": "My xss nerves are already tingling"
+              },
+              {
+                "text": "Aha, yep! basically clicking OK after putting something in the announcement box sends you to a new page, it's just an H1 with the contents inside it.",
+                "subNodes": [
+                  {
+                    "text": "hello</h1><script>alert(\"XSS\")</script><h1> resulted in page says hello and the alert worked, so there IS an xss problem here."
+                  },
+                  {
+                    "text": "let's see if its a php app: hello</h1><?php echo \"Hi from PHP\" ?><h1>",
+                    "subNodes": [
+                      {
+                        "text": "nope, php bit got turned into a comment"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "oh, nevermind, the room is literally called SSTI - that's server side template injection not just XSS. i didn't know SSTIs were a thing lol, i guess i do now. i assume I need to find a way to exploit SSTI on \"Werkzeug/3.0.3 Python/3.8.10\" servers."
+              },
+              {
+                "text": "never done SSTI before; Claude says with this stack it's probably Jinja2 templating (flask's default template engine) and so if i can run basic template exprs like {{7*7}} and have it return 49 instead of literally \"{{7*7}}\" then thats the way to go.",
+                "subNodes": [
+                  {
+                    "text": "AHA! that's it. we got 49. i tried {{config}} and it told me that the app root is \"/\" so i'm gonna try to start a reverse shell and peek around."
+                  },
+                  {
+                    "text": "lmao nvm i'll just execute commands from the site, this is weird. rev shell payloads giving error messages like \"The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.\""
+                  }
+                ]
+              },
+              {
+                "text": "claude recommends to run this payload {{''.__class__.__mro__[1].__subclasses__()}} to see which subclasses are available to use. never woulda thought of doing that, didn't know that was even a thing u can do in python, but i do now know that subprocess.Popen is available for us to use.",
+                "subNodes": [
+                  {
+                    "text": "i didn't like not knowing wtf i was actually doing; tried to figure out what this whole mro subclasses stuff is all about. heres what i got:",
+                    "subNodes": [
+                      {
+                        "text": "every object has this __class__ attr to tell you what kind of class it is. 'helloworld'.__class__ for example returns <class 'str'>"
+                      },
+                      {
+                        "text": "every class has this __mro__ attr (method resolution order) which shows the full chain of inheritance, all the way from the base object class"
+                      },
+                      {
+                        "text": "''.__class__.__mro__ returns (<class 'str'>, <class 'object'>); thats the entire chain. by getting [1] of this tuple we reference the base object class"
+                      },
+                      {
+                        "text": "running .__subclasses__() we can get a list of all classes that inherit from the referenced class",
+                        "subNodes": [
+                          {
+                            "text": "by running it on the object class, we effectively get a list of every class in the program available for us to mess with, since literally everything inherits the object class."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "we gotta find the exact index of Popen. i used some JS to do this",
+                "subNodes": [
+                  {
+                    "text": "let s = \"[<class 'type'>, <class 'weakref'>, <class 'weakcallableproxy'>...\"; let sClean = s.replaceAll(\"<\", '\"<').replaceAll(\">\", '\">\"'); let arr = JSON.parse(sClean); console.log(arr.indexOf(\"<class 'subprocess.Popen'>\")) // we got 356"
+                  },
+                  {
+                    "text": "{{''.__class__.__mro__[1].__subclasses__()[356]}} does indeed return \"<class 'subprocess.Popen'>\". we're good."
+                  }
+                ]
+              },
+              {
+                "text": "{{''.__class__.__mro__[1].__subclasses__()[356]('pwd', shell=True,stdout=-1).communicate()}} returned \"(b'/challenge\\n', None).\" is that a tuple?",
+                "subNodes": [
+                  {
+                    "text": "yes. {{''.__class__.__mro__[1].__subclasses__()[356]('pwd', shell=True,stdout=-1).communicate()[0]}} gives b'/challenge\\n'"
+                  }
+                ]
+              },
+              {
+                "text": "let's try running 'ls' the same way; returns b'__pycache__\\napp.py\\nflag\\nrequirements.txt'"
+              },
+              {
+                "text": "oh hey cool! let's do 'cat flag'; it worked! done."
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "reminiscent of takeover in that i had the right idea, looking for reflection and all. i just didn't know where to go from there--doesn't help that ive never used flask before lol. good to know though, another vuln under my belt"
+        ]
+      },
+      "flag": "picoCTF{s4rv3r_s1d3_t3mp14t3_1nj3ct10n5_4r3_c001_4675f3fa}"
+    },
+    {
+      "title": "Inspect HTML",
+      "difficulty": "easy",
+      "order": 2,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff and Inspect HTML? no shot this is hard right?",
+            "subNodes": []
+          },
+          {
+            "text": "\"Can you get the flag? Go to this website and see what you can discover.\" I hope im not about to get immensely humbled lol",
+            "subNodes": [
+              {
+                "text": "ok, that was stupid lol. flag is just in a casual little HTML comment. they didn't even try to hide it."
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{1n5p3t0r_0f_h7ml_8113f7e2}"
+    },
+    {
+      "title": "Crack the Gate 1",
+      "difficulty": "easy",
+      "order": 3,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff, but longer description lol. it says: \"We're in the middle of an investigation. One of our persons of interest, ctf player, is believed to be hiding sensitive data inside a restricted web portal. We've uncovered the email address he uses to log in: ctf-player@picoctf.org. Unfortunately, we don't know the password, and the usual guessing techniques haven't worked. But something feels off... it's almost like the developer left a secret way in. Can you figure out?\"",
+            "subNodes": []
+          },
+          {
+            "text": "interesting. veeeery interesting. I first try to log in with rando credentials to see what happens. we're POSTing to /login (application/json) with an email and password param (pretty straightforward) and if responses are success=false or success=true. i think it's ffuf time.",
+            "subNodes": [
+              {
+                "text": "first lemme try with curl to see what our response looks like: curl -X POST -H \"Content-Type: application/json\" -d '{\"email\": \"feaseads\", \"password\": \"sdfjklsjeklfj\"}' http://amiable-citadel.picoctf.net:50705/login",
+                "subNodes": [
+                  {
+                    "text": "returns {\"success\":false,\"error\":\"Unauthorized access.\"}. it also gives HTTP/1.1 401 Unauthorized. now i know what to filter with ffuf."
+                  }
+                ]
+              },
+              {
+                "text": "ffuf -X POST -H \"Content-Type: application/json\" -d '{\"email\": \"ctf-player@picoctf.org\", \"password\": \"FUZZ\"}' -u \"http://amiable-citadel.picoctf.net:64573/login\" -w xato-net-10-million-passwords-10000.txt -fc 401",
+                "subNodes": [
+                  {
+                    "text": "shi, nothing lmao. bigger wordlist? xato-net-10-million-passwords-100000.txt?"
+                  },
+                  {
+                    "text": "oh, i took too long and the machine turned off lmfao. let's try again",
+                    "subNodes": [
+                      {
+                        "text": "still nothing. hint maybe?"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "the hint says that Developers sometimes leave notes in the code; but not always in plain text. upon inspecting we get this comment: \"<!-- ABGR: Wnpx - grzcbenel olcnff: hfr urnqre \"K-Qri-Npprff: lrf\" -->\" seems like rot13 or something?",
+                "subNodes": [
+                  {
+                    "text": "oh shit, it WAS rot13. i feel smart now lol. \"<!-- NOTE: Jack - temporary bypass: use header \"X-Dev-Access: yes\" -->\""
+                  },
+                  {
+                    "text": "ok, easy money. lets try curl again: curl -X POST -H \"Content-Type: application/json\" -H \"X-Dev-Access: yes\" -d '{\"email\": \"ctf-player@picoctf.org\", \"password\": \"sdfjklsjeklfj\"}' http://amiable-citadel.picoctf.net:64573/login"
+                  }
+                ]
+              },
+              {
+                "text": "easy money indeed. response gives us: {\"success\":true,\"email\":\"ctf-player@picoctf.org\",\"firstName\":\"pico\",\"lastName\":\"player\",\"flag\":\"picoCTF{brut4_f0rc4_83812a02}\"}"
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "that lowkey took too long. i think right about now is a good time to pause and come up with an actual step-by-step methodology to use for these web rooms. i'm once again letting assumptions screw me over, starting where I *think* i should start rather than building a base of knowledge around the app that would actually help me crack it; when the room description tells me all that i need to know, like how TakeOver's said that it revolved around subdomain enum, Inspect HTML's was literally in the name, I can have that starting point off the gate and get lucky with it, but i'll be missing important things that will bite me later. we cant have that happen during picoCTF.",
+          "looking at my writeups so far, i *am* doing a lot of things correctly - they just need to become more systematic, and i need to stop second-guessing myself. my idea for that system:",
+          "1. Recon (the most important step):",
+          "  - Visit all pages and click everything; test all functionality (forms, buttons, inputs, etc)",
+          "    - Note any and all errors, versions, etc (errors can reveal framework as well)",
+          "  - Wappalyzer",
+          "  - Look at robots.txt and sitemap.xml if they exist",
+          "  - Check Devtools:",
+          "    - View source on EVERY PAGE",
+          "    - Network (ALL requests, responses, headers, etc)",
+          "    - Console (errors, debug, etc)",
+          "    - Application/Storage (cookies, localstorage, sessionstorage)",
+          "    - Security (SSL info)",
+          "    - Sources (weird JS, any other imported files)",
+          "2. Enumeration",
+          "  - directories",
+          "    - if interesting endpoints found, try fuzzing for parameters",
+          "  - subdomains (dns)",
+          "  - vhost",
+          "  - try on port 80 AND port 443; they can be different",
+          "3. Test For Specific Vulns",
+          "  - what's the room called? that might be a hint",
+          "  - input reflection? check for XSS, SSTI, SQLi, etc",
+          "  - authentication? check default creds, brute force, other bypass techniques",
+          "  - server software/templating engine visible? try for SSTI",
+          "  - hidden comments, headers? check for dev notes"
+        ]
+      },
+      "flag": "picoCTF{brut4_f0rc4_83812a02}"
+    },
+    {
+      "title": "WebDecode",
+      "difficulty": "easy",
+      "order": 4,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Do you know how to use the web inspector? Start searching here to find the flag.\" Seems like it might be low-hanging fruit again, like with Inspect HTML? idk, let's see.",
+            "subNodes": []
+          },
+          {
+            "text": "since it's mentioning the web inspector, let's start our recon there on every page",
+            "subNodes": [
+              {
+                "text": "<section class=\"about\" notify_true=\"cGljb0NURnt3ZWJfc3VjYzNzc2Z1bGx5X2QzYzBkZWRfZGYwZGE3Mjd9\"> what the hell lol",
+                "subNodes": [
+                  {
+                    "text": "base64?"
+                  }
+                ]
+              },
+              {
+                "text": "oh, that was easy. that base64 is literally the flag."
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{web_succ3ssfully_d3c0ded_df0da727}"
+    },
+    {
+      "title": "Bookmarklet",
+      "difficulty": "easy",
+      "order": 5,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Why search for the flag when I can make a bookmarklet to print it for me?\" that's intriguing.",
+            "subNodes": []
+          },
+          {
+            "text": "wait, what? page content says:",
+            "subNodes": [
+              {
+                "text": "\"Welcome to my flag distribution website! If you're reading this, your browser has succesfully received the flag. Here's a bookmarklet for you to try:",
+                "subNodes": [
+                  {
+                    "text": "javascript:(function() {",
+                    "text": "var encryptedFlag = \"àÒÆÞ¦È¬ëÙ£ÖÓÚåÛÑ¢ÕÓÒËÉ§©í\";",
+                    "text": "var key = \"picoctf\";",
+                    "text": "var decryptedFlag = \"\";",
+                    "text": "for (var i = 0; i < encryptedFlag.length; i++) {",
+                    "text": "decryptedFlag += String.fromCharCode((encryptedFlag.charCodeAt(i) - key.charCodeAt(i % key.length) + 256) % 256);",
+                    "text": "}",
+                    "text": "alert(decryptedFlag);",
+                    "text": "})();\""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "too easy? lemme try running in console real quick",
+            "subNodes": [
+              {
+                "text": "What the hell, that was it lmaoo"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{p@g3_turn3r_6bbf8953}"
+    },
+    {
+      "title": "Unminify",
+      "difficulty": "easy",
+      "order": 6,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"I don't like scrolling down to read the code of my website, so I've squished it. As a bonus, my pages load faster!\" Ok, i think i know what we're gonna be doing here.",
+            "subNodes": []
+          },
+          {
+            "text": "it has genuinely been 20 seconds since I've opened the app. i opened the inspector immediately since we were supposedly trying to find some JS. expanded one element and theres this fucking thing:",
+            "subNodes": [
+              {
+                "text": "<p class=\"picoCTF{pr3tty_c0d3_ed938a7e}\"></p>"
+              }
+            ]
+          },
+          {
+            "text": "That was pretty easy lol",
+            "subNodes": []
+          }
+        ],
+        "reflections": [
+          "I think I know what they meant by \"Unminify\" now - i think they were expecting me to hit \"View page source\", not \"inspect element\". in the view-source page all the HTML is in one line. in the inspector it's organized by hierarchy and i can see everything in pretty print. thats pretty wild though lol, new PR time?"
+        ]
+      },
+      "flag": "picoCTF{pr3tty_c0d3_ed938a7e}"
+    },
+    {
+      "title": "Includes",
+      "difficulty": "easy",
+      "order": 7,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "nothing telling in the description. i viewed the hint by accident, it said \"Is there more code than what the inspector initially shows?\" call it a hunch but i think this is a file inclusion room lol",
+            "subNodes": []
+          },
+          {
+            "text": "theres a button that says \"Say hello.\" it alerts, saying \"This code is in a separate file!\" let's go find that file.",
+            "subNodes": [
+              {
+                "text": "i opened the network tab and reloaded the page. we see a request to script.js. i open script.js and theres a comment at the bottom. it looks like the second half of the flag (f7w_2of2_6edef411}), whered the other half go?"
+              },
+              {
+                "text": "i decided to open all the other requests in the network tab. it appears that the first half is in a comment at the bottom of style.css (picoCTF{1nclu51v17y_1of2_). easy enough lol"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{1nclu51v17y_1of2_f7w_2of2_6edef411}"
+    },
+    {
+      "title": "Local Authority",
+      "difficulty": "easy",
+      "order": 8,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "once again, description just says \"Can you get the flag?\" so let's see what we can do. In the tags on picoCTF i see \"inspector\" again, so i imagine this box will end shortly after recon like the others.",
+            "subNodes": []
+          },
+          {
+            "text": "theres a username and password box. it says \"Only letters and numbers allowed for username and password.\" in the HTML we see a <form role=\"form\" action=\"login.php\" method=\"post\">. let's see what happens in the network tab:",
+            "subNodes": [
+              {
+                "text": "upon submitting we were redirected to login.php and we have a \"Log In Failed\" message. looking at the headers and payload theres really nothing special here, but going to the response reveals an interesting <script>",
+                "subNodes": [
+                  {
+                    "text": "inside the script we see a filter() function; seems that this is what makes sure theres only letters and numbers"
+                  },
+                  {
+                    "text": "theres this thing: \"checkPassword(window.username, window.password);\" i dont see this function within this <script> so it must be in another file somewhere. lets find it",
+                    "subNodes": [
+                      {
+                        "text": "ayy, bingo. under sources in \"secure.js\", we find the function and see this awesome if statement: \"if( username === 'admin' && password === 'strongPassword098765' ) { return true; } else { return false; }\""
+                      },
+                      {
+                        "text": "yep, that was pretty easy. successful login redirects us to a page with nothing but flag on it lol"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "also, i couldnt help but notice that in that <script>, our input for username and password was like this: window.username = \"gddrgs\"; window.password = \"asefasefasf\"; I feel like we can treat this room as an XSS room as well since our input is being reflected into the JS directly. the secure.js file is imported before this <script> element so what if we just redefine the checkPassword method? let's try",
+          "username: eeeee",
+          "password: eeeee\"; checkPassword(u, p) = () => { return true; } var emptyString = \"",
+          "illegal characters in password. ok, fair enough.",
+          "looks like we're getting urlencoded: \"eeeee&quot;; checkPassword(u, p) = () =&gt; { return true; } var emptyString = &quot;\"; what if we stick a null byte in there at the end? password: eeeee%00this_shouldnt_be_in_the_string",
+          "nope, it's totally in the string. window.password = \"eeeee%00this_shouldnt_be_in_the_string\";",
+          "ok, maybe no XSS in this one 😅 the filter aint bad (at least to my knowledge)",
+          "cc = string.charCodeAt(i); if ( (cc >= 48 && cc <= 57) || (cc >= 65 && cc <= 90) || (cc >= 97 && cc <= 122) ) /* return true or false*/",
+          "theres probably a way to break it but i havent found it yet. i think this is a good place to call it for today, time to go have lunch."
+        ]
+      },
+      "flag": "picoCTF{j5_15_7r4n5p4r3n7_a8788e61}"
+    },
+    {
+      "title": "Cookie Monster Secret Recipe",
+      "difficulty": "easy",
+      "order": 9,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Cookie Monster has hidden his top-secret cookie recipe somewhere on his website. As an aspiring cookie detective, your mission is to uncover this delectable secret. Can you outsmart Cookie Monster and find the hidden recipe?\"",
+            "subNodes": []
+          },
+          {
+            "text": "alrighty, time to actually use that recon framework i made.",
+            "subNodes": [
+              {
+                "text": "theres a username/password box as part of a POST form. let's see what happens when i enter something random?",
+                "subNodes": [
+                  {
+                    "text": "redirects to login.php. page says \"Cookie Monster says: 'Me no need password. Me just need cookies!'\""
+                  },
+                  {
+                    "text": "ok, wait a second, it's literally called cookie monster lmao. if the flag is just in cookies that would be cool.",
+                    "subNodes": [
+                      {
+                        "text": "it was in the cookies. there was a cookie called secret_recipe with the flag base64'd"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{c00k1e_m0nster_l0ves_c00kies_A6FA07D8}"
+    },
+    {
+      "title": "head-dump",
+      "difficulty": "easy",
+      "order": 10,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "simple blog website where you can read articles about various topics, including an article about API Documentation; goal is to explore the application and find the endpoint that generates files holding the server's memory, where a secret flag is hidden. well thats interesting. maybe this is one of the harder easy diff boxes",
+            "subNodes": []
+          },
+          {
+            "text": "indeed, it is just a simple blog website. seems pretty mundane overall (though i've learned to grow weary nonetheless). i found the link to the api documentation, this seems interesting.",
+            "subNodes": [
+              {
+                "text": "it links to the Swagger UI API docs. wappalyzer confirms that this is some sort of site generator. SSTI kinda thing?"
+              },
+              {
+                "text": "oh, nevermind. found it. description says \"Your goal is to explore the application and find the endpoint that generates files holding the server's memory\" right - that sounds a lot like this /heapdump endpoint. let's curl it",
+                "subNodes": [
+                  {
+                    "text": "WOAH, bad idea lol. who woulda thought the server memory has a LOT of stuff in it? so, supposedly the flag is in here huh?"
+                  },
+                  {
+                    "text": "oh. it's just plaintext lol. i just searched for \"pico\" within the file, it was just in the middle somewhere. easy peasy."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{Pat!3nt_15_Th3_K3y_dcffa92e}"
+    },
+    {
+      "title": "where are the robots",
+      "difficulty": "easy",
+      "order": 11,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Can you find the robots?\"",
+            "subNodes": []
+          },
+          {
+            "text": "i'm like 99% sure the flag is just in robots.txt or some shit lmao. let's check there",
+            "subNodes": [
+              {
+                "text": "ok, flag isnt there but we do have a \"Disallow: /cc6b1.html\" lets see what that is",
+                "subNodes": [
+                  {
+                    "text": "ah, yep. \"Guess you found the robots\" and then the flag right below it."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{ca1cu1at1ng_Mach1n3s_cc6b1}"
+    },
+    {
+      "title": "Cookies",
+      "difficulty": "easy",
+      "order": 12,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Who doesn't love cookies? Try to figure out the best one.\"",
+            "subNodes": []
+          },
+          {
+            "text": "should be easy, lets check cookies",
+            "subNodes": [
+              {
+                "text": "theres no flag in the cookies immediately. there is one cookie - name = -1"
+              },
+              {
+                "text": "\"Welcome to my cookie search page. See how much I like different kinds of cookies!\" theres a search bar. it's a POST form to /search. let's see what happens in network when i submit something random",
+                "subNodes": [
+                  {
+                    "text": "we get an error: \"That doesn't appear to be a valid cookie.\" network tab reveals a Set-Cookie header though and theres an interesting looking value in there. NOW lets check cookies"
+                  },
+                  {
+                    "text": "still nothing in cookies. the set-cookie itself looks like this:",
+                    "subNodes": [
+                      {
+                        "text": "session=eyJfZmxhc2hlcyI6W3siIHQiOlsiZGFuZ2VyIiwiVGhhdCBkb2Vzbid0IGFwcGVhciB0byBiZSBhIHZhbGlkIGNvb2tpZS4iXX1dfQ.aYocDw.51CS9KCxwv1RDfK7GmzTd1iEZts"
+                      },
+                      {
+                        "text": "looks like base64"
+                      },
+                      {
+                        "text": "decoding it reveals that message we got at the top that \"this doesnt appear to be a valid cookie.\" interesting. veeeeeeery interesting. idk what to do with that information though.",
+                        "subNodes": [
+                          {
+                            "text": "{\"_flashes\":[{\" t\":[\"danger\",\"That doesn't appear to be a valid cookie.\"]}]} and then some rando bytes at the end"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "seems like when it reloads the page and hands us this error message, the actual home page of the site also has session=eyJfZmxhc2hl...... set. if thats being reflected onto the page, i think we might be able to influence that.",
+                    "subNodes": [
+                      {
+                        "text": "lets try setting the message to \"testing\" and re-base64-ing."
+                      },
+                      {
+                        "text": "curling like this doesnt seem to do anything."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "i notice that theres this link \"Home\" which routes to /reset. let's see what /reset looks like in curl",
+                    "subNodes": [
+                      {
+                        "text": "\"Set-Cookie: name=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/\""
+                      },
+                      {
+                        "text": "seems to just be normal \"reset\" functionality"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "wait a minute, theres an html comment: <!-- Categories: success (green), info (blue), warning (yellow), danger (red) --> i think i know what to do with the session cookie now. let's change it from danger to success and re-curl.",
+                    "subNodes": [
+                      {
+                        "text": "once again, when we get that \"danger\" message, in the request headers, I see that Cookie has session=........., so when we curl, we can set that header. i think this might work"
+                      },
+                      {
+                        "text": "let's base64 this: {\"_flashes\":[{\" t\":[\"success\",\"Completely valid cookie!\"]}]}, and stick the same rando session bytes at the end and use that as payload"
+                      },
+                      {
+                        "text": "curl -H \"Cookie: session=eyJfZmxhc2hlcyI6W3siIHQiOlsic3VjY2VzcyIsIkNvbXBsZXRlbHkgdmFsaWQgY29va2llISJdfV19.aYocDw.51CS9KCxwv1RDfK7GmzTd1iEZts\" -v http://wily-courier.picoctf.net:59683/",
+                        "subNodes": [
+                          {
+                            "text": "it says it's redirecting. let's add -L to the curl command to follow the redirects. i never knew this was a thing! seems useful.",
+                            "subNodes": [
+                              {
+                                "text": "that just redirects like 50 times, maybe not the way."
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "WOAH! the input thing has a placeholder of snickerdoodle for cookie type - i tried entering that for the first time just now and it redirects to /check. let's see whats going on here",
+                    "subNodes": [
+                      {
+                        "text": "the page says \"I love snickerdoodle cookies!\""
+                      },
+                      {
+                        "text": "remember the name=-1 cookie from earlier? this site sets it to 0. when i set it to something else, like 5, and reload, the page now says \"I love peanut butter cookies!\" seems like we might be able to find something interesting here.",
+                        "subNodes": [
+                          {
+                            "text": "let's try to find the max value of this",
+                            "subNodes": [
+                              {
+                                "text": "it goes from 0 to 28. oddly specific."
+                              },
+                              {
+                                "text": "they all at the top say \"That is a cookie! Not very special though...\" in the same kind of prompt as the danger message. these however are success messages."
+                              },
+                              {
+                                "text": "trying any index outside of these redirects back to the homepage and gives the same invalid cookie type message."
+                              },
+                              {
+                                "text": "how i found the top bound was just test random vals for the top bound. i havent viewed all cookies from 0-28 yet. let's try fuzzing that",
+                                "subNodes": [
+                                  {
+                                    "text": "never mind lmao ffuf isnt installed on this laptop. i guess it's fine, it's only 28 indices. please hold.",
+                                    "subNodes": [
+                                      {
+                                        "text": "that was it! index 18 just has the flag on it."
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "this challenge is kinda evil! with so many possible indices, it trains you to stop checking. once again, it seemed innocent and wasn't. it wasnt until the instance restarted for a 3rd time (times out in 30 min) that I actually tried testing all the cookies - I never even thought to check every single one. good lesson."
+        ]
+      },
+      "flag": "picoCTF{3v3ry1_l0v3s_c00k135_a4dadb49}"
+    },
+    {
+      "title": "Insp3ct0r",
+      "difficulty": "easy",
+      "order": 13,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "seems easy enough, more inspect HTML stuff. let's do this",
+            "subNodes": []
+          },
+          {
+            "text": "aha, ok. same stuff - flag is in HTML comments, but this time it's split into parts",
+            "subNodes": [
+              {
+                "text": "part 1/3: <!-- Html is neat. Anyways have 1/3 of the flag: picoCTF{tru3_d3 -->"
+              },
+              {
+                "text": "theres nothing else in the page source. there are two other files included though - a css and a js.",
+                "subNodes": [
+                  {
+                    "text": "part 2/3 was in css: /* You need CSS to make pretty pages. Here's part 2/3 of the flag: t3ct1ve_0r_ju5t */"
+                  },
+                  {
+                    "text": "part 3/3 was in js: /* Javascript sure is neat. Anyways part 3/3 of the flag: _lucky?302945a7} */"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "easy peasy.",
+            "subNodes": []
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{tru3_d3t3ct1ve_0r_ju5t_lucky?302945a7}"
+    },
+    {
+      "title": "GET aHEAD",
+      "difficulty": "easy",
+      "order": 14,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Find the flag being held on this server to get ahead of the competition\"",
+            "subNodes": []
+          },
+          {
+            "text": "name seems networking-y.",
+            "subNodes": []
+          },
+          {
+            "text": "we're greeted with two buttons, one says \"Choose red\"; the other says \"Choose blue.\" Clicking on either one changes the background color of the page to the corresponding color. Each button is within its own form; red is in a GET form and blue is in a POST form. ok, interesting. networking-y indeed.",
+            "subNodes": [
+              {
+                "text": "thats weird, neither the GET nor the POST actually has a payload being sent along with it."
+              },
+              {
+                "text": "let's try curling with both get and post methods",
+                "subNodes": [
+                  {
+                    "text": "curling with GET returns the same page with background-color set to red"
+                  },
+                  {
+                    "text": "curling with POST is the exact same except with it set to blue. weird."
+                  }
+                ]
+              },
+              {
+                "text": "the box is called GET aHEAD right, so maybe it wants me to send via HEAD method?",
+                "subNodes": [
+                  {
+                    "text": "aha, yep! that's exactly what that meant. glad i remembered HEAD is actually a thing lol, had to google and make sure i wasnt going crazy."
+                  },
+                  {
+                    "text": "the flag is within a header called \"flag.\" note to self - GET and HEAD can return different things. that's one more important thing to remember!"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{r3j3ct_th3_du4l1ty_8b13f07}"
+    },
+    {
+      "title": "dont-use-client-side",
+      "difficulty": "easy",
+      "order": 15,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Can you break into this super secure portal?\" probably. let's see what we got",
+            "subNodes": []
+          },
+          {
+            "text": "Little login portal that says \"This is the secure login portal. Enter valid credentials to proceed\" and it has a little password input and submit input right below. let's figure out what this does",
+            "subNodes": [
+              {
+                "text": "no network requests?",
+                "subNodes": [
+                  {
+                    "text": "oh, that's why. i inspected and there's a client-side script right up at the top here, in which lives the verify() function for the password."
+                  },
+                  {
+                    "text": "<script type=\"text/javascript\">\nfunction verify() {\n    checkpass = document.getElementById(\"pass\").value;\n    split = 4;\n    if (checkpass.substring(0, split) == 'pico') {\n        if (checkpass.substring(split*6, split*7) == 'eb02') {\n            if (checkpass.substring(split, split*2) == 'CTF{') {\n                if (checkpass.substring(split*4, split*5) == 'ts_p') {\n                    if (checkpass.substring(split*3, split*4) == 'lien') {\n                        if (checkpass.substring(split*5, split*6) == 'lz_2') {\n                            if (checkpass.substring(split*2, split*3) == 'no_c') {\n                                if (checkpass.substring(split*7, split*8) == 'b45}') {\n                                    alert(\"Password Verified\")\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n    else {\n        alert(\"Incorrect password\");\n    }\n}\n</script>"
+                  },
+                  {
+                    "text": "from here i just used the indices in that function to reconstruct the flag - split 0 to 1, 1 to 2, 2 to 3, and so on. easy peasy."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{no_clients_plz_2eb02b45}"
+    },
+    {
+      "title": "logon",
+      "difficulty": "easy",
+      "order": 16,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"The factory is hiding things from all of its users. Can you login as Joe and find what they've been looking at?\"",
+            "subNodes": []
+          },
+          {
+            "text": "alrighty, as foreshadowed by the name, it's a logon form (POST). let's check network",
+            "subNodes": [
+              {
+                "text": "ok, upon trying to sign in, it seems that any user/pass combo can log you in - it just says \"No flag for you.\" Theres also an alert that says \"Success: You logged in! Not sure you'll be able to see the flag though.\""
+              },
+              {
+                "text": "upon signing in with literally anything, we're redirected to /flag. interesting URL."
+              },
+              {
+                "text": "looking in network, the request headers for /flag have these cookies - admin=False; password=test123; username=test. ok, possibly really simple? let's try curling with cookies admin=True; password=test; username=joe",
+                "subNodes": [
+                  {
+                    "text": "curl -vH \"Cookie: admin=True; password=test; username=joe\" http://fickle-tempest.picoctf.net:59106/flag"
+                  }
+                ]
+              },
+              {
+                "text": "ah, that was it. where it earlier told me \"no flag for you\" it has the flag now."
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{th3_c0nsp1r4cy_l1v3s_4d184b0d}"
+    },
+    {
+      "title": "Scavenger Hunt",
+      "difficulty": "easy",
+      "order": 17,
+      "content": {
+        "nodes": [
+          {
+            "text": "easy diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"There is some interesting information hidden around this site. Can you find it?\" ok, pretty simplistic description. let's see",
+            "subNodes": []
+          },
+          {
+            "text": "Ok, very simplistic website as well. \"Just some boring HTML\" in title; button called \"How\" reveals \"How do you like my website?\"; button called \"What\" reveals \"I used these to make this site: HTML CSS JS (JavaScript)\"",
+            "subNodes": [
+              {
+                "text": "as it says, it's just some boring HTML. let's check source",
+                "subNodes": [
+                  {
+                    "text": "first part of flag already in HTML comments"
+                  },
+                  {
+                    "text": "nothing else in html comments, but theres a myjs.js and mycss.css. let's take a look",
+                    "subNodes": [
+                      {
+                        "text": "mycss.css has the second part of the flag in a comment"
+                      },
+                      {
+                        "text": "myjs.js says \"/* How can I keep Google from indexing my website? */\" geeeeeeee, idk",
+                        "subNodes": [
+                          {
+                            "text": "it really was that easy lol, third part of flag is just in robots.txt"
+                          },
+                          {
+                            "text": "what i AM intrigued with is that robots.txt also says \"# I think this is an apache server... can you Access the next flag?\" why's Access capitalized? has to be a hint right? .htaccess perhaps?",
+                            "subNodes": [
+                              {
+                                "text": "aha, hell yeah. part 4 of the flag. .htaccess also gives another hint: \"# I love making websites on my Mac, I can Store a lot of information there.\" so then this has gotta be .DS_STORE yeah? these used to piss me off in middle school whenever i would commit lol, didn't know there were .gitignores back then",
+                                "subNodes": [
+                                  {
+                                    "text": "I screwed up the capitalization but yeah lol it's in .DS_Store. that's the last part. cool little scavenger hunt! once again glad i chose LAMP stack (for some reason) for my first app, lowkey pretty useful right now. never woulda gotten .htaccess or .DS_Store otherwise. two more things i can add to the recon framework."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{th4ts_4_l0t_0f_pl4c3s_2_lO0k_9588550}"
+    }
+  ]
+}
