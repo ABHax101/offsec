@@ -141,7 +141,7 @@
             "subNodes": []
           },
           {
-            "text": "interesting. veeeery interesting. I first try to log in with rando credentials to see what happens. we're POSTing to /login (application/json) with an email and password param (pretty straightforward) and if responses are success=false or success=true. i think it's ffuf time.",
+            "text": "interesting. veeeery interesting. I first try to log in with rando credentials to see what happens. we're POSTing to /login (application/json) with an email and password param (pretty straightforward) and responses have success=false or success=true. i think it's ffuf time.",
             "subNodes": [
               {
                 "text": "first lemme try with curl to see what our response looks like: curl -X POST -H \"Content-Type: application/json\" -d '{\"email\": \"feaseads\", \"password\": \"sdfjklsjeklfj\"}' http://amiable-citadel.picoctf.net:50705/login",
