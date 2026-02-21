@@ -221,10 +221,7 @@
       "order": 4,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Do you know how to use the web inspector? Start searching here to find the flag.\" Seems like it might be low-hanging fruit again, like with Inspect HTML? idk, let's see.",
             "subNodes": []
@@ -256,10 +253,7 @@
       "order": 5,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Why search for the flag when I can make a bookmarklet to print it for me?\" that's intriguing.",
             "subNodes": []
@@ -304,10 +298,7 @@
       "order": 6,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"I don't like scrolling down to read the code of my website, so I've squished it. As a bonus, my pages load faster!\" Ok, i think i know what we're gonna be doing here.",
             "subNodes": []
@@ -337,10 +328,7 @@
       "order": 7,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "nothing telling in the description. i viewed the hint by accident, it said \"Is there more code than what the inspector initially shows?\" call it a hunch but i think this is a file inclusion room lol",
             "subNodes": []
@@ -367,10 +355,7 @@
       "order": 8,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "once again, description just says \"Can you get the flag?\" so let's see what we can do. In the tags on picoCTF i see \"inspector\" again, so i imagine this box will end shortly after recon like the others.",
             "subNodes": []
@@ -420,10 +405,7 @@
       "order": 9,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Cookie Monster has hidden his top-secret cookie recipe somewhere on his website. As an aspiring cookie detective, your mission is to uncover this delectable secret. Can you outsmart Cookie Monster and find the hidden recipe?\"",
             "subNodes": []
@@ -460,10 +442,7 @@
       "order": 10,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "simple blog website where you can read articles about various topics, including an article about API Documentation; goal is to explore the application and find the endpoint that generates files holding the server's memory, where a secret flag is hidden. well thats interesting. maybe this is one of the harder easy diff boxes",
             "subNodes": []
@@ -498,10 +477,7 @@
       "order": 11,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Can you find the robots?\"",
             "subNodes": []
@@ -530,10 +506,7 @@
       "order": 12,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Who doesn't love cookies? Try to figure out the best one.\"",
             "subNodes": []
@@ -672,10 +645,7 @@
       "order": 13,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "seems easy enough, more inspect HTML stuff. let's do this",
             "subNodes": []
@@ -714,10 +684,7 @@
       "order": 14,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Find the flag being held on this server to get ahead of the competition\"",
             "subNodes": []
@@ -767,10 +734,7 @@
       "order": 15,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"Can you break into this super secure portal?\" probably. let's see what we got",
             "subNodes": []
@@ -805,10 +769,7 @@
       "order": 16,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"The factory is hiding things from all of its users. Can you login as Joe and find what they've been looking at?\"",
             "subNodes": []
@@ -846,10 +807,7 @@
       "order": 17,
       "content": {
         "nodes": [
-          {
-            "text": "easy diff",
-            "subNodes": []
-          },
+
           {
             "text": "\"There is some interesting information hidden around this site. Can you find it?\" ok, pretty simplistic description. let's see",
             "subNodes": []
