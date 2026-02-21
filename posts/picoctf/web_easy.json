@@ -171,7 +171,7 @@
                 "text": "the hint says that Developers sometimes leave notes in the code; but not always in plain text. upon inspecting we get this comment: \"<!-- ABGR: Wnpx - grzcbenel olcnff: hfr urnqre \"K-Qri-Npprff: lrf\" -->\" seems like rot13 or something?",
                 "subNodes": [
                   {
-                    "text": "oh shit, it WAS rot13. i feel smart now lol. \"<!-- NOTE: Jack - temporary bypass: use header \"X-Dev-Access: yes\" -->\""
+                    "text": "oh damn, it WAS rot13. i feel smart now lol. \"<!-- NOTE: Jack - temporary bypass: use header \"X-Dev-Access: yes\" -->\""
                   },
                   {
                     "text": "ok, easy money. lets try curl again: curl -X POST -H \"Content-Type: application/json\" -H \"X-Dev-Access: yes\" -d '{\"email\": \"ctf-player@picoctf.org\", \"password\": \"sdfjklsjeklfj\"}' http://amiable-citadel.picoctf.net:64573/login"
@@ -482,7 +482,7 @@
             "subNodes": []
           },
           {
-            "text": "i'm like 99% sure the flag is just in robots.txt or some shit lmao. let's check there",
+            "text": "i'm like 99% sure the flag is just in robots.txt or some crap lmao. let's check there",
             "subNodes": [
               {
                 "text": "ok, flag isnt there but we do have a \"Disallow: /cc6b1.html\" lets see what that is",
