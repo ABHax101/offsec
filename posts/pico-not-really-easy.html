@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal – picoCTF web tier writeups">
+  <meta name="author" content="Aditya Bhardwaj">
+  <title>The Offsec Journal</title>
+  <link rel="stylesheet" href="pico.green.min.css">
+  <style>
+    /* ===== Pico modifiers + timeline tree ===== */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+      --timeline-bullet: #2a7f62;
+      --timeline-line: #3d4b5c;
+    }
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre code { background: none; padding: 0; }
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+    }
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .toc h3 { margin-top: 0; }
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+
+    /* ----- CTF boxes & vertical timeline (nested) ----- */
+    .ctf-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+    .ctf-box {
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 1rem;
+      background: var(--pico-card-background-color);
+      overflow: hidden;
+    }
+    .box-header {
+      background-color: #1e2a2f;
+      padding: 1rem 1.8rem;
+      border-bottom: 1px solid #2e3b44;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 1rem;
+    }
+    .box-header h3 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .difficulty-badge {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.3rem 0.9rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .box-order {
+      margin-left: auto;
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+    }
+
+    /* timeline container - root level */
+    .timeline-root {
+      padding: 1.8rem 2rem 1rem 2.5rem;
+      position: relative;
+    }
+
+    /* kill Pico's default list styles on both ul and li */
+    .timeline-node,
+    .timeline-sub {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    .timeline-node > li,
+    .timeline-sub > li {
+      list-style: none; /* belt-and-suspenders against Pico specificity */
+      position: relative;
+      padding-left: 1.6rem;
+      margin-bottom: 0.8rem;
+      border-left: 2px solid var(--timeline-line);
+    }
+
+    .timeline-node > li:last-child,
+    .timeline-sub > li:last-child {
+      border-left-color: transparent;
+    }
+
+    /* colored circle bullet — centered over the left border line */
+    .timeline-node > li::before,
+    .timeline-sub > li::before {
+      content: '';
+      position: absolute;
+      left: -7px;   /* centers 12px circle over 2px border: -(12/2) + (2/2) = -5... optical -7 works best */
+      top: 0.45rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--timeline-bullet);
+      border: 2px solid #0f171f;
+      z-index: 2;
+    }
+
+    /* sub-nodes: indent, solid line to match root */
+    .timeline-sub {
+      margin: 0.5rem 0 0.8rem 0;
+      padding-left: 1rem;
+    }
+
+    /* node text */
+    .node-text {
+      display: block;
+      padding-bottom: 0.4rem;
+      color: #e1e7ec;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .timeline-sub .node-text {
+      color: #b6c6d4;
+      font-size: 0.96em;
+    }
+
+    /* reflections - plain inline block, no collapsible */
+    .reflections-box {
+      margin: 0.5rem 2rem 2rem 2rem;
+      padding: 1rem 1.6rem;
+      background-color: #16222b;
+      border-radius: 0.8rem;
+      border-left: 6px solid #cc7b2e;
+    }
+    .reflections-box p {
+      margin: 0.4rem 0;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+    }
+
+    /* flag reveal */
+    .flag-details {
+      margin: 1.2rem 2rem 1.8rem 2rem;
+      border-radius: 0.6rem;
+      padding: 0.5rem 1rem;
+    }
+    .flag-details pre {
+      margin: 0.8rem 0 0.2rem 0;
+    }
+
+    /* small tweaks */
+    .node-text code {
+      background-color: #1b2b33;
+    }
+    hr {
+      margin: 0.2rem 0;
+    }
+  </style>
+</head>
+<body>
+  <nav class="container">
+    <ul><li><strong>The Offsec Journal</strong></li></ul>
+    <ul><li><a href="/">Home</a></li><li><a href="/about.html">About</a></li></ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta"><time id="date"></time></div>
+        <div id="tags"></div>
+      </header>
+
+      <aside class="toc">
+        <h3>Challenges:</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>
+          Hi again! <br><br>
+          
+          Remember a few days ago when I said "The picoCTF 'easy' boxes actually <i>are</i> easy"? Well, inevitably, there were some outliers. <br><br>
+
+          Of course, this early on in my journey, I wasn't really going to have it all figured out right off the bat. I think that's where these "harder easy" pico boxes have really come in handy: these are what truly forced me to get the hang of this whole "web hacking" thing. The boxes we see below were the perfect level of challenge, in that they got me super lost, but when I turned to external resources for help, it never felt like I was just following a walkthrough—it felt like I was learning useful things that I'd genuinely need later on. Going into the medium boxes, I think these are the best prep I could have had, because through sheer experience, they taught me how to navigate technical hurdles, but they also taught me how NOT dump hours of my life into the wrong rabbit hole. <br><br>
+
+          Essentially, this was like picoCTF middle school. And once again, what you'll find below is (almost) every single thought I had along the way.
+        </p>
+      </section><br><br><br>
+
+      <section id="ctf-tier-container" class="ctf-grid"></section><br><br>
+
+      <section id="synthesis">
+        <h2>What pico Middle School Taught Me</h2>
+        <p>These last few easy boxes were more than just three more flags.</p>
+
+        <p>
+          Essentially, this little "foot-wetting", if you will, taught me that at this point in time, the enemy isn't the box. It's kinda just <i>me</i>. <br><br>
+
+          First off, there was the fact that I was barely doing any recon. The fact that the other pico "easy" boxes had been so easy was getting to my head, and I kinda started relying entirely on the names of the boxes and the little blurb to carry me through them. <br><br>
+
+          It seems pretty obvious right now, but that can't work—you can't hack what you can't see. The fact that a simple <code>gobuster dir -w common.txt -u "&lt;url here&gt;"</code> would have saved me literal hours on Crack the Gate 1 was... alarming. <br><br>
+
+          Further on that end, it was made clear to me that <strong>persistence is key</strong> in pretty much ALL of this. In SSTI1, by the time I'd exhausted all my new TryHackMe learning, I was fairly discouraged. Going from a bunch of "Inspect Element" to an actual technical exploit was a big jump, but then I learned that it was simply a task of research, not a wall. <br><br>
+          
+          Speaking of persistence, Cookies really tested me. The box <i>really</i> was easy—it was just tedious as hell. It was a nice callback to Week 3's recurring lesson:
+        </p>
+        <blockquote>until proven innocent, EVERYTHING is guilty.</blockquote><br><br>
+        <p>
+          Ultimately, these boxes were the wake-up call I needed. They turned 'web hacking' from a bunch of lucky guesses into a repeatable process. I'm not a pro yet, but I’m done relying on luck.<br><br>
+
+          Medium Diff writeups coming soon!
+        </p>
+      </section>
+
+      <h3>Cheers!</h3>
+
+      <footer class="footer">
+        <p>© 2025 ADITYA BHARDWAJ · <a href="mailto:adib334@outlook.com">Email</a></p>
+      </footer>
+    </article>
+  </main>
+
+  <script>
+    (function() {
+      // ---------- static config ----------
+      const TITLE = `picoCTF: The "Easy" Web Boxes (Spoiler... They Weren't)`;
+      const DATE = "2026-02-28";
+      const TAGS = ["picoCTF", "Web Exploitation", "Timeline", "Learning Journey", "Easy"];
+      const JSON_PATH = "picoctf/web_easy.json";
+  
+      // ---------- box filter ----------
+      // set to an array of order values to include only those boxes, e.g. [1, 2, 5]
+      // set to null to include all boxes
+      const INCLUDE_ORDERS = [1, 3, 12];
+      // set to an array of order values to exclude, e.g. [3, 4]
+      // ignored if INCLUDE_ORDERS is set
+      const EXCLUDE_ORDERS = [];
+  
+      document.querySelector("#bigtitle").innerText = TITLE;
+      document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+      const dateEl = document.querySelector("#date");
+      dateEl.setAttribute("datetime", DATE);
+      dateEl.textContent = new Date(DATE).toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" });
+  
+      const tagsDiv = document.querySelector("#tags");
+      TAGS.forEach(t => tagsDiv.innerHTML += `<span class="tag">${t}</span>`);
+  
+      // ---------- load & render JSON ----------
+  
+      function buildTimelineHTML(nodes) {
+        if (!nodes || nodes.length === 0) return '';
+        let html = '<ul class="timeline-node">';
+        for (let node of nodes) {
+          html += '<li>';
+          html += `<span class="node-text">${escapeHTML(node.text)}</span>`;
+          if (node.subNodes && node.subNodes.length > 0) {
+            html += '<div class="timeline-sub">' + buildTimelineHTML(node.subNodes) + '</div>';
+          }
+          html += '</li>';
+        }
+        html += '</ul>';
+        return html;
+      }
+  
+      function escapeHTML(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/`/g, '&#96;')
+          .replace(/\{/g, '&#123;')
+          .replace(/\}/g, '&#125;');
+      }
+  
+      function filterBoxes(boxes) {
+        if (INCLUDE_ORDERS && INCLUDE_ORDERS.length > 0) {
+          return boxes.filter(b => INCLUDE_ORDERS.includes(b.order));
+        }
+        if (EXCLUDE_ORDERS && EXCLUDE_ORDERS.length > 0) {
+          return boxes.filter(b => !EXCLUDE_ORDERS.includes(b.order));
+        }
+        return boxes;
+      }
+  
+      function renderBoxes(boxes) {
+        const container = document.querySelector("#ctf-tier-container");
+        const toc = document.querySelector("#toc_ul");
+        container.innerHTML = '';
+        toc.innerHTML = '';
+  
+        const filtered = filterBoxes(boxes);
+  
+        if (!filtered || filtered.length === 0) {
+          container.innerHTML = '<p>no boxes loaded - check JSON file or filter config.</p>';
+          return;
+        }
+  
+        filtered.sort((a,b) => (a.order || 999) - (b.order || 999));
+  
+        filtered.forEach((box, idx) => {
+          if (!box.title) return;
+  
+          const anchor = `box-${idx}-${box.title.replace(/[^a-z0-9]/gi,'-').toLowerCase()}`;
+          toc.insertAdjacentHTML('beforeend', `<li><a href="#${anchor}">${escapeHTML(box.title)} (${escapeHTML(box.difficulty || 'easy')})</a></li>`);
+  
+          const boxDiv = document.createElement('div');
+          boxDiv.className = 'ctf-box';
+          boxDiv.id = anchor;
+  
+          let headerHTML = `
+            <div class="box-header">
+              <h3>${escapeHTML(box.title)}</h3>
+              <span class="difficulty-badge">${escapeHTML(box.difficulty || 'easy')}</span>
+              <span class="box-order">#${box.order || '-'}</span>
+            </div>
+          `;
+          boxDiv.innerHTML = headerHTML;
+  
+          if (box.content?.nodes && box.content.nodes.length > 0) {
+            const timelineWrapper = document.createElement('div');
+            timelineWrapper.className = 'timeline-root';
+            timelineWrapper.innerHTML = buildTimelineHTML(box.content.nodes);
+            boxDiv.appendChild(timelineWrapper);
+          } else {
+            const emptyNote = document.createElement('div');
+            emptyNote.className = 'timeline-root';
+            emptyNote.innerHTML = '<span class="node-text">-&nbsp;no&nbsp;notes&nbsp;-</span>';
+            boxDiv.appendChild(emptyNote);
+          }
+  
+          if (box.content?.reflections && box.content.reflections.length > 0) {
+            const reflDiv = document.createElement('div');
+            reflDiv.className = 'reflections-box';
+            let reflHTML = '<div class="reflections-inner">';
+            box.content.reflections.forEach(r => {
+              if (r.trim() === '') return;
+              reflHTML += `<p>${escapeHTML(r).charAt(0).toUpperCase()}${escapeHTML(r).slice(1)}</p>`;
+            });
+            reflHTML += '</div>';
+            reflDiv.innerHTML = reflHTML;
+            boxDiv.appendChild(reflDiv);
+          }
+  
+          if (box.flag) {
+            const flagDiv = document.createElement('div');
+            flagDiv.className = 'flag-details';
+            flagDiv.innerHTML = `
+              <details>
+                <summary><strong>Flags (Click to Reveal)</strong></summary>
+                <pre><code>${escapeHTML(box.flag)}</code></pre>
+              </details>
+            `;
+            boxDiv.appendChild(flagDiv);
+          }
+  
+          container.appendChild(boxDiv);
+        });
+      }
+  
+      async function loadJSON() {
+        try {
+          const response = await fetch(JSON_PATH);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (data.boxes && Array.isArray(data.boxes)) {
+            renderBoxes(data.boxes);
+          } else {
+            throw new Error('invalid json: missing boxes array');
+          }
+        } catch (e) {
+          console.error('failed to load json:', e);
+          document.querySelector("#ctf-tier-container").innerHTML =
+            `<p style="color:#c47">Error loading json: ${e.message}.<br>Make sure the file is accessible.</p>`;
+        }
+      }
+  
+      loadJSON();
+  
+    })();
+  </script>
+</body>
+</html>
