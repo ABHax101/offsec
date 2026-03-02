@@ -14,6 +14,13 @@
     "tags": ["picoCTF", "Web Exploitation", "Timeline", "Easy"]
   },
   {
+    "title": "Weeks 4 and 5 in TryHackMe",
+    "file": "posts/weeks4-5.html",
+    "date": "2026-2-06",
+    "excerpt": "Web Hacking Part 2 (and a Plot Twist)",
+    "tags": ["Weekly Update", "TryHackMe", "Web Hacking", "picoCTF", "PT1"]
+  },
+  {
     "title": "My First Box: TakeOver",
     "file": "posts/takeover.html",
     "date": "2026-2-1",
