@@ -137,7 +137,7 @@
         </p>
         
         <p>
-          So, here's the plan: I'll still work through the Burp Suite module, and maybe start the network pentesting modules if I have spare time (curse you AP Lang!), but my <strong>main focus is shifting to web exploitation</strong>—all of the picoCTF challenges, THM web rooms, retired HTB web boxes, etc. And of course, once the competition is over, I'll definitely be posting my writeups and everything I learned, just like I did with TakeOver. No holds barred—every thought reconstructed as it happened in real life. <br><br>
+          So, here's the plan: I'll still work through the Burp Suite module, and maybe start the network pentesting modules <i>IF</i> I have spare time (curse you AP Lang!), but my <strong>main focus is shifting to web exploitation</strong>—all of the picoCTF challenges, THM web rooms, retired HTB web boxes, etc. And of course, once the competition is over, I'll definitely be posting my writeups and everything I learned, just like I did with TakeOver. No holds barred—every thought reconstructed as it happened in real life. <br><br>
 
           The pressure is on, and honestly? I'm excited.
         </p>
@@ -150,7 +150,7 @@
         <p>
           The big realization this week came from the File Inclusion room, and it's changed how I think about web vulns.<br><br>
           
-          Connecting them all is a single core problem: crappy input validation. Whether it's LFI, SSRF, XSS, SQLi, command injection, the attack vector doesn't change; figure out where user input touches server logic, figure out how said logic works, and then make an input makes it do something completely different.
+          Connecting them all is a single core problem: crappy input validation. Whether it's LFI, SSRF, XSS, SQLi, command injection, the attack vector doesn't change; figure out where user input touches server logic, figure out how said logic works, and then make an input that makes it do something completely different.
         </p>
 
         <p>Take Local File Inclusion (LFI) as an example. If an app has an endpoint like <code>http://webapp.thm/get.php?file=hello.pdf</code>, and the backend just does something like:</p>
@@ -165,8 +165,8 @@ include("/var/www/app/" . $file);</code></pre>
 
         <ul>
           <li><strong>File extension is hardcoded?</strong> Well then input becomes <code>/etc/passwd.php</code>—we can't do anything right? Nah. Just <i>end the string</i> with a null byte: <code>../../../etc/passwd%00</code></li>
-          <li><strong><code>../</code> sequences are being removed?</strong> Just add more of them: <code>....//....//file</code>—when they remove the first <code>../</code>, what's left is still <code>../../file</code></li>
-          <li><strong>Certain paths aren't allowed?</strong> Put a <code>/.</code> at the end: <code>../../../etc/passwd/</code>. It technically requests the contents of <code>/etc/passwd</code> as a directory, which I guess some filters just don't care about.</li>
+          <li><strong>"../" sequences are being removed?</strong> Just add more of them: <code>....//....//file</code>—when they remove the first <code>../</code>, what's left is still <code>../../file</code></li>
+          <li><strong>Certain paths aren't allowed?</strong> Put a <code>/.</code> at the end: <code>../../../etc/passwd/. </code>. It technically requests the contents of <code>/etc/passwd</code> as a directory, which I guess some filters just don't care about.</li>
         </ul>
 
         <p>So it's really all just logic and rules. If I can figure out the rules, I can pass both the filter AND my goal as a hacker. It's a win-win.</p><br>
@@ -190,7 +190,7 @@ include("/var/www/app/" . $file);</code></pre>
         <p>
           The main struggle these two weeks was less about any single vulnerability and more about <strong>information overload</strong>. I went from File Inclusion to SSRF to XSS to Command Injection to SQLi all in the span of about a week and a half, and wach one has its own techniques, bypass methods, edge cases, etc.<br><br>
 
-          By the time I got to SQLi, I was starting to mix them up (IMO rightfully so). The attack patterns were blurring together. That taking breaks was really helpful here—giving everything time to gel. I can't say that I magically understood everything after stepping away for a while, but I <i>can</i> say that it's making a lot more sense now than it did three days ago. Progress is progress.<br><br>
+          By the time I got to SQLi, I was starting to mix them up (and rightfully so). The attack patterns were blurring together. Taking breaks was really helpful here—giving everything time to gel. I can't say that I magically understood everything after stepping away for a while, but I <i>can</i> say that it's making a lot more sense now than it did three days ago. Progress is progress.<br><br>
 
           Apart from that, I made a new friend!<br><br>
           
@@ -204,7 +204,7 @@ include("/var/www/app/" . $file);</code></pre>
         </blockquote>
 
         <p>Now I think SQLMap is freaking awesome. It still takes FOREVER for time-based SQLi, but at least watching it work looks cool!</p>
-      </section>
+      </section><br>
 
       <!-- New Skills/Tools -->
       <section class="blog-section">
@@ -213,8 +213,7 @@ include("/var/www/app/" . $file);</code></pre>
         <p>This module was absolutely <strong>packed</strong> with new techniques. New additions to the arsenal include:</p>
 
         <h4>File Inclusion Techniques</h4>
-        <p><strong>LFI:</strong> Directory traversal with <code>../</code> inputs, null byte injection, various filter bypasses. The key was understanding how <code>include()</code>, <code>require()</code>, and <code>file_get_contents()</code> work in PHP. Another reason to be thankful that I chose LAMP stack for my chat app.</p> <br><br>
-
+        <p><strong>LFI:</strong> Directory traversal with <code>../</code> inputs, null byte injection, various filter bypasses. The key was understanding how <code>include()</code>, <code>require()</code>, and <code>file_get_contents()</code> work in PHP. Another reason to be thankful that I chose LAMP stack for my chat app.</p>
         <p><strong>RFI:</strong> Making the server include and execute code from an remote source. Pretty self explanatory. I learned that we need <code>allow_url_fopen</code> and <code>allow_url_include</code> to be enabled in PHP for it to work, but when it <i>does</i> work, it's a straight shot to RCE.</p>
 
         <h4>Server-Side Request Forgery (SSRF)</h4>
@@ -225,7 +224,7 @@ include("/var/www/app/" . $file);</code></pre>
 
           Wait, but that's kinda useless isn't it? That's what I thought, but no, it just takes a little creativity. If we set server to <code>server=google.com/?x=</code>, the final request becomes: <br>
 
-          <pre><code>https://google.com/?x=.website.thm/item?id=2</code></pre><br><br>
+          <pre><code>https://google.com/?x=.website.thm/item?id=2</code></pre>
 
           Everything after the <code>?x=</code> gets URL encoded and becomes completely irrelevant. Now the server is requesting Google instead of api.website.thm.<br><br>
 
@@ -256,26 +255,26 @@ include("/var/www/app/" . $file);</code></pre>
         <p>
           This one confused me a little bit—not the vuln itself, but how it was different from good ol' RCE. Basically, it's RCE, but specifically when it's shell commands. All command injection is RCE, but not all RCE is command injection. If an app does something like:<br>
 
-          <pre><code>system("ping " . $_GET['ip']);</code></pre><br><br>
+          <pre><code>system("ping " . $_GET['ip']);</code></pre>
 
           You can just add more commands, like <code>1.1.1.1; whoami</code> or <code>1.1.1.1; cat /etc/passwd</code><br><br>
 
           Usually command injection isn't very obvious. A good trick for detecting command inectjion is using <code>sleep 5</code> or <code>ping -c 10</code>: if the response is delayed by exactly that amount then we know we're onto something.<br><br>
 
           If certain characters are filtered out of input, I learned that we can try hex encoding: <code>\x2f\x65\x74\x63\x2f\x70\x61\x73\x73\x77\x64</code> instead of <code>/etc/passwd</code>. Didn't know this, but apparently a lot of programming languages will interpret this no problem, just like that. Pretty useful.
-        </p>
+        </p><br>
 
         <h4>SQL Injection</h4>
         <p>
           SQLi was the big one. I'd heard of it forever, messed around with it in middle school without really understanding it, but now I actually get how it works. <br><br>
 
-          Specific techniques I learned were:
+          Specific techniques I learned were:<br><br>
 
           <strong>Union-based SQLi:</strong> I didn't even know <code>UNION</code> was a thing before this, but it's pretty wild! We can figure out how many columns were in the original query (add null columns one by one to the <code>UNION SELECT</code> until it stops throwing errors). Then:
           <pre><code>UNION SELECT null,null,database() --append the database name to the results
 UNION SELECT null,null,group_concat(table_name) FROM information_schema.tables WHERE table_schema='db_name' --dump all table names
 UNION SELECT null,null,group_concat(column_name) FROM information_schema.columns WHERE table_name='users' --dump all column names in a table
-UNION SELECT username,password,null FROM users --dump all records from those columns</code></pre><br>
+UNION SELECT username,password,null FROM users --dump all records from those columns</code></pre>
 
           Just knowing this exists is a game changer.<br><br>
 
@@ -284,13 +283,13 @@ UNION SELECT username,password,null FROM users --dump all records from those col
 UNION SELECT null,null,null WHERE database() LIKE 'b%'  # not taken
 UNION SELECT null,null,null WHERE database() LIKE 'c%'  # username taken! first char is 'c'
 UNION SELECT null,null,null WHERE database() LIKE 'ca%' # not taken
-UNION SELECT null,null,null WHERE database() LIKE 'ch%' # taken! second char is 'h'</code></pre><br>
+UNION SELECT null,null,null WHERE database() LIKE 'ch%' # taken! second char is 'h'</code></pre>
 
-          And so on. Repeat until nothing matches anymore. This is tedious as hell, but it works pretty well.
+          And so on. Repeat until nothing matches anymore. It's tedious as hell, but it works pretty well. <br><br>
 
           <strong>Time-based blind SQLi:</strong> Basically the same idea; we can put a <code>SLEEP(5)</code> in place of one of the <code>null</code>'s and if the page hangs for exactly 5 seconds, the query was true. Same brute-force strategy from there.<br><br>
 
-          Brute forcing this stuff was starting to get <strong>INSANELY</strong> annoying by the end of this THM room. As I found out later, there's a tool for exactly this: SQLMap. Point it at a vulnerable param, let it run, and it'll find everything it can for you. I'll absolutely be using this for everything going forward (especially during picoCTF).
+          Brute forcing this stuff was starting to get <strong>INSANELY</strong> annoying by the end of this THM room. As I found out later, there's a tool for exactly this: SQLMap. Yep. <i>That</i> SQLMap. Point it at a vulnerable param, let it run, and it'll find everything it can for you. I'll absolutely be using this for everything going forward (especially during picoCTF).
         </p>
       </section><br>
 
@@ -305,7 +304,7 @@ UNION SELECT null,null,null WHERE database() LIKE 'ch%' # taken! second char is 
 
           The goal is to get <i>really</i> comfortable with web exploitation before picoCTF starts on March 9th. All things considered, I'm pretty happy with where I'm at. I've got about a month to lock in—should be plenty. I hope.<br><br>
 
-          I also realized something pretty big this week: I should definitely audit my own chat app from 7th grade as part of my capstone project. It's basically perfect for this task: it's full of vulnerabilities (no input validation, SQL errors are being broadcasted, definitely XSS-able, probably a bunch of other stuff too), and as the original dev, I give myself permission to break it however I want. Plus, it would be a pretty awesome full-circle moment, auditing the very thing that kicked this whole thing off in the first place. Without that crappy chat app I wouldn't be anywhere near where I'm at today. I think it's only fair to do it justice.<br><br>
+          I also realized something pretty big this week: I should definitely audit my own chat app from 7th grade as part of my capstone project. It's basically perfect for this task: it's full of vulnerabilities (no input validation, SQL errors are being broadcasted, definitely XSS-able, probably a bunch of other stuff too), and as the original dev, I'm pretty sure I can give myself permission to break it however I want. Plus, it would be a pretty awesome full-circle moment, auditing the very thing that started this whole thing in the first place. Without that crappy chat app I wouldn't be anywhere near where I'm at today. I think it's only fair to do it justice.<br><br>
 
           But that's for summer-me to worry about. Right now, I've got a competition to prepare for.<br><br>
 
