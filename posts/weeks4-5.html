@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+
+  <title>The Offsec Journal</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.green.min.css">
+
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .toc h3 {
+      margin-top: 0;
+    }
+
+    .toc ul {
+      margin-bottom: 0;
+    }
+
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time>
+        </div>
+        <div id="tags"></div>
+      </header>
+
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>
+          These past two weeks have been pretty intense.<br><br>
+
+          I finished the second half of Module 3 (intro to web hacking) which covered some genuinely awesome vulnerabilities—file inclusion, SSRF, XSS, command injection, and SQLi—that all felt like they were building on the same core concept. In other words, with each new vulnerability, I essentially built a new layer of understanding around all that I can do with web apps.<br><br><br>
+
+          But before I get too technical, there's been a HUGE update to the plan.<br><br>
+
+          On February 5th (yesterday), the stars aligned: four of my friends, most of whom are also pretty new to this stuff, invited me to join their team for <strong>picoCTF 2026</strong>, specifically for the web exploitation category. The timing couldn't have been better—I'm just about finished with TryHackMe's web hacking module and just about to start learning burp suite, just getting into the groove of doing web-related boxes, and out of nowhere appears a chance to prove myself.<br><br>
+
+          Obviously, I said yes immediately.
+        </p>
+        
+        <p>
+          So, here's the plan: I'll still work through the Burp Suite module, and maybe start the network pentesting modules if I have spare time (curse you AP Lang!), but my <strong>main focus is shifting to web exploitation</strong>—all of the picoCTF challenges, THM web rooms, retired HTB web boxes, etc. And of course, once the competition is over, I'll definitely be posting my writeups and everything I learned, just like I did with TakeOver. No holds barred—every thought reconstructed as it happened in real life. <br><br>
+
+          The pressure is on, and honestly? I'm excited.
+        </p>
+      </section><br>
+
+      <!-- The Click Moment -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>
+          The big realization this week came from the File Inclusion room, and it's changed how I think about web vulns.<br><br>
+          
+          Connecting them all is a single core problem: crappy input validation. Whether it's LFI, SSRF, XSS, SQLi, command injection, the attack vector doesn't change; figure out where user input touches server logic, figure out how said logic works, and then make an input makes it do something completely different.
+        </p>
+
+        <p>Take Local File Inclusion (LFI) as an example. If an app has an endpoint like <code>http://webapp.thm/get.php?file=hello.pdf</code>, and the backend just does something like:</p>
+
+        <pre><code>$file = $_GET['file'];
+include("/var/www/app/" . $file);</code></pre>
+
+        <p>Then you can just visit <code>http://webapp.thm/get.php?file=../../../etc/passwd</code> and suddenly we have a lot more power on our hands. Apparently this is called the "dot-dot-slash attack"—I love it.</p><br>
+
+        <h4>But What If There Are Filters?</h4>
+        <p>This is where it gets fun. Developers try to protect against this stuff, but if you can figure out <i>how</i> their filters work, you can usually figure out a way around them</p>
+
+        <ul>
+          <li><strong>File extension is hardcoded?</strong> Well then input becomes <code>/etc/passwd.php</code>—we can't do anything right? Nah. Just <i>end the string</i> with a null byte: <code>../../../etc/passwd%00</code></li>
+          <li><strong><code>../</code> sequences are being removed?</strong> Just add more of them: <code>....//....//file</code>—when they remove the first <code>../</code>, what's left is still <code>../../file</code></li>
+          <li><strong>Certain paths aren't allowed?</strong> Put a <code>/.</code> at the end: <code>../../../etc/passwd/</code>. It technically requests the contents of <code>/etc/passwd</code> as a directory, which I guess some filters just don't care about.</li>
+        </ul>
+
+        <p>So it's really all just logic and rules. If I can figure out the rules, I can pass both the filter AND my goal as a hacker. It's a win-win.</p><br>
+
+        <h4>Putting It Into Practice</h4>
+        <p>The File Inclusion practicals were some of the most fun challenges I've had so far. One challenge had the file path controlled by a <i>cookie</i> instead of a URL parameter. I had to modify the cookie value to traverse directories. First time I'd thought to look at cookies as an attack vector.</p>
+
+        <p>Another challenge used <code>$_REQUEST</code> in PHP, which means it accepts input from both GET and POST. The GET parameter didn't work, but when I sent the same payload via POST with curl, it worked <i>beautifully</i>:</p>
+
+        <pre><code>curl -X POST -d "file=../../../etc/passwd" http://target.thm/endpoint.php</code></pre>
+
+        <p>For the Remote File Inclusion (RFI) challenge, I took it even further, simply because I was bored. I hosted the pentestmonkey PHP reverse shell with <code>python -m http.server</code>, then included it via a vulnerable URL param. Got a reverse shell and easy access to <code>/etc/passwd</code>. If I'd had time to start a proper interactive TTY, I probably could've done privilege escalation too. The HackTheBox nostalgia was real.</p>
+
+        <p>This was hands down my favorite room so far. First time I truly felt like I knew what I was doing—no hints, just applying what I already knew and what I'd learned.</p>
+      </section><br>
+
+      <!-- Struggles & Failures -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>
+          The main struggle these two weeks was less about any single vulnerability and more about <strong>information overload</strong>. I went from File Inclusion to SSRF to XSS to Command Injection to SQLi all in the span of about a week and a half, and wach one has its own techniques, bypass methods, edge cases, etc.<br><br>
+
+          By the time I got to SQLi, I was starting to mix them up (IMO rightfully so). The attack patterns were blurring together. That taking breaks was really helpful here—giving everything time to gel. I can't say that I magically understood everything after stepping away for a while, but I <i>can</i> say that it's making a lot more sense now than it did three days ago. Progress is progress.<br><br>
+
+          Apart from that, I made a new friend!<br><br>
+          
+          I've had a weird relationship with SQLMap. Back in middle school when I was doing HTB boxes for fun, SQLMap gave me nightmares because I had no idea what to do with it. I was kinda just copying commands from writeups and hoping they worked. It was seriously annoying to me that I had no clue what I was doing, but at that point in time, when I tried Googling the answers, they made no sense at all.<br><br>
+
+          This time, after actually learning SQLi properly (boolean-based blind, time-based blind, union-based, error-based), SQLMap actually makes sense. When I ran it on a vulnerable login form and watched it enumerate the database in real-time, I could literally <i>see</i> what it was doing—the same manual techniques I'd just learned, but automtically.
+        </p>
+
+        <blockquote>
+          Tools are only scary when you don't understand what they're doing.
+        </blockquote>
+
+        <p>Now I think SQLMap is freaking awesome. It still takes FOREVER for time-based SQLi, but at least watching it work looks cool!</p>
+      </section>
+
+      <!-- New Skills/Tools -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>This module was absolutely <strong>packed</strong> with new techniques. New additions to the arsenal include:</p>
+
+        <h4>File Inclusion Techniques</h4>
+        <p><strong>LFI:</strong> Directory traversal with <code>../</code> inputs, null byte injection, various filter bypasses. The key was understanding how <code>include()</code>, <code>require()</code>, and <code>file_get_contents()</code> work in PHP. Another reason to be thankful that I chose LAMP stack for my chat app.</p> <br><br>
+
+        <p><strong>RFI:</strong> Making the server include and execute code from an remote source. Pretty self explanatory. I learned that we need <code>allow_url_fopen</code> and <code>allow_url_include</code> to be enabled in PHP for it to work, but when it <i>does</i> work, it's a straight shot to RCE.</p>
+
+        <h4>Server-Side Request Forgery (SSRF)</h4>
+        <p>
+          SSRF sounds kinda scary, but it's basically just tricking the server into making requests on your behalf. It's kind of self-explanatory. The attack itself reminded me a lot of RFI—just about URL parsing instead of input parsing.<br><br>
+
+          Let's say there's an endpoint <code>https://website.thm/item/2?server=api</code> which internally requests <code>https://api.website.thm/item?id=2</code>. If I set <code>server=google.com</code> then we get a request to <code>https://google.com.website.thm/item?id=2</code>. <br><br>
+
+          Wait, but that's kinda useless isn't it? That's what I thought, but no, it just takes a little creativity. If we set server to <code>server=google.com/?x=</code>, the final request becomes: <br>
+
+          <pre><code>https://google.com/?x=.website.thm/item?id=2</code></pre><br><br>
+
+          Everything after the <code>?x=</code> gets URL encoded and becomes completely irrelevant. Now the server is requesting Google instead of api.website.thm.<br><br>
+
+          Now that was a pretty mundane example, but what if the intended request contains auth headers or tokens? If we simply redirect that request to our own server, we can capture those credentials. Pretty cool stuff.
+        </p>
+
+        <p><strong>Filter bypasses:</strong></p>
+        <ul>
+          <li>What if the whitelist requires <code>website.thm</code> in the target URL? Just register a subdomain like <code>website.thm.prdox.me</code>. Technically it still follows the rules.</li>
+          <li>Blacklist blocks <code>127.0.0.1</code> or <code>localhost</code>? Register a subdomain that resolves to those IPs—apparently that's a real thing.</li>
+          <li>Is it being strict about the origin? Look for open redirects like <code>https://website.thm/?redirect=prdox.me</code>. They're oddly common.</li>
+        </ul><br>
+        
+        <h4>Cross-Site Scripting (XSS)</h4>
+        <p>
+          I always knew XSS existed, but I never understood how the payload actually reaches other users. Turns out that <i>this</i> is why social engineering is such a big focus of cybersecurity education. <br><br>
+          
+          For example: <code>/?error=&lt;script&gt;alert(1)&lt;/script&gt;</code>. You send a malicious link to a victim, they click it, payload executes in <i>their</i> browser. That's an example of <strong>Reflected XSS</strong>. Of course, there are more types.<br><br>
+
+          <strong>Stored XSS:</strong> Payload gets saved to the database somehow (comments, profile info, etc.) and gets executed for everyone who views it. This is what I originally thought XSS was—like how in my old chat app, you could set your username to <code>&lt;p style="color:green"&gt;User&lt;/p&gt;</code> and it would just embed.<br><br>
+
+          <strong>DOM-based XSS:</strong> This one's pretty similar to Reflected XSS, but the payload never touches the server. It's processed entirely in the victim's browser via JavaScript, which means means no WAF can catch it. Cool stuff.<br><br>
+
+          <strong>Blind XSS:</strong> This one's like stored XSS, except you can't see it execute—it happens behind the scenes, if you will. THM's example was like in an admin portal where support staff view support tickets. Apparently there's a tool for this: <a href="https://github.com/mandatoryprogrammer/xsshunter-express">XSS Hunter Express</a>.
+        </p><br>
+        
+        <h4>Command Injection</h4>
+        <p>
+          This one confused me a little bit—not the vuln itself, but how it was different from good ol' RCE. Basically, it's RCE, but specifically when it's shell commands. All command injection is RCE, but not all RCE is command injection. If an app does something like:<br>
+
+          <pre><code>system("ping " . $_GET['ip']);</code></pre><br><br>
+
+          You can just add more commands, like <code>1.1.1.1; whoami</code> or <code>1.1.1.1; cat /etc/passwd</code><br><br>
+
+          Usually command injection isn't very obvious. A good trick for detecting command inectjion is using <code>sleep 5</code> or <code>ping -c 10</code>: if the response is delayed by exactly that amount then we know we're onto something.<br><br>
+
+          If certain characters are filtered out of input, I learned that we can try hex encoding: <code>\x2f\x65\x74\x63\x2f\x70\x61\x73\x73\x77\x64</code> instead of <code>/etc/passwd</code>. Didn't know this, but apparently a lot of programming languages will interpret this no problem, just like that. Pretty useful.
+        </p>
+
+        <h4>SQL Injection</h4>
+        <p>
+          SQLi was the big one. I'd heard of it forever, messed around with it in middle school without really understanding it, but now I actually get how it works. <br><br>
+
+          Specific techniques I learned were:
+
+          <strong>Union-based SQLi:</strong> I didn't even know <code>UNION</code> was a thing before this, but it's pretty wild! We can figure out how many columns were in the original query (add null columns one by one to the <code>UNION SELECT</code> until it stops throwing errors). Then:
+          <pre><code>UNION SELECT null,null,database() --append the database name to the results
+UNION SELECT null,null,group_concat(table_name) FROM information_schema.tables WHERE table_schema='db_name' --dump all table names
+UNION SELECT null,null,group_concat(column_name) FROM information_schema.columns WHERE table_name='users' --dump all column names in a table
+UNION SELECT username,password,null FROM users --dump all records from those columns</code></pre><br>
+
+          Just knowing this exists is a game changer.<br><br>
+
+          <strong>Boolean-based blind SQLi:</strong> If you can only see true/false responses (like "username taken"), you can enumerate character by character. SQL has this awesome operator <code>LIKE</code> that allows you to use wildcards:
+          <pre><code>UNION SELECT 1,2,3 WHERE database() LIKE 'a%'  # username isn't taken; first char isn't 'a'
+UNION SELECT null,null,null WHERE database() LIKE 'b%'  # not taken
+UNION SELECT null,null,null WHERE database() LIKE 'c%'  # username taken! first char is 'c'
+UNION SELECT null,null,null WHERE database() LIKE 'ca%' # not taken
+UNION SELECT null,null,null WHERE database() LIKE 'ch%' # taken! second char is 'h'</code></pre><br>
+
+          And so on. Repeat until nothing matches anymore. This is tedious as hell, but it works pretty well.
+
+          <strong>Time-based blind SQLi:</strong> Basically the same idea; we can put a <code>SLEEP(5)</code> in place of one of the <code>null</code>'s and if the page hangs for exactly 5 seconds, the query was true. Same brute-force strategy from there.<br><br>
+
+          Brute forcing this stuff was starting to get <strong>INSANELY</strong> annoying by the end of this THM room. As I found out later, there's a tool for exactly this: SQLMap. Point it at a vulnerable param, let it run, and it'll find everything it can for you. I'll absolutely be using this for everything going forward (especially during picoCTF).
+        </p>
+      </section><br>
+
+      <!-- Looking Ahead -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>
+          Next up is <strong>Module 4 (Burp Suite)</strong>, which I'm planning to knock out this weekend. It's a shorter module focused on learning the tool itself, which is perfect timing since I'll need Burp for both picoCTF and the more advanced boxes I plan to do.<br><br>
+          
+          Once I finish Burp Suite, it's full steam ahead for web-focused practice on picoCTF, HTB, THM, PortSwigger Academy, etc. Basically whatever I can get my hands on and have time to do.<br><br>
+
+          The goal is to get <i>really</i> comfortable with web exploitation before picoCTF starts on March 9th. All things considered, I'm pretty happy with where I'm at. I've got about a month to lock in—should be plenty. I hope.<br><br>
+
+          I also realized something pretty big this week: I should definitely audit my own chat app from 7th grade as part of my capstone project. It's basically perfect for this task: it's full of vulnerabilities (no input validation, SQL errors are being broadcasted, definitely XSS-able, probably a bunch of other stuff too), and as the original dev, I give myself permission to break it however I want. Plus, it would be a pretty awesome full-circle moment, auditing the very thing that kicked this whole thing off in the first place. Without that crappy chat app I wouldn't be anywhere near where I'm at today. I think it's only fair to do it justice.<br><br>
+
+          But that's for summer-me to worry about. Right now, I've got a competition to prepare for.<br><br>
+
+          Let's see what this whole Burp Suite thing is about.
+        </p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    // STATIC CONFIG
+    const TITLE = "Weeks 4 and 5 in TryHackMe: Web Hacking Part 2 (and a Plot Twist)";
+    const DATE = "2025-02-06";
+    const TAGS = ["Weekly Update", "TryHackMe", "Web Hacking", "picoCTF", "PT1"];
+    const SECTIONS = ["The Click Moment", "Struggles & Failures", "New Skills Added to Arsenal", "Looking Ahead"];
+    const FLAGS = null;
+
+    let tagsDiv = document.querySelector("div#tags");
+    let tocUl = document.querySelector("ul#toc_ul");
+
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+
+    document.querySelectorAll("section.blog-section").forEach((s, i) => {
+      if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")
+    });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => {
+      if (SECTIONS[i]) s.innerText = SECTIONS[i]
+    });
+  </script>
+</body>
+</html>
