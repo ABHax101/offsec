@@ -1,5 +1,12 @@
 [
   {
+    "title": "picoCTF: The Easier Medium Web Boxes",
+    "file": "posts/pico-easier-medium.html",
+    "date": "2026-03-05",
+    "excerpt": "\"Easy\" medium-difficulty boxes? We're moving up in the world!",
+    "tags": ["picoCTF", "Web Exploitation", "Timeline", "Medium"]
+  },
+  {
     "title": "picoCTF: The \"Easy\" Web Boxes (Spoiler... They Weren't)",
     "file": "posts/pico-not-really-easy.html",
     "date": "2026-2-28",
