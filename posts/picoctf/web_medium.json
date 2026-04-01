@@ -1,0 +1,3001 @@
+{
+  "boxes": [
+    {
+      "title": "Crack the Gate 2",
+      "difficulty": "medium",
+      "order": 20,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"The login system has been upgraded with a basic rate-limiting mechanism that locks out repeated failed attempts from the same source. We've received a tip that the system might still trust user-controlled headers. Your objective is to bypass the rate-limiting restriction and log in using the known email address: ctf-player@picoctf.org and uncover the hidden secret.\"",
+            "subNodes": []
+          },
+          {
+            "text": "rate limiting. ah shit. the box gives us a passwords.txt to download; i imagine this is gonna be some sort of offline password cracking challenge or something like that? idk. let's see.",
+            "subNodes": [
+              {
+                "text": "there's a form but no method. in the client side script we see that it's just POSTing in application/json to /login."
+              },
+              {
+                "text": "lets check network and see what response looks like",
+                "subNodes": [
+                  {
+                    "text": "normal JSON post body, email and password fields. one wrong attempt though and i cant try again until 20 minutes have passed. hmm"
+                  }
+                ]
+              },
+              {
+                "text": "first time using burpsuite btw, lets see how this goes",
+                "subNodes": [
+                  {
+                    "text": "ok, so basically i can repeat requests way easier now instead of having to finagle around with curl like 20 times. i can use it to brute force directly inside of the request as well. thats really controlled"
+                  }
+                ]
+              },
+              {
+                "text": "ok, so clearly we can't brute force because of this 20 minute time limit. idk how it's actually doing the rate limiting yet, maybe curl will tell us something new?",
+                "subNodes": [
+                  {
+                    "text": "tried curling and we still get the same \"too many requests try again in 20 minutes\" error. clearly the JS doesnt matter here, it's filtering on the actual server itself.",
+                    "subNodes": [
+                      {
+                        "text": "it might be filtering by IP, too many requests from a single address. how can i even change that though? VPN?",
+                        "subNodes": [
+                          {
+                            "text": "connecting a VPN worked, i was able to send another request. how do i just change my IP over and over again though? that seems a little complicated for a medium pico room"
+                          },
+                          {
+                            "text": "did some intense googling - nothing that seemed immediately useful or applicable."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "aha! decided to look at the hints - one of them mentions the X-Forwarded-For HTTP header. this seems interesting.",
+                    "subNodes": [
+                      {
+                        "text": "oh, so it's basically what proxies and load balancers use to forward the original client's IP address to the destination. i guess we can use this to spoof our IP so that we can bruteforce with new origins?",
+                        "subNodes": [
+                          {
+                            "text": "works! i added the POST to burp repeater and just added X-Forwarded-For: 1.1.1.1. sent and it went through. changed it to 1.1.1.2. works again. 1.1.1.3. works again. perfect!"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "brought the POST to intruder. gonna try clusterbomb attack, i think that lets me add multiple payload sets. let's add one for ips and the other one will be the passwords.txt.",
+                    "subNodes": [
+                      {
+                        "text": "for the ip payloads i just created a new file with 20 arbitrary addresses in it (1.1.1.0-1.1.1.9, 1.1.2.0-1.1.2.9). i dont think it actually matters lol"
+                      },
+                      {
+                        "text": "oh lmao it's not clusterbomb it's supposed to be pitchfork. we want to send 20 requests not 400. oopsie."
+                      },
+                      {
+                        "text": "ok, trying again with pitchfork - this one seems better. only 20 requests. idk how to export the results or filter through them yet - for simplicity sake let's just view all 20 manually, theres only 20",
+                        "subNodes": [
+                          {
+                            "text": "alrighty, that was it! one of the responses are: {\"success\":true,\"email\":\"ctf-player@picoctf.org\",\"firstName\":\"pico\",\"lastName\":\"player\",\"flag\":\"picoCTF{<flag_content_here>}\"}"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "i realize now i could have done this with ffuf too - cool, but burpsuite was lowkey easier. i see now why it exists even when you could still do everything from terminal."
+        ]
+      },
+      "flag": "picoCTF{xff_byp4ss_brut3_1cc3b76e}"
+    },
+    {
+      "title": "Trickster",
+      "difficulty": "medium",
+      "order": 21,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"I found a web app that can help process images: PNG images only!\" woah, ok, hopefully no binary exploits here.",
+            "subNodes": []
+          },
+          {
+            "text": "we're greeted with a simple POST form with <input type=\"file\" name=\"file\" accept=\".png\"> and a submit button. let's see what this thing actually does.",
+            "subNodes": [
+              {
+                "text": "ok, i gave it a PNG. don't know what it did with it. weird. let's try handing it something other than a PNG - accept is set to \".png\" but i bet we can just change that attr.",
+                "subNodes": [
+                  {
+                    "text": "\"File uploaded successfully and is a valid PNG file. We shall process it and get back to you... Hopefully\""
+                  }
+                ]
+              },
+              {
+                "text": "ok, well i can change the attr and it will now accept any other random thing. lemme hand it this random .ini file on my desktop",
+                "subNodes": [
+                  {
+                    "text": "\"Error: File name does not contain '.png'.\" ok, i bet we can just change that as well lmao, what if we just hand it \"hello.png.txt\"",
+                    "subNodes": [
+                      {
+                        "text": "\" Error: The file is not a valid PNG image: 6869210a \" that looks like part of the flag ngl. this is an interesting challenge though, not sure what to do next."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "the response headers say Server: Apache/2.4.56 (Debian), X-Powered-By: PHP/8.0.30. maybe theres a PHP-specific thing we can do with this? let's ask GPT real quick.",
+                "subNodes": [
+                  {
+                    "text": "ok, interesting. the random numbers arent part of the flag, that's hex - \\x68\\x69\\x21\\x0a is \"hi!\" that's exactly what was in my \"hello.png.txt\". so it seems if we have a non-png file then it might be reflecting the contents onto the page. we might be able to use that for some sort of injection. let's first confirm that it's actually reflection:",
+                    "subNodes": [
+                      {
+                        "text": "with this payload \"hi! how are you today? will this end up on the page?\" we get \"Error: The file is not a valid PNG image: 68692120\" different bytes at the end, but still says \"hi!\"? let's try with different first chars"
+                      },
+                      {
+                        "text": "\"sdsdsdsdsdd\" --> \"Error: The file is not a valid PNG image: 73647364\" ok, now we have a meaningful difference. those bytes are \"sdsd\". we can confirm that first 4 chars are being reflected to the page. interesting."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "ok, so it's complaining that it's not a proper png image right, GPT says it's possible that it's just checking for the bytes of the PNG header - the first 8 bytes are always \\x89PNG\\r\\n\\x1a\\n. what if we do something like \\x89PNG\\r\\n\\x1a\\n <?php echo \"Hi from PHP\"; ?>",
+                    "subNodes": [
+                      {
+                        "text": "oh. \"Error: The file is not a valid PNG image: 5c783839\"; the bytes are literally \"\\x89\". let's try editing the hex and sending that way; first 8 should be 89 50 4E 47 0D 0A 1A 0A"
+                      },
+                      {
+                        "text": "sending with those bytes simply gives us the usual success message - \"File uploaded successfully and is a valid PNG file. We shall process it and get back to you... Hopefully\" passed the filter but we gonna have to find another way around."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "aha! ok, so we found the way to make it accept the files. i was just being stupid and ignoring recon again. asked Claude where we should go from here and the #1 thing it said to try was \"Check if uploaded files are accessible via web.\" sure enough, going to uploads/myimage.png pulls up that myimage.png that I uploaded. we can send it a PNG header with PHP in it and then it's just good old RCE from there.",
+                "subNodes": [
+                  {
+                    "text": "gonna send it pentestmonkeys' PHP reverse shell. makes things a little easier.",
+                    "subNodes": [
+                      {
+                        "text": "actually nevermind lol I dont have ngrok installed. we'll just send it <?php shell_exec($_GET[\"c\"]); ?> so that I can just visit /uploads/file.png.php?c=whoami or something like that"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "i can't see anything. if i have no command in the address bar then i do get an error, so we are indeed running the php code - but all i see is that PNG image header in ASCII up at the top. lemme try to add some text to the payload, like a simple <h1>Hello</h1>",
+                    "subNodes": [
+                      {
+                        "text": "ok, so we can see the heading. i think the problem is just that we're not actually printing the output of the shell command lol. let's add an echo right before the call, that should do it.",
+                        "subNodes": [
+                          {
+                            "text": "works! tried with whoami; we're running as www-data."
+                          },
+                          {
+                            "text": "\"ls ..\" returns \"GNTDOMBWGIZDE.txt index.php instructions.txt robots.txt uploads\"",
+                            "subNodes": [
+                              {
+                                "text": "instructions.txt says: \"Let's create a web app for PNG Images processing. It needs to: Allow users to upload PNG images look for \".png\" extension in the submitted files make sure the magic bytes match (not sure what this is exactly but wikipedia says that the first few bytes contain 'PNG' in hexadecimal: \"50 4E 47\" ) after validation, store the uploaded files so that the admin can retrieve them later and do the necessary processing.\""
+                              },
+                              {
+                                "text": "damn. maybe i *should* have enumerated paths lol, these would have been good clues.",
+                                "subNodes": [
+                                  {
+                                    "text": "OH. i didnt even need to enumerate, i just needed to look in robots.txt. both /uploads and /instructions.txt are present there. i really gotta do my recon properly now, especially since i'm in medium diff now."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "sure enough, that GNTDOMBWGIZDE.txt file had the flag in it."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "solid lesson - check the goddamn robots.txt lmao. i'm starting to think i should make a recon tool that can automate checking some of these things for me - this was genuinely way too much time wasted on a fairly simple task. i guess that's why it's medium diff and not easy - they didnt mention \"robot\" anywhere and it got me."
+        ]
+      },
+      "flag": "picoCTF{c3rt!fi3d_Xp3rt_tr1ckst3r_3f706222}"
+    },
+    {
+      "title": "byp4ss3d",
+      "difficulty": "medium",
+      "order": 22,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"A university's online registration portal asks students to upload their ID cards for verification. The developer put some filters in place to ensure only image files are uploaded but are they enough? Take a look at how the upload is implemented. Maybe there's a way to slip past the checks and interact with the server in ways you shouldn't.\" sounds kinda similar to Trickster. time to redeem myself?",
+            "subNodes": [
+              {
+                "text": "ok, this time i used gobuster and the seclists' web content discovery common.txt to find any background info that could be useful.",
+                "subNodes": [
+                  {
+                    "text": "it found .htaccess, .htpasswd, so it's prob an apache server. it also found /images/ - this is gonna be clutch.",
+                    "subNodes": [
+                      {
+                        "text": "lmfao i didnt have to do that, it says on successful file upload \"Successfully uploaded! Access it at: images/crt-sh-example.png\". wild. better safe than sorry though, i'll take it."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "oh, interesting, the form by default just accepts any file. handed it the same .ini from Trickster and it didnt really care. however, when we GET it to try to view it, server returns no response. lemme try uploading a php file and see if it just lets me lol, if it did then that would be wild.",
+                "subNodes": [
+                  {
+                    "text": "aha, ok, it says \"Not allowed!\" i bet this is another polyglot challenge. instead of hello.php let's call it hello.php.png and see what happens.",
+                    "subNodes": [
+                      {
+                        "text": "\"Successfully uploaded! Access it at: images/hello.php.png\" ok, too easy?",
+                        "subNodes": [
+                          {
+                            "text": "ah, but apache thinks it's actually a png so we just get the little image icon as if it were a broken image file. i could be wrong, but i'm pretty sure this is a chiefly apache problem and injecting something chiefly apache will solve it for us. let's ask gpt real quick",
+                            "subNodes": [
+                              {
+                                "text": "GPT says we can put a new .htaccess in that directory with \"AddType application/x-httpd-php .png\" that's wild to me lmao, so we can just make apache execute the png file as if it were PHP and then it's smooth sailing from there. awesome.",
+                                "subNodes": [
+                                  {
+                                    "text": "let's hand it a \"susfile.php.png\" with content <?php echo shell_exec($_GET[\"c\"]); ?>. this should just work i think.",
+                                    "subNodes": [
+                                      {
+                                        "text": "solid, RCE is working. we're in /var/www/html/images; in /var/www we find a flag.txt. easy"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{s3rv3r_byp4ss_9b8609cc}"
+    },
+    {
+      "title": "login",
+      "difficulty": "medium",
+      "order": 23,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "nothing telling in the description - \"My dog-sitter's brother made this website but I can't get in; can you help?\" i assume the dog-sitter's brother stuff is just distractor info. i've learned from my mistakes though - there's a solid chance that's a clue as well. let's see what happens",
+            "subNodes": [
+              {
+                "text": "alrighty, rinse and repeat - gobuster time. seclists web discovery common.txt",
+                "subNodes": [
+                  {
+                    "text": "wow, just index.html. i checked manually - no robots.txt, .htaccess, sitemap.xml, .DS_Store, anything like that. interesting."
+                  }
+                ]
+              },
+              {
+                "text": "there seems to be nothing interesting on the page - just a POST login form."
+              },
+              {
+                "text": "viewing page source is almost just as boring, except there's an index.js and styles.css - those could be hiding stuff. let's see",
+                "subNodes": [
+                  {
+                    "text": "ok, styles.css is clean. index.js however is minified but has some interesting stuff going on. there's some btoa and atob action happening and i see \"flag.\" let's unminify",
+                    "subNodes": [
+                      {
+                        "text": "(async () => {\n    await new Promise((e) => window.addEventListener(\"load\", e)),\n        document.querySelector(\"form\").addEventListener(\"submit\", (e) => {\n            e.preventDefault();\n            const r = { u: \"input[name=username]\", p: \"input[name=password]\" },\n                t = {};\n            for (const e in r) t[e] = btoa(document.querySelector(r[e]).value).replace(/=/g, \"\");\n            return \"YWRtaW4\" !== t.u\n                ? alert(\"Incorrect Username\")\n                : \"cGljb0NURns1M3J2M3JfNTNydjNyXzUzcnYzcl81M3J2M3JfNTNydjNyfQ\" !== t.p\n                  ? alert(\"Incorrect Password\")\n                  : void alert(`Correct Password! Your flag is ${atob(t.p)}.`);\n        });\n})();"
+                      },
+                      {
+                        "text": "ok, some simple code tracing and we can deduce that the correct username is \"YWRtaW4\" and the correct password is \"cGljb0NURns1M3J2M3JfNTNydjNyXzUzcnYzcl81M3J2M3JfNTNydjNyfQ\", and that upon entering correct credentials it would alert us with the flag. easy peasy.",
+                        "subNodes": [
+                          {
+                            "text": "ok, i guess not? apparently it's not right. the two values in this script look like base64 though, could try decoding those",
+                            "subNodes": [
+                              {
+                                "text": "actually on second thought the alert includes \"atob(t.p)\" so what if we just run that in js console? t.p should of course equal \"cGljb0NURns1M3J2M3JfNTNydjNyXzUzcnYzcl81M3J2M3JfNTNydjNyfQ\" right so that should work",
+                                "subNodes": [
+                                  {
+                                    "text": "ah, ok, worked. easy enough."
+                                  },
+                                  {
+                                    "text": "oh, btoa and atob ARE base64 and unbase64 lmfao. ok, checks out."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{53rv3r_53rv3r_53rv3r_53rv3r_53rv3r}"
+    },
+    {
+      "title": "Roboto Sans",
+      "difficulty": "medium",
+      "order": 24,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"The flag is somewhere on this web application not necessarily on the website. Find it.\" well, the name is giving me a pretty good hint right now. let's see what our css looks like",
+            "subNodes": [
+              {
+                "text": "let's start with enum, same seclists common.txt",
+                "subNodes": [
+                  {
+                    "text": "css/, images/, js/, robots.txt. let's check robots first",
+                    "subNodes": [
+                      {
+                        "text": "\"Think you have seen your flag or want to keep looking.\" is that a question or a statement lmao"
+                      },
+                      {
+                        "text": "disallows for /cgi-bin/ and /wp-admin/. interesting."
+                      },
+                      {
+                        "text": "there's also these three random base64 lines:\nZmxhZzEudHh0;anMvbXlmaW\nanMvbXlmaWxlLnR4dA==\nsvssshjweuiwl;oiho.bsvdaslejg",
+                        "subNodes": [
+                          {
+                            "text": "decoded:\nflag1.txt;js/myfi\njs/myfile.txt\n????????;????.???????"
+                          },
+                          {
+                            "text": "(the last line isnt actually question marks it's just some sort of random bytes)"
+                          },
+                          {
+                            "text": "ok, so we got something interesting. let's see what this js/myfile.txt has in it:",
+                            "subNodes": [
+                              {
+                                "text": "oh. that's it. that's the flag lol. why's it called roboto sans then?",
+                                "subNodes": [
+                                  {
+                                    "text": "OH. roboto. robot. ok, checks out."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{Who_D03sN7_L1k5_90B0T5_718c9043}"
+    },
+    {
+      "title": "SQLiLite",
+      "difficulty": "medium",
+      "order": 25,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Can you login to this website?\" sure i can. use it or lose it right? i just learned SQLi, let's do this.",
+            "subNodes": [
+              {
+                "text": "alright, all the page is is a POST form to login.php."
+              },
+              {
+                "text": "oh wow, this is verbose as hell lol. i logged in as \"someone\" with \"password\"; here's the output:",
+                "subNodes": [
+                  {
+                    "text": "username: someone\npassword: password\nSQL query: SELECT * FROM users WHERE name='someone' AND password='password'\nLogin failed."
+                  }
+                ]
+              },
+              {
+                "text": "ok, so i can do all this myself then, no sqlmap needed. let's go",
+                "subNodes": [
+                  {
+                    "text": "trying username=\"someone' OR 1=1;--\"",
+                    "subNodes": [
+                      {
+                        "text": "username: someone' OR 1=1;--\npassword: password\nSQL query: SELECT * FROM users WHERE name='someone' OR 1=1;--' AND password='password'\nLogged in! But can you see the flag, it is in plainsight."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "well that was easy. what's this plain sight thing though? let's check page source.",
+                "subNodes": [
+                  {
+                    "text": "oh, that was lowkey underwhelming lmao. it's in a <p hidden>",
+                    "subNodes": [
+                      {
+                        "text": "<p hidden>Your flag is: picoCTF{L00k5_l1k3_y0u_solv3d_it_9b0a4e21}</p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{L00k5_l1k3_y0u_solv3d_it_9b0a4e21}"
+    },
+    {
+      "title": "More SQLi",
+      "difficulty": "medium",
+      "order": 26,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "last box wasnt enough lmao let's go again. \"Can you find the flag on this website.\" the hint is \"SQLiLite.\" that's all we get. ok, fair enough.",
+            "subNodes": [
+              {
+                "text": "same thing, just a POST form. since it's supposed to be like \"more,\" let's check robots.txt anyway - maybe we stumble upon something",
+                "subNodes": [
+                  {
+                    "text": "nothing but the background is purple. it's a PHP development server lmao"
+                  },
+                  {
+                    "text": "tried enumerating - gobuster timed out on word authentication. weird. when i visit /authenication it redirects me to main page."
+                  }
+                ]
+              },
+              {
+                "text": "oh wow, look at that. we try to login and the resulting page content:",
+                "subNodes": [
+                  {
+                    "text": "username: jerry\npassword: password\nSQL query: SELECT id FROM users WHERE password = 'password' AND username = 'jerry'"
+                  }
+                ]
+              },
+              {
+                "text": "once again easy peasy. this time we try with our password as \"password' OR 1=1;--\" and that should bypass it.",
+                "subNodes": [
+                  {
+                    "text": "ok, this time we get logged in and actually sent to a real dashboard looking thing.",
+                    "subNodes": [
+                      {
+                        "text": "theres a logout button, a \"Search Office\" dialogue (POST form it seems), and theres this table - City, Address, Phone, and a bunch of entries underneath"
+                      },
+                      {
+                        "text": "seeing as this is a SQLi room, i bet we can use that search input to UNION something onto these results. let's see what we can do",
+                        "subNodes": [
+                          {
+                            "text": "ok, so we can POST welcome.php with parameter \"search.\" let's try something like \"nairobi' UNION SELECT 1;--\". if it's SQLi vulnerable then we should get an error (we selected 1 col where there need to be 3)",
+                            "subNodes": [
+                              {
+                                "text": "the page just hangs. we get no response, it doesnt even time out lmao. interesting."
+                              },
+                              {
+                                "text": "let's run sqlmap on this welcome.php to see what it can find: `sqlmap -u http://saturn.picoctf.net:50603/welcome.php`",
+                                "subNodes": [
+                                  {
+                                    "text": "i cant seem to get it to even connect to the webpage lol, weird. it's just not connecting for whatever reason. this is also timing out. thing is though, sqlmap hasnt even tried anything yet, it's just trying to ping it. weird."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "alright. so what i DID figure out is that the search box only lets you search for the city column, i tried putting a portion of the address in there and it didnt resolve to anything. good to know."
+              },
+              {
+                "text": "if i do something like \"asefjasef' OR 1=1;--\" it still resolves all of this same stuff. ok, so i guess it's still SQLi? if i do any unions though it just decides \"nah i'm good\" and stops responding. what do i even do?",
+                "subNodes": [
+                  {
+                    "text": "claude says let's test for boolean based. see if \"nairobi' and 1=1;--\" and \"nairobi' and 1=2;--\" behave differently",
+                    "subNodes": [
+                      {
+                        "text": "they do; the first one returns the entry for nairobi and the second one returns a blank table."
+                      },
+                      {
+                        "text": "alright, time to figure out what dbms we're using. \"nairobi' AND (SELECT COUNT(*) FROM sqlite_master) > 0--\" returns the nairobi entry; we're using sqlite. now we can try to figure out dbs and tables",
+                        "subNodes": [
+                          {
+                            "text": "nairobi' AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name like '%')-- this returns the nairobi entry. i think i can use this to figure out table name,"
+                          },
+                          {
+                            "text": "nairobi' AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name like 'o%')-- resolves",
+                            "subNodes": [
+                              {
+                                "text": "i guessed offices and it works."
+                              }
+                            ]
+                          },
+                          {
+                            "text": "let's see if theres any other tables"
+                          },
+                          {
+                            "text": "starting with 'h' resolves something.",
+                            "subNodes": [
+                              {
+                                "text": "'hi' resolves. is it 'hidden'?",
+                                "subNodes": [
+                                  {
+                                    "text": "not hidden. this is gonna take a while."
+                                  },
+                                  {
+                                    "text": "it was hints. interesting"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "text": "how many tables are we looking for?",
+                            "subNodes": [
+                              {
+                                "text": "nairobi' AND (SELECT COUNT(*) FROM sqlite_master WHERE type='table') = 1-- doesnt resolve. =2 doesnt resolve.",
+                                "subNodes": [
+                                  {
+                                    "text": "theres 4 tables. i cant do all this shit manually lol, this is wild"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "text": "the other two are users and more_table. \"more_table\"????"
+                          },
+                          {
+                            "text": "ok so we have the 4 table names, but like now what? imma ask claude again, maybe it can tell me common col names and stuff. not trying to enum all that manually again."
+                          }
+                        ]
+                      },
+                      {
+                        "text": "claude says check which tables even have rows in them: nairobi' AND (SELECT COUNT(*) FROM <table>) > 0--",
+                        "subNodes": [
+                          {
+                            "text": "all of em do. i'm curious - do any only have one row?",
+                            "subNodes": [
+                              {
+                                "text": "users has only 1 row; all the others have more. let's try to enum columns in users"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "text": "claude says only one row is interesting; now we're trying common column names to see which exist.",
+                        "subNodes": [
+                          {
+                            "text": "password col exists as per nairobi' AND (SELECT COUNT(password) FROM users) > 0--"
+                          },
+                          {
+                            "text": "length is 14 characters. grrr. maybe im not supposed to enum all that. hopefully not."
+                          }
+                        ]
+                      },
+                      {
+                        "text": "let's check cols for more_table since it's called \"More SQLi\"",
+                        "subNodes": [
+                          {
+                            "text": "oh my days theres a column called 'flag' in there. let's get length"
+                          },
+                          {
+                            "text": "length is 55 characters lmfao i'm not doing this shit. let's get claude to write me a script to bruteforce this thing.",
+                            "subNodes": [
+                              {
+                                "text": "i handed it the target url, the query i used to check length, my phpsessid value. pretty simple script, all it does is POST over and over with our query, changing one letter at a time until the response text includes \"nairobi\" meaning the query succeeded rather than table being blank. i like it. the script is indeed working.",
+                                "subNodes": [
+                                  {
+                                    "text": "we got the flag! claude clutched up in the end."
+                                  },
+                                  {
+                                    "text": "in hindsight, if i bypassed the login and then passed in my phpsessid cookie to sqlmap that prob woulda worked too. woulda been a whole lot quicker too. out of curiosity, let's see",
+                                    "subNodes": [
+                                      {
+                                        "text": "still timing out. fine, screw you too sqlmap."
+                                      },
+                                      {
+                                        "text": "how would i have done this without AI? genuine lifesaver right there"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "i feel like i kinda cheesed that one. maybe i'll revisit eventually and see if theres an easier way with less AI use. i'm done with SQLi for today though. longest picoCTF writeup to date."
+        ]
+      },
+      "flag": "picoCTF{G3tting_5QL_1nJ3c7I0N_l1k3_y0u_sh0ulD_c8ee9477}"
+    },
+    {
+      "title": "3v@l",
+      "difficulty": "medium",
+      "order": 27,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"ABC Bank's website has a loan calculator to help its clients calculate the amount they pay if they take a loan from the bank. Unfortunately, they are using an eval function to calculate the loan.\" alrighty - RCE time. let's see what i can do.",
+            "subNodes": [
+              {
+                "text": "starting with gobuster enum, same web content common.txt",
+                "subNodes": [
+                  {
+                    "text": "found \"console\" (status 400). that's it though. interesting, i think."
+                  }
+                ]
+              },
+              {
+                "text": "ooooo interesting HTML comment",
+                "subNodes": [
+                  {
+                    "text": "<!--\n    TODO\n    ------------\n    Secure python_flask eval execution by\n        1.blocking malcious keyword like os,eval,exec,bind,connect,python,socket,ls,cat,shell,bind\n        2.Implementing regex: r'0x[0-9A-Fa-f]+|\\\\u[0-9A-Fa-f]{4}|%[0-9A-Fa-f]{2}|\\\\.[A-Za-z0-9]{1,3}\\\\b|[\\\\\\/]|\\\\.\\\\.'\n-->"
+                  }
+                ]
+              },
+              {
+                "text": "page basically just has a post form to /evaluate. interesting endpoint. let's intercept one:",
+                "subNodes": [
+                  {
+                    "text": "placeholder in the textarea is \"Example: PRT*RATE*TIME(10000*23*12)\". let's try that formula",
+                    "subNodes": [
+                      {
+                        "text": "POST param is called code. the result is interesting though - \"Result: Error: name 'PRT' is not defined\". is this just running python code directly?",
+                        "subNodes": [
+                          {
+                            "text": "let's try \"print('gotcha?')\"",
+                            "subNodes": [
+                              {
+                                "text": "Result: None. ok, it's def just running the python."
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "looking at that TODO, i wanna see if they actually blocked any of those keywords yet:",
+                "subNodes": [
+                  {
+                    "text": "trying with simply \"os\": \"Error: Detected forbidden keyword 'os'.\" ok so there IS some regex going on. let's figure out what that giant regex string actually does.",
+                    "subNodes": [
+                      {
+                        "text": "looks like the regex is matching hex numbers like 0xXX, unicode escapes like \\uXXXX, URL encoding, file extensions, slashes and backslashes, and dots (i guess traversal). the comment says it's implementING the regex though. one of these oughta work.",
+                        "subNodes": [
+                          {
+                            "text": "ok, trying all of these just in the textbox (e.g 0x5f, \\u0041, %00, .js, etc) just returns \"Error: Detected forbidden keyword ''.\" thats interesting though, detected forbidden keyword ''. it's been removed it seems."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "aha but they forgot to block underscores. if i do something like ''.__class__ it's not blocking it. it just says \"Result:\" though, it's blank. let's try some more payloads, see if anything can be returned",
+                    "subNodes": [
+                      {
+                        "text": "OH. it's not blank. now i'm looking at the responses in burpsuite rather than just looking at the page - it literally has \"Result: <class 'str'>\" on the page, it's just fails to render it properly as HTML. it's absolutely there."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "alrighty, resorting to the classic \"''.__class__.__mro__[1].__subclasses__()\" payload",
+                "subNodes": [
+                  {
+                    "text": "subprocess.Popen exists at index 356! cool."
+                  },
+                  {
+                    "text": "let's ls: ''.__class__.__mro__[1].__subclasses__()[356]('ls', stdout=-1).communicate()[0]",
+                    "subNodes": [
+                      {
+                        "text": "oh, forbidden keyword \"ls.\" ok, fair enough."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "how bout ''.__class__.__mro__[1].__subclasses__()[356]('l' + 's', stdout=-1).communicate()[0]",
+                    "subNodes": [
+                      {
+                        "text": "forbidden keyword \"cat\"? where?",
+                        "subNodes": [
+                          {
+                            "text": "oh, communiCATe. ok, makes sense. i think we can use getattr to get the communicate method with string concat instead. the \"'l' + 's'\" clearly worked."
+                          },
+                          {
+                            "text": "(getattr(''.__class__.__mro__[1].__subclasses__()[356]('l' + 's', stdout=-1), 'communica' + 'te'))()[0] maybe?????",
+                            "subNodes": [
+                              {
+                                "text": "AHA! \"Result: b'app.py\\nstatic\\ntemplates\\n'\""
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "oh, but i cant use slashes though. this is gonna be a little trickier.",
+                "subNodes": [
+                  {
+                    "text": "i remember for SSTI2 i tried to harvest underscores from a different string, like use a reference of the index of an underscore in a string to enter one into the input. might work here to get a slash.",
+                    "subNodes": [
+                      {
+                        "text": "ok well theres nothing here that i can do that with it seems. kind of stumped ngl"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "idea. ls command is working right, i remember that if you do ls -a it shows . and .. as well. i bet i could pull those out of the str and use them in my commands to avoid triggering the regex",
+                "subNodes": [
+                  {
+                    "text": "just looked it up, apparently theres a -F flag, itll add slashes to directories, @ to symlinks, * to executable files, etc. we might have this in the bag. let's try ls -aF",
+                    "subNodes": [
+                      {
+                        "text": "hell yeah! we got backslashes too from that. code=(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', '-aF'], stdout=-1), 'communica' + 'te'))()[0]",
+                        "subNodes": [
+                          {
+                            "text": "b'./\\n../\\napp.py\\nstatic/\\ntemplates/\\n'"
+                          },
+                          {
+                            "text": "for example code=str((getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', '-aF'], stdout=-1), 'communica' + 'te'))()[0][1]) gives us 47, which is ascii code for /. i think this may work."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "last couple of times it's been at /flag.txt. let's try \"ls /\" first and foremost.",
+                "subNodes": [
+                  {
+                    "text": "kinda giant input here but whatever lol:\ncode=(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's ' + str((getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', '-aF'], stdout=-1), 'communica' + 'te'))()[0][1])], stdout=-1), 'communica' + 'te'))()[0]",
+                    "subNodes": [
+                      {
+                        "text": "basically, i just stuck the harvested slash into the ls command from earlier. way more unreadable than it needs to be",
+                        "subNodes": [
+                          {
+                            "text": "oh, we get a syntax error. weird. lemme ask gpt to figure out where lol, this is kinda spaghetti-like",
+                            "subNodes": [
+                              {
+                                "text": "yo i might be stupid lol, forgot to try chr(47), that might just work."
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "new payload: (getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', chr(47)], stdout=-1), 'communica' + 'te'))()[0]",
+                "subNodes": [
+                  {
+                    "text": "ayyyyyyy, Result: b'app\\nbin\\nboot\\nchallenge\\ndev\\netc\\nflag.txt\\nhome\\nlib\\nlib32\\nlib64\\nlibx32\\nmedia\\nmnt\\nopt\\nproc\\nroot\\nrun\\nsbin\\nsrv\\nsys\\ntmp\\nusr\\nvar\\n'",
+                    "subNodes": [
+                      {
+                        "text": "i see a flag.txt in there."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "hopefully final payload: (getattr(''.__class__.__mro__[1].__subclasses__()[356](['ca' + 't', chr(47)+\"flag\"+chr(46)+\"txt\"], stdout=-1), 'communica' + 'te'))()[0]"
+              },
+              {
+                "text": "that was it! lowkey took too long but whatever, we got it in the end"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{D0nt_Use_Unsecure_f@nctions0c312090}"
+    },
+    {
+      "title": "picobrowser",
+      "difficulty": "medium",
+      "order": 28,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"This website can be rendered only by picobrowser, go and catch the flag!\". what the hell is picobrowser?",
+            "subNodes": []
+          },
+          {
+            "text": "alright whatever, we can probably bypass that with useragent or something. booting up burpsuite, let's see what we got",
+            "subNodes": [
+              {
+                "text": "website looks pretty simple - there's a big green button called \"Flag\", there's a sign in and a sign out button, and that's it."
+              },
+              {
+                "text": "the sign in and sign out buttons point to /unimplemented, thats weird.",
+                "subNodes": [
+                  {
+                    "text": "it's exactly how it sounds though lmao, it just alerts that it's not implemented yet. cool."
+                  }
+                ]
+              },
+              {
+                "text": "now for the elephant in the room - what if I click on \"Flag\"?",
+                "subNodes": [
+                  {
+                    "text": "GET request to /flag"
+                  },
+                  {
+                    "text": "we get an error message up at the top: You're not picobrowser! Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+                  },
+                  {
+                    "text": "ok, so it IS a useragent thing. let's send that GET to repeater and change User-Agent to picobrowser maybe?",
+                    "subNodes": [
+                      {
+                        "text": "oh. that's it. that was pretty easy ngl"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{p1c0_s3cr3t_ag3nt_fba5c48f}"
+    },
+    {
+      "title": "Power Cookie",
+      "difficulty": "medium",
+      "order": 29,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description is literally just \"Can you get the flag?\"",
+            "subNodes": []
+          },
+          {
+            "text": "pretty simple site, just an H1 that says \"Online Gradebook\" and a button below it that says \"Continue as guest\"; clicking on the button calls function \"continueAsGuest()\"",
+            "subNodes": [
+              {
+                "text": "let's see where that JS is and what it does",
+                "subNodes": [
+                  {
+                    "text": "oh hey cool! continueAsGuest redirects you to /check.php and sets document.cookie = \"isAdmin=0\"; i think we know what to do now."
+                  }
+                ]
+              },
+              {
+                "text": "ok, clicking the \"Continue as guest\" button redirects to a blank page with \"We apologize, but we have no guest services at the moment.\" We have the HTTP request logged now though. Let's set isAdmin to 1",
+                "subNodes": [
+                  {
+                    "text": "and just like that, literally the only thing on the page is the flag. easy peasy"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{gr4d3_A_c00k13_65fd1e1a}"
+    },
+    {
+      "title": "MatchTheRegex",
+      "difficulty": "medium",
+      "order": 30,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "Description says \"How about trying to match a regular expression\" - that's it. If there's ANYTHING I learned from the second half of the TryHackMe Web Hacking module, it's how to mess with regex. let's go",
+            "subNodes": [
+              {
+                "text": "the page consists of a PicoCTF heading, a text input and a submit button, and a little subheading that indicates whether the input was valid or not. i don't buy it, let's look at page source",
+                "subNodes": [
+                  {
+                    "text": "ok, the input is part of a form. the onsubmit says \"return send_request()\". lucky for us, send_request is defined client-side lmao",
+                    "subNodes": [
+                      {
+                        "text": "function send_request() {\n    let val = document.getElementById(\"name\").value;\n    // ^p.....F!?\n    fetch(`/flag?input=${val}`)\n        .then(res => res.text())\n        .then(res => {\n            const res_json = JSON.parse(res);\n            alert(res_json.flag)\n            return false;\n        })\n    return false;\n}"
+                      },
+                      {
+                        "text": "ok, that's interesting... lemme see what happens when I send just any random text through first.",
+                        "subNodes": [
+                          {
+                            "text": "page alerts \"wrong match! Try again!\" ok, fair enough."
+                          },
+                          {
+                            "text": "looking at the response, it's just JSON, and there's only one key: \"flag\" : \"wrong match! Try again!\"",
+                            "subNodes": [
+                              {
+                                "text": "there IS an isAdmin cookie though, and it's set to 0. deja vu?",
+                                "subNodes": [
+                                  {
+                                    "text": "ok, setting that to 1 actually doesnt change anything lol."
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "alright, let's do this properly. looking at that js comment \"// ^p.....F!?\", i feel like the only possibility is picoCTF right? let's try that as our input?",
+                    "subNodes": [
+                      {
+                        "text": "no way lmaoooo that's it"
+                      },
+                      {
+                        "text": "for some reason i feel like that should have been harder. we got it though!"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{succ3ssfully_matchtheregex_08c310c6}"
+    },
+    {
+      "title": "SQL Direct",
+      "difficulty": "medium",
+      "order": 31,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Connect to this PostgreSQL server and find the flag!\" well we already now know it's postgres- that's pretty helpful",
+            "subNodes": []
+          },
+          {
+            "text": "oh, that's interesting. there's no website to visit here. after starting the instance, instead of giving you a website url, it says:",
+            "subNodes": [
+              {
+                "text": "`psql -h saturn.picoctf.net -p 65531 -U postgres pico`"
+              },
+              {
+                "text": "and that the password is `postgres`"
+              }
+            ]
+          },
+          {
+            "text": "wait, so we dont even have to enum then lmao, we're literally just logged in to the database. we can just navigate it like an admin. time to google some postgres queries then!",
+            "subNodes": [
+              {
+                "text": "well, we already know from the command that we're logged into database pico. let's start by figuring out what tables we have in here",
+                "subNodes": [
+                  {
+                    "text": "supposedly if we're using psql (which we are), we can use \"\\dt\" to view all tables. let's try"
+                  },
+                  {
+                    "text": "theres a table called flags. that's fun"
+                  },
+                  {
+                    "text": "can i just \"SELECT * FROM flags;\" ???",
+                    "subNodes": [
+                      {
+                        "text": "YES I CAN. that was pretty easy lol"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{L3arN_S0m3_5qL_t0d4Y_73b0678f}"
+    },
+    {
+      "title": "findme",
+      "difficulty": "medium",
+      "order": 32,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Help us test the form by submiting the username as test and password as test!\"  nice! i know how to do that!",
+            "subNodes": []
+          },
+          {
+            "text": "simple little username and password login form, POSTs to /login. let's try with their given input, seems like a pretty big hint",
+            "subNodes": [
+              {
+                "text": "ok, that's interesting! good that I had intercept on in burpsuite. we're getting redirected to \"/next-page/id=cGljb0NURntwcm94aWVzX2Fs\""
+              },
+              {
+                "text": "let's try un-base64-ing that ID there",
+                "subNodes": [
+                  {
+                    "text": "first time using burpsuite decoder btw! pretty cool."
+                  },
+                  {
+                    "text": "aha! first part of the flag. coooool"
+                  },
+                  {
+                    "text": "let's forward the request and see what happens"
+                  }
+                ]
+              },
+              {
+                "text": "seems that after forwarding the request we get redirected again! another base64 id, this time \"bF90aGVfd2F5X2RmNDRjOTRjfQ==\""
+              },
+              {
+                "text": "since this one has the \"==\" at the end, i have a hunch this might just be the other half of the flag",
+                "subNodes": [
+                  {
+                    "text": "i was right. that's all lol. cool little challenge. thank god for burpsuite!"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{proxies_all_the_way_df44c94c}"
+    },
+    {
+      "title": "Secrets",
+      "difficulty": "medium",
+      "order": 33,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"We have several pages hidden. Can you find the one with the flag?\"",
+            "subNodes": []
+          },
+          {
+            "text": "this screams robots.txt already. let's try",
+            "subNodes": [
+              {
+                "text": "oh. 404. shit."
+              }
+            ]
+          },
+          {
+            "text": "ok, visiting the actual homepage as we were probably supposed to, we see a GIANT alamy stock photo, a navbar with \"Home\", \"About\", \"Contact\" buttons, and that's it. I'm not convinced that that's it - let's view page source",
+            "subNodes": [
+              {
+                "text": "ok, already we see that the src of the image is \"secret/assets/DX1KYM.jpg\" let's visit that",
+                "subNodes": [
+                  {
+                    "text": "makes sense - visiting that exact URL is just the image."
+                  }
+                ]
+              },
+              {
+                "text": "the CSS is at \"secret/assets/index.css\". anything interesting in there?",
+                "subNodes": [
+                  {
+                    "text": "nah it's just CSS lmao. ok then"
+                  }
+                ]
+              },
+              {
+                "text": "let's try visiting about.html and contact.html",
+                "subNodes": [
+                  {
+                    "text": "about.html just has a GIF of a bicep flexing really hard. \"We are here to learn and exercise the cybersecurity muscle!!!\"",
+                    "subNodes": [
+                      {
+                        "text": "page source aint too interesting either. same CSS file though"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "contact.html has a crap ton of lorem ipsum on it. other than that nothing though, same CSS once again."
+                  }
+                ]
+              },
+              {
+                "text": "what if /secrets/assets has a directory listing?",
+                "subNodes": [
+                  {
+                    "text": "/secrets/assets doesn't (it gives HTTP 403). /secrets has an index.html though!",
+                    "subNodes": [
+                      {
+                        "text": "it has the heading \"Finally. You almost found me. you are doing well\" and a GIF of a dude saying \"I have no idea what I'm doing, but I know I'm doing it really, really well.\""
+                      },
+                      {
+                        "text": "agreed."
+                      },
+                      {
+                        "text": "anyway, let's view source!"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, the page source for /secrets/index.html has its stylesheet at \"hidden/file.css\". interesting. let's view it?",
+                "subNodes": [
+                  {
+                    "text": "the response is literally empty lol. let's try just \"hidden/\", maybe that has an index.html too",
+                    "subNodes": [
+                      {
+                        "text": "woah, it does! this one's a whole login page, and there's buttons to login with facebook, twitter, and google too. let's view the page source!",
+                        "subNodes": [
+                          {
+                            "text": "superhidden/login.css"
+                          },
+                          {
+                            "text": "now we're getting somewhere"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "the superhidden/login.css file actually does exist, the response isn't empty. cool i guess. it's just CSS though. let's keep the pattern going i guess - how bout just \"superhidden/\"?",
+                "subNodes": [
+                  {
+                    "text": "it's a (seemingly) blank page with heading \"Finally. You found me. But can you see me\""
+                  },
+                  {
+                    "text": "rinse and repeat - let's view page source"
+                  }
+                ]
+              },
+              {
+                "text": "ok, the flag was in a hidden h3 element. reminds me of that one scavenger hunt challenge I did last week"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{succ3ss_@h3n1c@10n_51b260fe}"
+    },
+    {
+      "title": "Forbidden Paths",
+      "difficulty": "medium",
+      "order": 34,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"We know that the website files live in /usr/share/nginx/html/ and the flag is at /flag.txt but the website is filtering absolute file paths. Can you get past the filter to read the flag?\"",
+            "subNodes": []
+          },
+          {
+            "text": "get past a filter? say less",
+            "subNodes": []
+          },
+          {
+            "text": "ok, we're greeted with a heading that says \"Web eReader,\" a couple filenames (divine-comedy.txt, oliver-twist.txt, and the-happy-prince.txt), and a little \"Filename\" input along with a \"Read\" button. let's view page source",
+            "subNodes": [
+              {
+                "text": "seems the two inputs are part of a POST form that points to read.php. this is probably an LFI room. lemme not get ahead of myself though, let's first see how this actually works",
+                "subNodes": [
+                  {
+                    "text": "seems i can visit the given filenames just in the browser. /divine-comedy.txt gives us a giant Project Gutenberg txt file."
+                  },
+                  {
+                    "text": "upon putting that filename into the input and clicking \"Read\", that same file's contents are mirrored onto the page."
+                  },
+                  {
+                    "text": "i indeed cannot view \"/flag.txt\" just like that - we get \"Not Authorized.\""
+                  },
+                  {
+                    "text": "what's stopping us from a little traversal action? how bout \"../../../../flag.txt\"?",
+                    "subNodes": [
+                      {
+                        "text": "oh. that's it? really?"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{7h3_p47h_70_5ucc355_e5fe3d4d}"
+    },
+    {
+      "title": "caas",
+      "difficulty": "medium",
+      "order": 35,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Now presenting cowsay as a service\". so THAT'S what caas is.",
+            "subNodes": []
+          },
+          {
+            "text": "the description also has an index.js for us to download. let's see what this is all about.",
+            "subNodes": [
+              {
+                "text": "oh! the index.js is an express app. i think this is what the app is running on.",
+                "subNodes": [
+                  {
+                    "text": "const express = require('express');\nconst app = express();\nconst { exec } = require('child_process');\n\napp.use(express.static('public'));\n\napp.get('/cowsay/:message', (req, res) => {\n  exec(`/usr/games/cowsay ${req.params.message}`, {timeout: 5000}, (error, stdout) => {\n    if (error) return res.status(500).end();\n    res.type('txt').send(stdout).end();\n  });\n});\n\napp.listen(3000, () => {\n  console.log('listening');\n});"
+                  }
+                ]
+              },
+              {
+                "text": "seems to be so. looking at the given website URL, we see this: \"Make a request to the following URL to cowsay your message: https://caas.mars.picoctf.net/cowsay/{message}\""
+              },
+              {
+                "text": "let's a random input like \"hello\"",
+                "subNodes": [
+                  {
+                    "text": "\"Cannot GET /cosway/hello\" it says. interesting."
+                  },
+                  {
+                    "text": "ah, status code is 404 not found. what if i just do something like \"/cosway/; ls\"?",
+                    "subNodes": [
+                      {
+                        "text": "same result, still 404."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "maybe it wants to a file path? how about flag.txt? it's a long shot but it might be worth it",
+                "subNodes": [
+                  {
+                    "text": "ok, cannot get flag.txt. fair enough."
+                  }
+                ]
+              },
+              {
+                "text": "how bout no input at all? just /cosway/",
+                "subNodes": [
+                  {
+                    "text": "still doesnt like it."
+                  }
+                ]
+              },
+              {
+                "text": "anything weird in page source",
+                "subNodes": [
+                  {
+                    "text": "no. just no."
+                  }
+                ]
+              },
+              {
+                "text": "(I then proceeded to try the most random inputs I could think of)"
+              },
+              {
+                "text": "wait a goddamn minute, it's \"cowsay\" not \"cosway\". cow-say. not cos-way. shit",
+                "subNodes": [
+                  {
+                    "text": "AHA! if we do \"/cowsay/;ls\" it hangs for 5 seconds and then we get error 500. it's doing stuff for sure."
+                  },
+                  {
+                    "text": "this looks like linux. what if we go like \"/cowsay/$(ls)?\"",
+                    "subNodes": [
+                      {
+                        "text": "WOAH THAT'S IT! there's a \"falg.txt\""
+                      },
+                      {
+                        "text": "/cowsay/$(cat falg.txt)",
+                        "subNodes": [
+                          {
+                            "text": "this flag looks WONDERFUL lol"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{moooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo0o}"
+    },
+    {
+      "title": "Irish-Name-Repo 1",
+      "difficulty": "medium",
+      "order": 36,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Do you think you can log us in? Try to see if you can login!\"",
+            "subNodes": []
+          },
+          {
+            "text": "seems simple enough. the name is a little weird though",
+            "subNodes": []
+          },
+          {
+            "text": "wow. no the name is pretty accurate. it's a bunch of irish people. theres a sidebar with a support page and an admin login page.",
+            "subNodes": [
+              {
+                "text": "ah interesting. in support.html theres just a bunch of support tickets. some of these are funny. one in particular though is interesting - \"Hi. I tried adding my favorite Irish person, Conan O'Brien. But I keep getting something called a SQL Error\"",
+                "subNodes": [
+                  {
+                    "text": "the reply is \"That's because Conan O'Brien is American\" lmaoooo"
+                  }
+                ]
+              },
+              {
+                "text": "so it's a SQLi room then, eh? i think it's time to check login.html",
+                "subNodes": [
+                  {
+                    "text": "ok, it's just a login page. that's about what i expected. POSTing to login.php, username and password param, that's it."
+                  },
+                  {
+                    "text": "let's try the classic username=\"test' or 1=1;--\"",
+                    "subNodes": [
+                      {
+                        "text": "ah, it worked! just redirects us to a page with the flag on it. pretty simple"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{s0m3_SQL_85832275}"
+    },
+    {
+      "title": "Client-side-again",
+      "difficulty": "medium",
+      "order": 37,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Can you break into this super secure portal?\" based on how the last one was, should be easy.",
+            "subNodes": []
+          },
+          {
+            "text": "the page is just a simple POST form, a little password input and a submit button. the background image is barbed wire this time lol, supposedly it's \"new and improved\". we'll see about that. let's check page source!",
+            "subNodes": [
+              {
+                "text": "ok, theres a HUGE minified script in here. there's also a md5.js. might need to pull out hashcat for this one. let's unminify the script first though",
+                "subNodes": [
+                  {
+                    "text": "ah. there's this array right here:\nvar _0x5a46 = [\n    \"daf93}\",\n    \"_again_4\",\n    \"this\",\n    \"Password\\x20Verified\",\n    \"Incorrect\\x20password\",\n    \"getElementById\",\n    \"value\",\n    \"substring\",\n    \"picoCTF{\",\n    \"not_this\",\n];"
+                  },
+                  {
+                    "text": "the rest of the script is similar to the last client-side box, it's just checking subsequent substrings of the input to see if it matches the flag. the only difference is that this time it uses a bunch of hex instead of writing out the code in ascii. we can still reconstruct the flag as we did before. here's what that looks like if you're curious:",
+                    "subNodes": [
+                      {
+                        "text": "function verify() {\n    checkpass = document[_0x4b5b(\"0x0\")](\"pass\")[_0x4b5b(\"0x1\")];\n    split = 0x4;\n    if (checkpass[_0x4b5b(\"0x2\")](0x0, split * 0x2) == _0x4b5b(\"0x3\")) {\n        if (checkpass[_0x4b5b(\"0x2\")](0x7, 0x9) == \"{n\") {\n            if (checkpass[_0x4b5b(\"0x2\")](split * 0x2, split * 0x2 * 0x2) == _0x4b5b(\"0x4\")) {\n                if (checkpass[_0x4b5b(\"0x2\")](0x3, 0x6) == \"oCT\") {\n                    if (checkpass[_0x4b5b(\"0x2\")](split * 0x3 * 0x2, split * 0x4 * 0x2) == _0x4b5b(\"0x5\")) {\n                        if (checkpass[\"substring\"](0x6, 0xb) == \"F{not\") {\n                            if (checkpass[_0x4b5b(\"0x2\")](split * 0x2 * 0x2, split * 0x3 * 0x2) == _0x4b5b(\"0x6\")) {\n                                if (checkpass[_0x4b5b(\"0x2\")](0xc, 0x10) == _0x4b5b(\"0x7\")) {\n                                    alert(_0x4b5b(\"0x8\"));\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    } else {\n        alert(_0x4b5b(\"0x9\"));\n    }\n}"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "after some really annoying code tracing, i got it!",
+                    "subNodes": [
+                      {
+                        "text": "imma be honest, i got lost like halfway through lmao. i just put together the flag from the elements of that array at the beginning in the order I thought they should go in. it worked somehow. i'll take it."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{not_this_again_4daf93}"
+    },
+    {
+      "title": "Irish-Name-Repo 2",
+      "difficulty": "medium",
+      "order": 38,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "\"Someone has bypassed the login before, and now it's being strengthened. Try to see if you can still login!\"",
+            "subNodes": []
+          },
+          {
+            "text": "did it once, can do it again. watch me.",
+            "subNodes": []
+          },
+          {
+            "text": "same repo of irish people as before lol. same support tickets too, some dude keeps getting SQL errors searching for Conan O'Brien lol. let's try the ol' \"test' or 1=1;--\" query again",
+            "subNodes": [
+              {
+                "text": "woah! it now says \"SQLi detected.\" alright, nothing we can't bypass I assume."
+              },
+              {
+                "text": "the login form is POSTing to login.php. I remember from TryHackMe that if we put in hex codes then PHP will just eval them as strings. lemme try converting the same payload into a strng of hexcodes",
+                "subNodes": [
+                  {
+                    "text": "i put the payload into burpsuite decoder and converted it to hex. from there i just added \"\\x\" before each group of two so that php can eval it correctly. should work"
+                  },
+                  {
+                    "text": "\\x74\\x65\\x73\\x74\\x27\\x20\\x6f\\x72\\x20\\x31\\x3d\\x31\\x3b\\x2d\\x2d",
+                    "subNodes": [
+                      {
+                        "text": "login failed. hmm"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, let's figure out what it's actually filtering out first",
+                "subNodes": [
+                  {
+                    "text": "i think it's the equals sign. let's try bypassing only that with hex",
+                    "subNodes": [
+                      {
+                        "text": "damn. still SQLi detected."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, if i just login with username as \" '-- \" we get the usual login failed error, same one as if you were to log in with completely random inputs. we CAN use this to bypass the actual password checking part i think."
+              },
+              {
+                "text": "this page is called \"Admin Login\" right, what if there's just a user called \"admin\"? let's try username as \" admin'-- \"?",
+                "subNodes": [
+                  {
+                    "text": "oh, cool, that's it."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{m0R3_SQL_plz_8c334129}"
+    },
+    {
+      "title": "Search source",
+      "difficulty": "medium",
+      "order": 39,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"The developer of this website mistakenly left an important artifact in the website source, can you find it?\"",
+            "subNodes": []
+          },
+          {
+            "text": "I mean I dont see why not lol. let's check source",
+            "subNodes": [
+              {
+                "text": "HTML comment that says \"The flag is not here but keep digging :) -->\"",
+                "subNodes": [
+                  {
+                    "text": "oh, it really wasn't there lol. fair enough"
+                  }
+                ]
+              },
+              {
+                "text": "gobuster time",
+                "subNodes": [
+                  {
+                    "text": "folders css, images, and js exist. maybe one of them has a listing?",
+                    "subNodes": [
+                      {
+                        "text": "all 403. guess not"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "if i can't view the dirs like that, let's just check every damn file that I have access to."
+              },
+              {
+                "text": "starting with css since it's at the top of the file. there's 4 css files that are in that css dir.",
+                "subNodes": [
+                  {
+                    "text": "AYYYYYY css/style.css has the flag in a comment: /** banner_main picoCTF{....} **/"
+                  },
+                  {
+                    "text": "easy enough lol"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{1nsp3ti0n_0f_w3bpag3s_587d12b8}"
+    },
+    {
+      "title": "It is my Birthday",
+      "difficulty": "medium",
+      "order": 40,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"I sent out 2 invitations to all of my friends for my birthday! I'll know if they get stolen because the two invites look similar, and they even have the same md5 hash, but they are slightly different! You wouldn't believe how long it took me to find a collision. Anyway, see if you're invited by submitting 2 PDFs to my website.\"",
+            "subNodes": []
+          },
+          {
+            "text": "ok, that's interesting. takes me back to SEC-110 lol. ok, let's pull up burpsuite so I can mess with the file content itself",
+            "subNodes": [
+              {
+                "text": "alrighty, so if i submit two of the same files it obviously says \"Files are not different!\""
+              },
+              {
+                "text": "if alter one's content slightly to make it different, it says \"MD5 hashes do not match!\"",
+                "subNodes": [
+                  {
+                    "text": "well that tells us this is MD5. if i remember correctly, that means finding a collision shouldnt be too hard. hell, i could probably just google two things that collide lol"
+                  }
+                ]
+              },
+              {
+                "text": "bingo! \"In March 2005, Xiaoyun Wang and Hongbo Yu of Shandong University in China published an article in which they describe an algorithm that can find two different sequences of 128 bytes with the same MD5 hash. One famous such pair is the following\"",
+                "subNodes": [
+                  {
+                    "text": "ok actually i dont wanna edit 128 bytes manually."
+                  },
+                  {
+                    "text": "the same website gives two examples of two colliding files, lemme just upload those lmao"
+                  }
+                ]
+              },
+              {
+                "text": "attaching the two files; let's log this request and set mime type to application/pdf. hopefully that's all it's checking lmao",
+                "subNodes": [
+                  {
+                    "text": "that was it! cool challenge, i like this one"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{c0ngr4ts_u_r_1nv1t3d_c63bbaf}"
+    },
+    {
+      "title": "JAuth",
+      "difficulty": "medium",
+      "order": 41,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Most web application developers use third party components without testing their security. Some of the past affected companies are...\" and then it goes to list three companies and what was exploited for each one. \"Can you identify the components and exploit the vulnerable one?\"",
+            "subNodes": []
+          },
+          {
+            "text": "wait, so all three had the same vulnerable component? i'm confused lol. alright, let's do some research",
+            "subNodes": [
+              {
+                "text": "ok all three of these seem to be pretty different lol, all except the fact that they were using vulnerable outdated third-party software. we kinda already knew that though."
+              },
+              {
+                "text": "i'm just gonna launch the machine and see what the hell happens"
+              }
+            ]
+          },
+          {
+            "text": "upon launching the machine we're given these details - \"Can you become an admin? You can login as test with the password Test123! to get started.\"",
+            "subNodes": [
+              {
+                "text": "the site is a bank login page. POST form to /auth, simple username and password input. there IS a \"Remember me\" box though. ok, nothing out of the ordinary yet. let's see what the given creds do",
+                "subNodes": [
+                  {
+                    "text": "ok, after the post to /auth we're being redirected to /private. theres a cookie called \"token\", it's this absolutely giant base64 looking thing.",
+                    "subNodes": [
+                      {
+                        "text": "after decoding we get a correspondingly giant JSON structure lol"
+                      },
+                      {
+                        "text": "it's a JWT! i've heard of these",
+                        "subNodes": [
+                          {
+                            "text": "typ = JWT, alg = HS256"
+                          },
+                          {
+                            "text": "ah, role = user. what if we change to role = admin?"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "changing role to admin and reencoding, let's try sending this as token cookie",
+                "subNodes": [
+                  {
+                    "text": "didn't work. damn."
+                  }
+                ]
+              },
+              {
+                "text": "ok, did a little research. JWTs are basically \"<header>.<payload>.<signature>\". so basically the bit i changed was in the payload section. idk how i change payload without tripping the other side's detection or whatever",
+                "subNodes": [
+                  {
+                    "text": "excuse me if that last part sounded kinda BS, it's been a minute."
+                  }
+                ]
+              },
+              {
+                "text": "currently searching for JWT vulnerabilities, it said we're to identify a vulnerable component right? the hint confirmed that we ARE supposed to be messing with the JWT here.",
+                "subNodes": [
+                  {
+                    "text": "aha, apparently theres this \"none alg\" vuln: \"When the none algorithm is used, the JWT is not signed at all, and is therefore considered valid by default. This represents a major risk if the Web application uses a library that implicitly authorises the use of this algorithm.\"",
+                    "subNodes": [
+                      {
+                        "text": "so I can just change the alg field to none, remove the signature, and then change whatever the hell i want. NOW let's try setting role to admin (if that's even what i'm supposed to do lmao)"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, i realize now that the first time I encoded it wrong too. first of all it's supposed to be base64URL, not just base64. what the hell does that mean?",
+                "subNodes": [
+                  {
+                    "text": "oh, apparently that's a whole other encoding standard, it replaces + with - and / with _. ok, cool? I guess?"
+                  }
+                ]
+              },
+              {
+                "text": "second of all each part is to be individually encoded and THEN dots added in between, not just full thing as-is lmao. good to know. i been doing that wrong too",
+                "subNodes": [
+                  {
+                    "text": "trying again - first the header"
+                  },
+                  {
+                    "text": "now add a dot"
+                  },
+                  {
+                    "text": "now the payload"
+                  },
+                  {
+                    "text": "add another dot"
+                  },
+                  {
+                    "text": "send the query"
+                  },
+                  {
+                    "text": "HOLY SHIT \"200 OK\" YAY",
+                    "subNodes": [
+                      {
+                        "text": "flag is on the resulting page. that's awesome"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "damn, i was thinking of using JWTs in a project a while back (which sadly got delayed, like a LOT). glad I found this out first - one more thing i could have been exposing my user base to. knowing me, i prob would have thought that since JWT is an established web standard it would just ALREADY be secure for me. hooh boy. now we know"
+        ]
+      },
+      "flag": "picoCTF{succ3ss_@u7h3nt1c@710n_bc6d9041}"
+    },
+    {
+      "title": "SOAP",
+      "difficulty": "medium",
+      "order": 42,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"The web project was rushed and no security assessment was done. Can you read the /etc/passwd file?\" lmao i gotchu",
+            "subNodes": []
+          },
+          {
+            "text": "one of the tags on this box is XXE. never done that before! this should be interesting",
+            "subNodes": [
+              {
+                "text": "NVD says it's when \"The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output.\""
+              },
+              {
+                "text": "seems oddly familiar - never done it with XML before but the concept isn't foreign."
+              }
+            ]
+          },
+          {
+            "text": "the page consists of three cards for three different computer science universities, and each one has a 'details' button below it.",
+            "subNodes": [
+              {
+                "text": "the details buttons are actually POST forms - interesting. POSTing to /data let's try clicking on one real quick"
+              },
+              {
+                "text": "ok, so it looks like the response is literally just the details within a \"<strong>\" element. the request is interesting though, it's written in XML rather than json or something like that. there's a key called ID, which seems to indicate which university's details are being pulled. let's see what happens when pass in weird ID inputs like 12 (since theres only three cards), -1, 0, 999999999999, \"hello\", etc",
+                "subNodes": [
+                  {
+                    "text": "response still hands us a 200 OK but it's saying \"Invalid ID: -1\"."
+                  },
+                  {
+                    "text": "hang on, theres two scripts on this page, detailsCheck.js and xmlDetailsCheckPayload.js. let's take a look",
+                    "subNodes": [
+                      {
+                        "text": "xmlDetailsCheckPayload.js just creates the payload for the fetch"
+                      },
+                      {
+                        "text": "detailsCheck.js just executes the POST queries with that payload"
+                      },
+                      {
+                        "text": "overall these seem pretty normal."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "if we remove the ID key from the XML in the post body we get HTTP 500. ok, getting somewhere I think"
+              }
+            ]
+          },
+          {
+            "text": "let's run gobuster with web common.txt to see if there's anything I'm missing. if it's how I think it is and the server is fetching /id/1 or something like that then we should prob find that endpoint real quick",
+            "subNodes": [
+              {
+                "text": "nothing from gobuster except the /data endpoint which we already knew about"
+              },
+              {
+                "text": "the goal is to access /etc/passwd right? what if we try a path traversal? like id=../?",
+                "subNodes": [
+                  {
+                    "text": "nothing. how bout just /etc/passwd in ID param?",
+                    "subNodes": [
+                      {
+                        "text": "still nothing"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, theres a portswigger page on XXE. let's see what this is actually about.",
+            "subNodes": [
+              {
+                "text": "oh. XML external ENTITY. we need an ENTITY. what does that even mean though",
+                "subNodes": [
+                  {
+                    "text": "OH, stuff like &lt;, &gt; are entities. XML lets you make your own within the doctype definition."
+                  }
+                ]
+              },
+              {
+                "text": "ah, jackpot! i can include this line: <DOCTYPE foo [ <!ENTITY somethinghere SYSTEM \"any url here\"> ]> and then reference it with &somethinghere;. it supports file urls. i know how we're gonna do this now"
+              }
+            ]
+          },
+          {
+            "text": "let's try <DOCTYPE foo [<!ENTITY passwd SYSTEM \"file:///etc/passwd\">]><data><ID>&passwd;</ID></data>",
+            "subNodes": [
+              {
+                "text": "so now the \"Invalid ID: 12\" error should just hand us the file contents.",
+                "subNodes": [
+                  {
+                    "text": "why not working?"
+                  },
+                  {
+                    "text": "it just says connection close"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "let me save you the trouble. i spent a LONG time trying every permutation of this payload that I could. i just forgot the ! in front of \"!DOCTYPE\". feel stupid as hell after that. we got it though!"
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{XML_3xtern@l_3nt1t1ty_0e13660d}"
+    },
+    {
+      "title": "Some Assembly Required 1",
+      "difficulty": "medium",
+      "order": 43,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "so there's no description AND i gotta deal with assembly? this one's already scary lol",
+            "subNodes": []
+          },
+          {
+            "text": "the page loads - upon requesting index.html we get redirected to /JIFxzHyW8W and then finally we get this super simple looking page, just an input that says \"Enter flag:\" and a submit button that calls onButtonPress().",
+            "subNodes": [
+              {
+                "text": "let's see what that weird redirection was first - seems like base64",
+                "subNodes": [
+                  {
+                    "text": "that was NOT base64 lol, decoding just gives us a bunch of random bytes"
+                  }
+                ]
+              },
+              {
+                "text": "let's see where the onButtonPress fn is defined",
+                "subNodes": [
+                  {
+                    "text": "there's an included script called G82XCw5CX3.js, it looks super obfuscated."
+                  },
+                  {
+                    "text": "it's occuring to me that I have NO IDEA how WASM works lol. i'm assuming this weird looking script is like the compiled WASM. let's deobfuscate real quick"
+                  }
+                ]
+              },
+              {
+                "text": "as per usual in these giant obfuscated js files, theres this variable _0x402c that's an array of regular ascii words. looking through that I see an entry \"./JIFxzHyW8W\"",
+                "subNodes": [
+                  {
+                    "text": "i visited this in the browser. it prompts me to download a file - i think this is the WASM that's being run on the page. it's the same thing that we were redirected to at the beginning, that has to be it right?"
+                  },
+                  {
+                    "text": "looking inside it's a lot of bytes that notepad cant render. let's find a way to decompile this",
+                    "subNodes": [
+                      {
+                        "text": "actually before I decompile this, let's figure out wtf the JS actually does"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "asked AI to help me decode the obfuscated JS. basically:",
+                "subNodes": [
+                  {
+                    "text": "fetches the wasm file and runs WebAssembly.instantiate() on it"
+                  },
+                  {
+                    "text": "takes each character of the input field and runs the copy_char() method (defined in the wasm)"
+                  },
+                  {
+                    "text": "runs the check_flag() method in the wasm; if that returns 1 then flag input is correct."
+                  }
+                ]
+              },
+              {
+                "text": "i think now we oughta decomp the wasm to figure out what's actually happening",
+                "subNodes": [
+                  {
+                    "text": "apparently this exists: webassembly.github.io/wabt/demo/wasm2wat/",
+                    "subNodes": [
+                      {
+                        "text": "literally an online wasm decomp tool! thats cool"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "that was easy! didn't even need to trace any code - the flag (i guess that's the final result it's comparing to) is literally just at the bottom. awesome"
+                  },
+                  {
+                    "text": "definitely gonna use this tool for \"Some Assembly Required 2\" in a couple days, this is great!"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "There really wasnt much to be scared of like I thought at the beginning lol, that was actually not even that bad. I put off doing this box for way too long."
+        ]
+      },
+      "flag": "picoCTF{68ff4bc93f6d67637b2f471be209d132}"
+    },
+    {
+      "title": "No Sql Injection",
+      "difficulty": "medium",
+      "order": 44,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description is just \"Can you try to get access to this website to get the flag?\" GREAT, that's so helpful.",
+            "subNodes": []
+          },
+          {
+            "text": "is it \"No SQL Injection\" as in I can't do SQLi? or is it \"NoSQL Injection\" like MongoDB type stuff? let's find out",
+            "subNodes": []
+          },
+          {
+            "text": "web page is literally just a login form. no method in the form though, that's interesting",
+            "subNodes": [
+              {
+                "text": "oh, the actual submission is handled by client-side js. it's POSTing to /login it seems.",
+                "subNodes": [
+                  {
+                    "text": "interesting, seems that on server reply we're console.log'ging the response - that's helpful first of all. second of all, on successful server reply, we're saving the credentials in sessionStorage. veeeery interesting."
+                  },
+                  {
+                    "text": "POST body is literally just an \"email\" key and a \"password\" key in JSON. that's actually pretty simple"
+                  }
+                ]
+              },
+              {
+                "text": "wait a second, we're given app source code. let's look at that first"
+              }
+            ]
+          },
+          {
+            "text": "looking at app source and i was right, it IS MongoDB!",
+            "subNodes": [
+              {
+                "text": "admin.html actually seems clean, like there's genuinely nothing to see here. weird"
+              },
+              {
+                "text": "in server.js i see that we're actually creating an initial user \"picoplayer355@picoctf.org\", with password crypto.randomBytes(16).toString(\"hex\").slice(0, 16). i assume brute force isnt gonna work lmao, that's like a quintillion iterations or something stupid like that."
+              },
+              {
+                "text": "ok, well look at the response for a successful post to /login:",
+                "subNodes": [
+                  {
+                    "text": "res.json({\n    success: true,\n    email: user.email,\n    token: user.token,\n    firstName: user.firstName,\n    lastName: user.lastName,\n});"
+                  },
+                  {
+                    "text": "in the index.html, what we see happening is that if the response.success = true then it sets the firstName, lastName, email, token params in sessionStorage equal to the response from the server. then it just redirects to /admin. i can already see a firstName, lastName and email in that initial user record that's being created at the beginning of the file. let's figure out what the hell this token thing is though"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "oh. this is gonna be really easy. here's what the \"token\" looks like in the schema: `token: { type: String, required: false, default: \"{{Flag}}\" }`",
+            "subNodes": [
+              {
+                "text": "alright, i think we have everything we need now. let's just run the sessionStorage.setItem commands in the js console real quick",
+                "subNodes": [
+                  {
+                    "text": "email = \"picoplayer355@picoctf.org\""
+                  },
+                  {
+                    "text": "firstName = \"pico\""
+                  },
+                  {
+                    "text": "lastName = \"player\""
+                  },
+                  {
+                    "text": "token = \"{{Flag}}\""
+                  }
+                ]
+              },
+              {
+                "text": "redirect to /admin AND.....",
+                "subNodes": [
+                  {
+                    "text": "nothing?"
+                  },
+                  {
+                    "text": "something aint right."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, i think it's time to figure out how this whole NoSQL injection thing works, like how do i SQLi on mongodb? i bet the default user email and name and stuff in the server.js is just to help us identify which row to pull or something.",
+            "subNodes": [
+              {
+                "text": "alrighty, just like in JAuth, it just took some googling. basically, mongodb queries work a little differently. we can put certain operators into the JSON query like:",
+                "subNodes": [
+                  {
+                    "text": "\"$ne\" (not equal)"
+                  },
+                  {
+                    "text": "\"$where\" (matches documents that satisfy a JS expression--that's freaking cool btw)"
+                  },
+                  {
+                    "text": "\"$regex\" (select documents where values match a regexp)"
+                  }
+                ]
+              },
+              {
+                "text": "so what i'm seeing is that we've been given an email and not a password. pretty sure we can just do password not equal to null in our query; it should just spit back that default user record right?",
+                "subNodes": [
+                  {
+                    "text": "ok, so email set to \"picoplayer355@picoctf.org\""
+                  },
+                  {
+                    "text": "password set to {\"$ne\": null}",
+                    "subNodes": [
+                      {
+                        "text": "why didn't that work? password.startsWith isn't a method?",
+                        "subNodes": [
+                          {
+                            "text": "i guess it's just not treating it as a string?"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "ok, let's wrap the same payload in quotes?",
+                    "subNodes": [
+                      {
+                        "text": "that's it!"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "it dumped the whole record. turns out, that token field whose default value i thought was literally \"{{Flag}}\"? no, that was like, THE flag."
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "noticing a pattern with these medium boxes - whenever a somewhat more niche vuln is introduced, like xxe, jwt manipulation, nosql injection, etc, the solution has been THE textbook case of that vuln. maybe hard boxes are hard because they have the same niche vulns but they want you to go more complex with them? idk, we'll find out soon! just a few more days."
+        ]
+      },
+      "flag": "picoCTF{jBhD2y7XoNzPv_1YxS9Ew5qL0uI6pasql_injection_784e40e8}"
+    },
+    {
+      "title": "Irish-Name-Repo 3",
+      "difficulty": "medium",
+      "order": 45,
+      "content": {
+        "nodes": [
+          {
+            "text": "medium diff, last one of the series! yay",
+            "subNodes": []
+          },
+          {
+            "text": "description just says \"Try to see if you can login as admin!\"",
+            "subNodes": []
+          },
+          {
+            "text": "ok, rinse and repeat - exact same website as the last two irish-name-repos. let's see what kinda filters they added this time",
+            "subNodes": [
+              {
+                "text": "still got the same support tickets. they're still awesome too lmao"
+              },
+              {
+                "text": "ok, i'm on the login page now. let's hit it with the ol' `' or 1=1;--`",
+                "subNodes": [
+                  {
+                    "text": "sick, it straight up hands us the PHP error this time",
+                    "subNodes": [
+                      {
+                        "text": "Warning: SQLite3::query(): Unable to prepare statement: 1, near \"be\": syntax error in /var/www/html/login.php on line 20"
+                      },
+                      {
+                        "text": "Fatal error: Uncaught Error: Call to a member function fetchArray() on boolean in /var/www/html/login.php:21 Stack trace: #0 {main} thrown in /var/www/html/login.php on line 21"
+                      },
+                      {
+                        "text": "wait, syntax error? and \"be\"? wha??"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "OH hang on a second, the password isn't the only request param. there's also \"&debug=0\" at the end. what if i set this to 1 and try the same payload",
+                "subNodes": [
+                  {
+                    "text": "ok, turning debug on shows us our SQL query. this is odd",
+                    "subNodes": [
+                      {
+                        "text": "SQL query: SELECT * FROM admin where password = '' be 1=1;--'"
+                      },
+                      {
+                        "text": "where'd the \"be\" come from? i entered \"or\" not \"be\""
+                      },
+                      {
+                        "text": "is this some ROT13 shit?"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "huh, ok, so ROT13-ing the word \"or\" DOES give us \"be\". if i rot13 \"be\" we get \"or\" again.",
+                "subNodes": [
+                  {
+                    "text": "new payload:  ' be 1=1;--"
+                  },
+                  {
+                    "text": "YOOOOO THAT WORKED NO WAY"
+                  },
+                  {
+                    "text": "i feel smart now lol, that only took like 5 minutes"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{3v3n_m0r3_SQL_2af58a67}"
+    },
+    {
+      "title": "Most Cookies",
+      "difficulty": "medium",
+      "order": 46,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"Alright, enough of using my own encryption. Flask session cookies should be plenty secure!\"",
+            "subNodes": []
+          },
+          {
+            "text": "alright, immediately googling for flask session cookie exploits. let's see what we can find",
+            "subNodes": [
+              {
+                "text": "first off, ew. remember that one \"Cookies\" challenge from like 30 boxes ago? this challenge is on the site, like same page content and everything. i'm having flashbacks",
+                "subNodes": [
+                  {
+                    "text": "looking at the flask session cookie, i'm noticing now that this is actually dot-separated as well, just like JWTs. i genuinely had no idea lmao. anyway, in the first segment we see this thing: {\"very_auth\":\"blank\"}. that's interesting."
+                  },
+                  {
+                    "text": "recall that the cookie name input on this page has a placeholder of snickerdoodle; entering snickerdoodle into the textbox and looking at the session cookie on the page that we get redirected to, it seems that the very_auth param has actually been changed to snickerdoodle. interesting."
+                  },
+                  {
+                    "text": "ok then, what else can we change this param to?",
+                    "subNodes": [
+                      {
+                        "text": "let's try setting to 1",
+                        "subNodes": [
+                          {
+                            "text": "ok, server sets it back to blank and sends us back to index.html"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "let's try setting to \"flag\" or sth like that",
+                        "subNodes": [
+                          {
+                            "text": "nah still nothing. back to research"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, so it seems that flask cookies are signed with a secret key just like JWTs are. when googling for vulns i found a Medium article explaining how they work; it says quite explicitly that flask cookies are SIGNED, but not ENCRYPTED."
+              },
+              {
+                "text": "it then said something about brute force, but then I saw \"Most Cookies\" and realized that this article is actually a writeup of this box.",
+                "subNodes": [
+                  {
+                    "text": "i closed the article, no cheating. it's given me enough info already - basically we gotta figure out what the secret key is and go from there.",
+                    "subNodes": [
+                      {
+                        "text": "a little more googling reveals that apparently there's a tool called flask-unsign. seems like what we need. let's install it"
+                      },
+                      {
+                        "text": "oh. it failed to find the secret key after like 56000 attempts. hmm"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "maybe gobuster will find me something?",
+                "subNodes": [
+                  {
+                    "text": "hah, no"
+                  }
+                ]
+              },
+              {
+                "text": "ok, now what?"
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "OK, this is where I'm going to have to cut this short. there are a lot more notes that I can publish, but they're RIDICULOUSLY long, and I genuinely got nowhere",
+          "TL;DR:",
+          "I tried my hardest to unsign the flask cookie, went back to that Cookies room and painstakingly got the full list of cookies to use as a wordlist, tried to find cookie brute force wordlists online, tried bypassing signatures entirely, etc.",
+          "After like 2 hours I was still absolutely nowhere. I decided to look up a walkthrough for this room, and apparently in all the walkthroughs, they're GIVEN THE SERVER SOURCE CODE. I don't have that. Weird.",
+          "I've decided to come back to this room at a later date. I'm NOT quitting--I'm just reprioritizing."
+        ]
+      },
+      "flag": ""
+    },
+    {
+      "title": "Startup Company",
+      "difficulty": "medium",
+      "order": 47,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "description asks \"Do you want to fund my startup?\" but that's it.",
+            "subNodes": []
+          },
+          {
+            "text": "decided to do a gobuster scan right off the bat so i dont end up wasting a bunch of time later",
+            "subNodes": [
+              {
+                "text": "it found .hta, .htaccess, and .htpasswd. all three of them give 403 upon trying to visit, as expected, but now we know we're dealing with php."
+              }
+            ]
+          },
+          {
+            "text": "page consists of a sign-in card with username and password (POST to index.php) as well as there's a registration link up in the top that links to /register.php.",
+            "subNodes": [
+              {
+                "text": "for some reason it already shows \"Invalid Login\" even though i havent made an attempt yet. we have a PHPSESSID already as well. so the app is doing something with $_SESSION probably"
+              },
+              {
+                "text": "trying to login as admin with password foo just to see what happens",
+                "subNodes": [
+                  {
+                    "text": "nothing lmao same Invalid Login up at the top"
+                  }
+                ]
+              },
+              {
+                "text": "what if i send the login request with only a username and no password, any visible errors?",
+                "subNodes": [
+                  {
+                    "text": "none. only password no username?",
+                    "subNodes": [
+                      {
+                        "text": "still nothing"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, let's try to register real quick, see what happens",
+                "subNodes": [
+                  {
+                    "text": "POST to /register.php, user=jerry&pass=mouse"
+                  },
+                  {
+                    "text": "we're in. we get sent back to the index page, now theres a little prompt of like \"thank you for volunteering bla bla, you can fund us with as much money as you'd like.\" there's a little number input here and a submit button, POSTs to contribute.php. let's look at this request real quick"
+                  }
+                ]
+              },
+              {
+                "text": "the POST to contribute.php has params captcha and moneys; moneys=5 (which is how much i \"donated\") and captcha=36 - idk why. interesting."
+              },
+              {
+                "text": "we're once again on index.php, except now it says \"You're latest contribution: $5\"",
+                "subNodes": [
+                  {
+                    "text": "first of all it's YOUR"
+                  },
+                  {
+                    "text": "second of all when we refresh the page that $5 is still there. def using session global."
+                  },
+                  {
+                    "text": "ah, wait a sec, the the captcha thing is a hidden form field. it changes every time you refresh the page. this might be our way through. let's try capta=0",
+                    "subNodes": [
+                      {
+                        "text": "\"Invalid captcha\""
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "seems we can't just put any ol' number for captcha, it's coordinated with the server like a CSRF token of sorts.",
+                "subNodes": [
+                  {
+                    "text": "i dont really know how to do a CSRF bypass lmao, let's google"
+                  }
+                ]
+              },
+              {
+                "text": "hang on, i entered 5 moneys and it reflected on the page 5 moneys right? is this some file inclusion crap?",
+                "subNodes": [
+                  {
+                    "text": "ahaaa if i change the input type from number to text and enter hello then i see \"You're latest contribution: $hello\". that's cool, we can do some fun stuff that means.",
+                    "subNodes": [
+                      {
+                        "text": "trying input of <?php echo \"Hello from PHP\"; ?>",
+                        "subNodes": [
+                          {
+                            "text": "\"You're latest contribution: $\"",
+                            "subNodes": [
+                              {
+                                "text": "well something happened"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "text": "trying input of <script>alert(\"XSS\")</script>",
+                        "subNodes": [
+                          {
+                            "text": "woah, that froze the page!"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "yep, if i hit the little x to stop the loading and then enter \"XYZ\" it comes up with latest donation is XYZ. the <script> is behaving abnormally for sure."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "time check - 30 minutes"
+              },
+              {
+                "text": "ok, let's put some random stuff in here",
+                "subNodes": [
+                  {
+                    "text": "a double quote?",
+                    "subNodes": [
+                      {
+                        "text": "nothing; just says my latest donation is \""
+                      }
+                    ]
+                  },
+                  {
+                    "text": "a semicolon?",
+                    "subNodes": [
+                      {
+                        "text": "nothing"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "single quote",
+                    "subNodes": [
+                      {
+                        "text": "SQLITE3 ERROR WOOHOO WE GOT SOMETHING"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Warning: SQLite3::query(): Unable to prepare statement: 1, near \"jerry\": syntax error in /var/www/html/contribute.php on line 11",
+                "subNodes": [
+                  {
+                    "text": "ok, interesting. jerry is my username."
+                  },
+                  {
+                    "text": "this is probably an insert query isnt it, lemme see if theres any fancy sqli stuff i can do with this",
+                    "subNodes": [
+                      {
+                        "text": "ooh interesting, so when my input is  '--  there's straight up nothing. sql error is gone and the \"youre latest contribution\" is literally blank"
+                      },
+                      {
+                        "text": "ok, so basically i wanna find a way to turn my INSERT or UPDATE statement into a SELECT statement and then report back through that latest contrib thing, but how?",
+                        "subNodes": [
+                          {
+                            "text": "actually that's prob not possible. but if it's storing the value of my moneys in the db and then fetching that again, i should just be able to store something interesting as moneys and itll report it back right?"
+                          },
+                          {
+                            "text": "can you have nested sqlite queries?",
+                            "subNodes": [
+                              {
+                                "text": "aha, subqueries are a thing! cool, so i can just have my input be a query in parentheses and that *should* in theory just get evaluated."
+                              },
+                              {
+                                "text": "wait no, by doing '-- i'm closing a quoted field, if i have a query in quotes itll prob literally store the query. does sql have string concatenation or sth?",
+                                "subNodes": [
+                                  {
+                                    "text": "oh cool it's the || operator for sqlite. ok i think i got this one then, we can prob just enum from here"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "did some googling, gonna try the following inputs:",
+                "subNodes": [
+                  {
+                    "text": "' || (SELECT name FROM sqlite_master WHERE type='table' LIMIT 1)",
+                    "subNodes": [
+                      {
+                        "text": "Unable to prepare statement: 1, near \"' WHERE nameuser='\";",
+                        "subNodes": [
+                          {
+                            "text": "i think i forgot to comment out the end lol"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "' || (SELECT name FROM sqlite_master WHERE type='table' LIMIT 1);--",
+                    "subNodes": [
+                      {
+                        "text": "BINGO! we have a table called startup_users. lemme look inside"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "' || (SELECT sql FROM sqlite_master WHERE tbl_name='startup_users' AND type='table' LIMIT 1);--",
+                    "subNodes": [
+                      {
+                        "text": "we get CREATE TABLE startup_users (nameuser text, wordpass text, money int)"
+                      },
+                      {
+                        "text": "wait a sec are there any other tables"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "' || (SELECT name FROM sqlite_master WHERE type='table' LIMIT 1 OFFSET 1);--",
+                    "subNodes": [
+                      {
+                        "text": "nothing. ok, prob just gotta dump startup_users"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "name: ' || (SELECT nameuser FROM startup_users LIMIT 1 OFFSET 0) || ' pwd: ' || (SELECT wordpass FROM startup_users LIMIT 1 OFFSET 0) || ' money: ' || (SELECT money FROM startup_users LIMIT 1 OFFSET 0);--",
+                    "subNodes": [
+                      {
+                        "text": "hoping this actually works lmao"
+                      },
+                      {
+                        "text": "AHA WE GOT THE FIRST ROW"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "time check - 1 hour"
+                  },
+                  {
+                    "text": "imma run the query over and over until we have the whole table, changing the OFFSET value each time. this is SO COOL"
+                  },
+                  {
+                    "text": "the table is as below:",
+                    "subNodes": [
+                      {
+                        "text": "name: admin pwd: password money: 0"
+                      },
+                      {
+                        "text": "name: ron pwd: not_the_flag_db1d1c41 money: null"
+                      },
+                      {
+                        "text": "name: veronica pwd: not_the_flag_de19f38f money: null"
+                      },
+                      {
+                        "text": "name: brick pwd: not_the_flag_6d8cfc3e money: null"
+                      },
+                      {
+                        "text": "... (3 rows later) ..."
+                      },
+                      {
+                        "text": "name: the_real_flag pwd: picoCTF{1_c4nn0t_s33_y0u_58183fce} money: null"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "yay! no hints too"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "total time prob around 1h10m (writing these notes lowkey takes longer than it should)"
+        ]
+      },
+      "flag": "picoCTF{1_c4nn0t_s33_y0u_58183fce}"
+    },
+    {
+      "title": "Web Gauntlet",
+      "difficulty": "medium",
+      "order": 48,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "note: I'm starting to run out of time to finish all the picoCTF challenges before the comp starts. i think at this point I've built the core skills that I need. it's a tough decision but i think I'm gonna finish all 3 web gauntlets and then just jump straight into hard boxes. we gotta GO",
+            "subNodes": []
+          },
+          {
+            "text": "description asks \"Can you beat the filters?\" i've heard about this one, apparently it's just a bunch of sqli chained together or something. should be interesting.",
+            "subNodes": []
+          },
+          {
+            "text": "site consists of a login page, just a username and password box and a sign in button. we were also given a link to /filter.php once the instance started - right now it says \"Round1: or\"",
+            "subNodes": [
+              {
+                "text": "i assume this means we can't use the ' or 1=1;-- trick. let's confirm real quick",
+                "subNodes": [
+                  {
+                    "text": "yeah nah, no results - it just reloads the page"
+                  }
+                ]
+              },
+              {
+                "text": "let's try: username=admin and password '--",
+                "subNodes": [
+                  {
+                    "text": "we get invalid username/password"
+                  },
+                  {
+                    "text": "it DOES show us the query though: SELECT * FROM users WHERE username='admin' AND password=''--'"
+                  }
+                ]
+              },
+              {
+                "text": "maybe admin';--",
+                "subNodes": [
+                  {
+                    "text": "aha yep, \"Congrats! On to round 2\""
+                  }
+                ]
+              },
+              {
+                "text": "filter.php now says \"Round2: or and like = --\" this is gonna be annoying",
+                "subNodes": [
+                  {
+                    "text": "ok, hex maybe?"
+                  },
+                  {
+                    "text": "admin';\\2d\\2d",
+                    "subNodes": [
+                      {
+                        "text": "aha! on to round 3"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "filter.php now says \"Round3: or and = like > < --\"",
+                "subNodes": [
+                  {
+                    "text": "hex might work again maybe?",
+                    "subNodes": [
+                      {
+                        "text": "lmfao yep, on to round 4"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "filter.php now says \"Round4: or and = like > < -- admin\" what the hell?",
+                "subNodes": [
+                  {
+                    "text": "hex again? lmaoooo",
+                    "subNodes": [
+                      {
+                        "text": "\\x61\\x64\\x6d\\x69\\x6e';\\x2d\\x2d",
+                        "subNodes": [
+                          {
+                            "text": "invalid. hmm"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "wait a sec, i didn't put any of the x's in the last two queries, it was just \\2d\\2d instead of \\x2d\\x2d. worked twice in a row. maybe i just remove all the x's?"
+                      },
+                      {
+                        "text": "\\61\\64\\6d\\69\\6e';\\2d\\2d",
+                        "subNodes": [
+                          {
+                            "text": "still invalid. we gotta get creative this time"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "ooooo hang on it's still sqlite3 we can use string concatenation"
+                      },
+                      {
+                        "text": "a' || 'dm' || 'in';\\2d\\2d",
+                        "subNodes": [
+                          {
+                            "text": "ok well it didnt error this time but we didnt succeed either."
+                          },
+                          {
+                            "text": "this is the same thing it does when the filter gets triggered. why would this be triggering the filter? i guess concat is happening and THEN filter is being run?"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "hang on, 3v@l tool me a super long time for similar reason. there I ended up using chr() and it just worked. does sql have smth like that",
+                        "subNodes": [
+                          {
+                            "text": "of course it does. CHAR(97,100,109,105,110) should just resolve to 'admin'"
+                          },
+                          {
+                            "text": "' || CHAR(97,100,109,105,110);\\2d\\2d",
+                            "subNodes": [
+                              {
+                                "text": "heh, nope. it seems to still be triggering the filter"
+                              }
+                            ]
+                          },
+                          {
+                            "text": "GPT says we can try concatenating printf('%c%c%c%c%c',97,100,109,105,110) in the same way",
+                            "subNodes": [
+                              {
+                                "text": "oh, still trips it. what the hell?"
+                              },
+                              {
+                                "text": "let's ask claude it's lowkey better at this lol"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "text": "OH WAIT A GODDAMN MINUTE",
+                        "subNodes": [
+                          {
+                            "text": "our query is SELECT * FROM users WHERE username='e'' AND password='e'"
+                          },
+                          {
+                            "text": "but AND and \"=\" are FREAKING FILTERED OUT"
+                          },
+                          {
+                            "text": "so basically, if there's no errors in the query then it literally can't run??",
+                            "subNodes": [
+                              {
+                                "text": "claude says sql supports /* */ comments too. let's try that first"
+                              },
+                              {
+                                "text": "' || CHAR(97,100,109,105,110)/*",
+                                "subNodes": [
+                                  {
+                                    "text": "still nothing"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "text": "i accidentally submitted only a space and it also triggered the filter. the hell?",
+                        "subNodes": [
+                          {
+                            "text": "'||CHAR(97,100,109,105,110)/* without spaces?"
+                          },
+                          {
+                            "text": "WHAT THE HELL BRUH THAT WAS IT",
+                            "subNodes": [
+                              {
+                                "text": "i'm so mad lol"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "filter.php now says \"Round5: or and = like > < -- union admin\"",
+                "subNodes": [
+                  {
+                    "text": "ok, we werent using union anyway. same query as last time with the char?",
+                    "subNodes": [
+                      {
+                        "text": "'||CHAR(97,100,109,105,110)/*"
+                      },
+                      {
+                        "text": "ayyyy that was it. filter.php now contains the flag"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{y0u_m4d3_1t_79a0ddc6}"
+    },
+    {
+      "title": "Web Gauntlet 2",
+      "difficulty": "medium",
+      "order": 49,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "alrighty, same idea as the last web gauntlet it seems. let's check out filter.php",
+            "subNodes": [
+              {
+                "text": "Filters: or and true false union like = > < ; -- /* */ admin",
+                "subNodes": [
+                  {
+                    "text": "hmmmmmmmmm"
+                  },
+                  {
+                    "text": "same query from last time might work, we can prob use \\2d\\2d again (hopefully)"
+                  },
+                  {
+                    "text": "'||CHAR(97,100,109,105,110)\\2d\\2d maybe?",
+                    "subNodes": [
+                      {
+                        "text": "shi, nope",
+                        "subNodes": [
+                          {
+                            "text": "WAIT no now it says \"not admin\" in the error message"
+                          },
+                          {
+                            "text": "we also get a sql error - unrecognized token: \"\\\""
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "hang on, at the end of web gauntlet 1 i was able to see the source code on filter.php - that's where the flag was at the bottom. maybe that's important here? let's take a look real quick",
+                    "subNodes": [
+                      {
+                        "text": "absolutely useless."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok so if i can't comment out the password check then i just gotta make it eval to true regardless i guess",
+                "subNodes": [
+                  {
+                    "text": "username = '||CHAR(97,100,109,105,110)"
+                  },
+                  {
+                    "text": "password = ???????",
+                    "subNodes": [
+                      {
+                        "text": "i lowkey dont know what to put in that field, lemme get some help"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "claude mentioned that there's the \"IS NOT\" operators and that it might help me with that. idk how though, i can't just do password='a' IS NOT 'b' or something right? wont that throw a syntax error or something?"
+                  }
+                ]
+              },
+              {
+                "text": "screw it let's try it anyway",
+                "subNodes": [
+                  {
+                    "text": "username '||CHAR(97,100,109,105,110)"
+                  },
+                  {
+                    "text": "password a' is not 'b",
+                    "subNodes": [
+                      {
+                        "text": "combined input lengths too long. hmm"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "claude points out that we havent done regular string concat for username. let's try?",
+                "subNodes": [
+                  {
+                    "text": "username ad'||'min"
+                  },
+                  {
+                    "text": "same password"
+                  },
+                  {
+                    "text": "OH WTF THAT WAS IT"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "ok so i guess it interpreted the password as (password='a') IS NOT 'b'. that's true! that makes sense now. noted."
+        ]
+      },
+      "flag": "picoCTF{0n3_m0r3_t1m3_85a265ac}"
+    },
+    {
+      "title": "Web Gauntlet 3",
+      "difficulty": "medium",
+      "order": 50,
+      "content": {
+        "nodes": [
+          {
+            "text": "med diff",
+            "subNodes": []
+          },
+          {
+            "text": "this time description says \"Last time, I promise! Only 25 characters this time.\" meh ight",
+            "subNodes": []
+          },
+          {
+            "text": "here we go again. filter.php says:",
+            "subNodes": [
+              {
+                "text": "Filters: or and true false union like = > < ; -- /* */ admin",
+                "subNodes": [
+                  {
+                    "text": "seems to be the exact same as last time"
+                  },
+                  {
+                    "text": "smaller char count might get me here but let's try the same winning query from Web Gauntlet 2"
+                  },
+                  {
+                    "text": "oh lmao that was it, that just worked. awesome"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "took about 2 minutes. love that",
+            "subNodes": []
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{k3ep_1t_sh0rt_d0339730}"
+    }
+  ]
+}
