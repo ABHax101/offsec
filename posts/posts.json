@@ -1,9 +1,16 @@
 [
   {
+    "title": "picoCTF: The \"High School\" of Web Exploitation",
+    "file": "posts/pico-medium-high-school.html",
+    "date": "2026-03-07",
+    "excerpt": "The devs are fighting back!",
+    "tags": ["picoCTF", "Web Exploitation", "Timeline", "Learning Journey", "Medium"]
+  },
+  {
     "title": "picoCTF: The \"Normal\" Medium Web Boxes",
     "file": "posts/pico-easier-medium.html",
     "date": "2026-03-05",
-    "excerpt": "If the Easy boxes are meant to be easy and the Medium boxes are meant to be tricky, then these ones were somewhere in between.",
+    "excerpt": "If the Easy boxes are the warmup, these were just business as usual.",
     "tags": ["picoCTF", "Web Exploitation", "Timeline", "Medium"]
   },
   {
