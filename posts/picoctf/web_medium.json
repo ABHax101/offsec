@@ -7,10 +7,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"The login system has been upgraded with a basic rate-limiting mechanism that locks out repeated failed attempts from the same source. We've received a tip that the system might still trust user-controlled headers. Your objective is to bypass the rate-limiting restriction and log in using the known email address: ctf-player@picoctf.org and uncover the hidden secret.\"",
             "subNodes": []
           },
@@ -104,10 +100,6 @@
       "order": 21,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "\"I found a web app that can help process images: PNG images only!\" woah, ok, hopefully no binary exploits here.",
             "subNodes": []
@@ -224,10 +216,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"A university's online registration portal asks students to upload their ID cards for verification. The developer put some filters in place to ensure only image files are uploaded but are they enough? Take a look at how the upload is implemented. Maybe there's a way to slip past the checks and interact with the server in ways you shouldn't.\" sounds kinda similar to Trickster. time to redeem myself?",
             "subNodes": [
               {
@@ -290,10 +278,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "nothing telling in the description - \"My dog-sitter's brother made this website but I can't get in; can you help?\" i assume the dog-sitter's brother stuff is just distractor info. i've learned from my mistakes though - there's a solid chance that's a clue as well. let's see what happens",
             "subNodes": [
               {
@@ -355,10 +339,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"The flag is somewhere on this web application not necessarily on the website. Find it.\" well, the name is giving me a pretty good hint right now. let's see what our css looks like",
             "subNodes": [
               {
@@ -415,10 +395,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"Can you login to this website?\" sure i can. use it or lose it right? i just learned SQLi, let's do this.",
             "subNodes": [
               {
@@ -471,10 +447,6 @@
       "order": 26,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "last box wasnt enough lmao let's go again. \"Can you find the flag on this website.\" the hint is \"SQLiLite.\" that's all we get. ok, fair enough.",
             "subNodes": [
@@ -673,10 +645,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"ABC Bank's website has a loan calculator to help its clients calculate the amount they pay if they take a loan from the bank. Unfortunately, they are using an eval function to calculate the loan.\" alrighty - RCE time. let's see what i can do.",
             "subNodes": [
               {
@@ -871,10 +839,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "\"This website can be rendered only by picobrowser, go and catch the flag!\". what the hell is picobrowser?",
             "subNodes": []
           },
@@ -925,10 +889,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description is literally just \"Can you get the flag?\"",
             "subNodes": []
           },
@@ -964,10 +924,6 @@
       "order": 30,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "Description says \"How about trying to match a regular expression\" - that's it. If there's ANYTHING I learned from the second half of the TryHackMe Web Hacking module, it's how to mess with regex. let's go",
             "subNodes": [
@@ -1030,10 +986,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"Connect to this PostgreSQL server and find the flag!\" well we already now know it's postgres- that's pretty helpful",
             "subNodes": []
           },
@@ -1084,10 +1036,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"Help us test the form by submiting the username as test and password as test!\"  nice! i know how to do that!",
             "subNodes": []
           },
@@ -1135,10 +1083,6 @@
       "order": 33,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "description says \"We have several pages hidden. Can you find the one with the flag?\"",
             "subNodes": []
@@ -1254,10 +1198,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"We know that the website files live in /usr/share/nginx/html/ and the flag is at /flag.txt but the website is filtering absolute file paths. Can you get past the filter to read the flag?\"",
             "subNodes": []
           },
@@ -1303,10 +1243,6 @@
       "order": 35,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "description says \"Now presenting cowsay as a service\". so THAT'S what caas is.",
             "subNodes": []
@@ -1406,10 +1342,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"Do you think you can log us in? Try to see if you can login!\"",
             "subNodes": []
           },
@@ -1458,10 +1390,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"Can you break into this super secure portal?\" based on how the last one was, should be easy.",
             "subNodes": []
           },
@@ -1505,10 +1433,6 @@
       "order": 38,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "\"Someone has bypassed the login before, and now it's being strengthened. Try to see if you can still login!\"",
             "subNodes": []
@@ -1577,10 +1501,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"The developer of this website mistakenly left an important artifact in the website source, can you find it?\"",
             "subNodes": []
           },
@@ -1636,10 +1556,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"I sent out 2 invitations to all of my friends for my birthday! I'll know if they get stolen because the two invites look similar, and they even have the same md5 hash, but they are slightly different! You wouldn't believe how long it took me to find a collision. Anyway, see if you're invited by submitting 2 PDFs to my website.\"",
             "subNodes": []
           },
@@ -1689,10 +1605,6 @@
       "order": 41,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "description says \"Most web application developers use third party components without testing their security. Some of the past affected companies are...\" and then it goes to list three companies and what was exploited for each one. \"Can you identify the components and exploit the vulnerable one?\"",
             "subNodes": []
@@ -1816,10 +1728,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"The web project was rushed and no security assessment was done. Can you read the /etc/passwd file?\" lmao i gotchu",
             "subNodes": []
           },
@@ -1935,10 +1843,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "so there's no description AND i gotta deal with assembly? this one's already scary lol",
             "subNodes": []
           },
@@ -2028,10 +1932,6 @@
       "order": 44,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "description is just \"Can you try to get access to this website to get the flag?\" GREAT, that's so helpful.",
             "subNodes": []
@@ -2258,10 +2158,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "description says \"Alright, enough of using my own encryption. Flask session cookies should be plenty secure!\"",
             "subNodes": []
           },
@@ -2349,10 +2245,6 @@
       "order": 47,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "description asks \"Do you want to fund my startup?\" but that's it.",
             "subNodes": []
@@ -2643,10 +2535,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "note: I'm starting to run out of time to finish all the picoCTF challenges before the comp starts. i think at this point I've built the core skills that I need. it's a tough decision but i think I'm gonna finish all 3 web gauntlets and then just jump straight into hard boxes. we gotta GO",
             "subNodes": []
           },
@@ -2856,10 +2744,6 @@
       "content": {
         "nodes": [
           {
-            "text": "med diff",
-            "subNodes": []
-          },
-          {
             "text": "alrighty, same idea as the last web gauntlet it seems. let's check out filter.php",
             "subNodes": [
               {
@@ -2961,10 +2845,6 @@
       "order": 50,
       "content": {
         "nodes": [
-          {
-            "text": "med diff",
-            "subNodes": []
-          },
           {
             "text": "this time description says \"Last time, I promise! Only 25 characters this time.\" meh ight",
             "subNodes": []
