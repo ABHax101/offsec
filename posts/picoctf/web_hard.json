@@ -1,0 +1,548 @@
+{
+  "boxes": [
+    {
+      "title": "Java Script Kiddie",
+      "difficulty": "hard",
+      "order": 51,
+      "content": {
+        "nodes": [
+          {
+            "text": "first hard box! woohoo",
+            "subNodes": []
+          },
+          {
+            "text": "description says that \"The image link appears broken...\" what's it hiding?",
+            "subNodes": []
+          },
+          {
+            "text": "gonna start with gobuster scan, dont want that to come bite me later",
+            "subNodes": [
+              {
+                "text": "it found:",
+                "subNodes": [
+                  {
+                    "text": ".hta, .htaccess, .htpasswd, server-status - SO IT'S APACHE. good to know"
+                  },
+                  {
+                    "text": "index.html. no surprise there"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "site consists of literally just a text input and a submit button. that's everything that's on the page",
+            "subNodes": [
+              {
+                "text": "source looks interesting, theres some client-side js",
+                "subNodes": [
+                  {
+                    "text": "uses jQuery to GET the url \"bytes\" (probably ./bytes) and splits that into an array containing every byte of the response",
+                    "subNodes": [
+                      {
+                        "text": "shocker - the array is called bytes"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "there's a client-side fn function called assemble_png(u_in). it takes our u_in value, and if it's 16 chars long, sets this \"key\" var equal to it."
+                  },
+                  {
+                    "text": "it seems like it takes the bytes array and scrambles the bytes around (via this annoying looking nested loops algorithm), trims all trailing zeroes if there are any, and then sets a hidden img element's src as a base64 png data url. interesting"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "let's first see what's even at /bytes",
+            "subNodes": [
+              {
+                "text": "oh, cool, it's just a bunch of decimal bytes lmao. 69 36 1 151 249 58 81 34 0 191 105 66 249 247 243 ......."
+              },
+              {
+                "text": "well well, i tried decoding it and it's really just a bunch of bytes lmao"
+              }
+            ]
+          },
+          {
+            "text": "when my input is just 0000000000000000 the returned bytes are all the same, though it seems the resulting base64 image source isn't quite right. this is what it was talking about when it said the image link appears broken - i see now. we have to somehow find the right input in order to reconstruct the right image",
+            "subNodes": []
+          },
+          {
+            "text": "ok, well it ain't 9999999999999999 either lmao, worth a shot. where could the right code be?",
+            "subNodes": [
+              {
+                "text": "upon hashing the jquery file and comparing it with the one on code.jquery.com, it's safe to say it's not in there."
+              },
+              {
+                "text": "i can prob reverse engineer the js itself. that's what the challenge is right? JS kiddie?"
+              }
+            ]
+          },
+          {
+            "text": "this is the loop:",
+            "subNodes": [
+              {
+                "text": "var result = [];"
+              },
+              {
+                "text": "for(var i = 0; i < LEN; i++){   // where LEN = 16"
+              },
+              {
+                "text": "    shifter = key.charCodeAt(i) - 48;   // where \"key\" is our 16-char long input"
+              },
+              {
+                "text": "    for(var j = 0; j < (bytes.length / LEN); j ++){    // seems there are 704 bytes total; this runs 44 times"
+              },
+              {
+                "text": "        result[(j * LEN) + i] = bytes[(((j + shifter) * LEN) % bytes.length) + i]"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "}",
+                "subNodes": [
+                  {
+                    "text": "seems that the shifter var is converting the ascii code to the actual number. code 48 is 0, 49 is 1, 50 2, 51 3, etc."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "kinda had absolutely no idea where to go from here; decided to ask claude. it made a VERY important point - all PNG images start with the same 8-byte header. that gives us an anchor for our input",
+            "subNodes": []
+          },
+          {
+            "text": "30 minutes in now",
+            "subNodes": []
+          },
+          {
+            "text": "i still wasn't fully good on what this script is actually doing. after some time, here's what i've determined:",
+            "subNodes": [
+              {
+                "text": "basically, imagine the flat bytes array as a table with 16 columns (len) and 44 rows (704 total bytes / len)"
+              },
+              {
+                "text": "it's gonna read in each row column-by-column. for each column, in each iteration R, it will read the row at (R + shifter) % number of rows",
+                "subNodes": [
+                  {
+                    "text": "if we're at row R=0, and let's say our shifter is 3, that becomes it's reading row [3 % 44] = row 3."
+                  },
+                  {
+                    "text": "at row R=1, shifter 3, it's gonna read row [4 % 44] = row 4"
+                  },
+                  {
+                    "text": "at row R=42, shifter 3, it's gonna read row [45 % 44] = row 1"
+                  }
+                ]
+              },
+              {
+                "text": "so essentially, we're rotating the entire column by that shifter value, and each of the 16 cols have their own shifter, equal to whatever the character in the input is at that position"
+              }
+            ]
+          },
+          {
+            "text": "this is cool - basically we can enum character-by-character. problem is, while the first 8 bytes are always the same on PNGs, the next 8 might not be. lemme see if theres some sort of pattern we can abuse there too",
+            "subNodes": [
+              {
+                "text": "ayy, ok so theres more PNG structure stuff in the next 16B - it doesnt HAVE to be this way, but that first chunk (length and chunk type) is likely gonna be the IHDR chunk which is always 13B long"
+              },
+              {
+                "text": "this being Java Script Kiddie 1, the FIRST challenge in this series, i think we can safely assume the next 4 bytes are gonna be 00 00 00 0D (for length, 13) and then the hex codes for IHDR so 49 48 44 52."
+              }
+            ]
+          },
+          {
+            "text": "so our full first 16 bytes we're trying to achieve right now are:",
+            "subNodes": [
+              {
+                "text": "89 50 4E 47 0D 0A 1A 0A 00 00 00 0D 49 48 44 52"
+              }
+            ]
+          },
+          {
+            "text": "since we can change our input digits one by one and rotate entire columns, i think we can just solve for this one byte at a time. that way we dont gotta try like 16 bajillion combinations. so essentially, i just gotta figure out how much to rotate each col so that our first 16B are the correct first 16B. imma write a script for this real quick:",
+            "subNodes": [
+              {
+                "text": "var raw = \"69 36 1 151 249 58 81......\" // all 704 of em"
+              },
+              {
+                "text": "var bytes = Array.from(raw.split(\" \"), x => Number(x));"
+              },
+              {
+                "text": "function assemble_png(u_in){"
+              },
+              {
+                "text": "    var LEN = 16;"
+              },
+              {
+                "text": "    var key = \"0000000000000000\";"
+              },
+              {
+                "text": "    var shifter;"
+              },
+              {
+                "text": "    if(u_in.length == LEN){"
+              },
+              {
+                "text": "        key = u_in;"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    var result = [];"
+              },
+              {
+                "text": "    for(var i = 0; i < LEN; i++){"
+              },
+              {
+                "text": "        shifter = key.charCodeAt(i) - 48;"
+              },
+              {
+                "text": "        for(var j = 0; j < (bytes.length / LEN); j ++){"
+              },
+              {
+                "text": "            result[(j * LEN) + i] = bytes[(((j + shifter) * LEN) % bytes.length) + i]"
+              },
+              {
+                "text": "        }"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    while(result[result.length-1] == 0){"
+              },
+              {
+                "text": "        result = result.slice(0,result.length-1);"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    return result.slice(0, 16);"
+              },
+              {
+                "text": "}"
+              },
+              {
+                "text": "target = Array.from(\"137 80 78 71 13 10 26 10 0 0 0 13 73 72 68 82\".split(\" \"), x => Number(x)); // converted them to decimal, easier processing"
+              },
+              {
+                "text": "shifters = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // where i'll store the correct shifters"
+              },
+              {
+                "text": "for (let i = 0; i < 16; i++) {"
+              },
+              {
+                "text": "    for (let j = 0; j < 10; j++) {"
+              },
+              {
+                "text": "        shifters[i] = j;"
+              },
+              {
+                "text": "        res = assemble_png(shifters.join(\"\"));"
+              },
+              {
+                "text": "        if (res[i] == target[i]) {"
+              },
+              {
+                "text": "            break;"
+              },
+              {
+                "text": "        }"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "}"
+              },
+              {
+                "text": "console.log(shifters.join(\"\"));"
+              },
+              {
+                "text": "so i basically took the same assemble_png method from the original client-side JS and added a loop to brute force our \"key\". basically it just tries every every number it can in each position until that position's byte matches that in the target column",
+                "subNodes": [
+                  {
+                    "text": "key it gave me: 1625882203169635"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "OK, WE'RE GETTING SOMEWHERE. Now being rendered on the page is a completely white image. that can't be all though. there's prob something hiding in the rearranged bytes or sth, let's try un-base64-ing",
+            "subNodes": [
+              {
+                "text": "i downloaded the image - it's not completely white, there's a couple random black pixels up at the top."
+              },
+              {
+                "text": "this some steganography shi or did i just mess up?"
+              },
+              {
+                "text": "maybe some sort of metadata?"
+              }
+            ]
+          },
+          {
+            "text": "shoot.",
+            "subNodes": [
+              {
+                "text": "$ identify -verbose download.png"
+              },
+              {
+                "text": "identify: IDAT: unknown compression method `download.png' @ error/png.c/MagickPNGError/1305."
+              },
+              {
+                "text": "ok so we just screwed up the decoding somehow. funnnnnn"
+              }
+            ]
+          },
+          {
+            "text": "curious now - it's been like 1.5h - what does the hint say?",
+            "subNodes": [
+              {
+                "text": "the hint says \"This is only a JavaScript problem.\" so like am i NOT supposed to be messing with the image?"
+              }
+            ]
+          },
+          {
+            "text": "ok, that hint is basically useless, idk bout that. lemme ask claude",
+            "subNodes": [
+              {
+                "text": "OH, CLAUDE HAS AN EXCELLENT POINT. in my script, we're kinda just stopping whenever a byte matches, assuming that's the correct one right - but who's to say there arent' multiple occurrences of that target byte in each row?"
+              },
+              {
+                "text": "so basically i might be getting false positives here because i'm grabbing the wrong occurrence of that byte, meaning there are prob multiple \"candidate\" keys here. imma have claude make some edits to the script so that we can grab all the candidates",
+                "subNodes": [
+                  {
+                    "text": "oh my days it worked. it spit out 9 candidates, one of them renders a QR code. what is this?"
+                  },
+                  {
+                    "text": "LMAOOOO IT'S THE FLAG THAT'S AWESOME"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "loved that challenge! ended up using AI again, but lowkey, for my first hard challenge, i could care less - that's still progress. and either way once i understood the JS i knew what both I *and* claude were doing"
+        ]
+      },
+      "flag": "picoCTF{234446682bd071682ddd41d241ad24a0}"
+    },
+    {
+      "title": "Java Script Kiddie 2",
+      "difficulty": "hard",
+      "order": 52,
+      "content": {
+        "nodes": [
+          {
+            "text": "round 2, here we go",
+            "subNodes": []
+          },
+          {
+            "text": "description says \"The image link appears broken... twice as badly...\" wellll shiiiiiiiii",
+            "subNodes": []
+          },
+          {
+            "text": "ok, assuming this is gonna be similar to what we did last time - let's view source first thing's first",
+            "subNodes": [
+              {
+                "text": "ok, more client-side js. same bytes endpoint - this time there's 736 bytes here instead of 704."
+              },
+              {
+                "text": "god dammit. our key is 32 chars long this time. len is still 16 though? what's going on",
+                "subNodes": [
+                  {
+                    "text": "ok, i've taken some time to understand what the hell is going on here. basically, it's the same thing as what we solved for in Java Script Kiddie 1, just slightly more confusing code"
+                  },
+                  {
+                    "text": "len = 16 right, so we're still splitting into 16 cols, and we're still taking corresponding digits from the key for each column to use as shifters, rotating entire columns as we go."
+                  },
+                  {
+                    "text": "here's the thing though - the key is 32 long, not 16 long, right, so how does that translate to 16 columns?",
+                    "subNodes": [
+                      {
+                        "text": "initially i thought it was like each pair of two digits translates to a shifter for each column"
+                      },
+                      {
+                        "text": "upon closer inspection, it seems like every other digit is literally being ignored. only the even indices of the key matter - the odd ones dont affect the shifting at all."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, so what i'm getting is that we can use the same working script from last time, just updating the assemble_png function to be the new one, and adding zeroes between our shifters when we output the final keys",
+            "subNodes": []
+          },
+          {
+            "text": "we're about 40 minutes in now - something like this should do it:",
+            "subNodes": [
+              {
+                "text": "var raw = \"......\" // all 736 bytes"
+              },
+              {
+                "text": "var bytes = Array.from(raw.split(\" \"), x => Number(x));"
+              },
+              {
+                "text": "function assemble_png(u_in){"
+              },
+              {
+                "text": "    var LEN = 16;"
+              },
+              {
+                "text": "    var key = \"00000000000000000000000000000000\";"
+              },
+              {
+                "text": "    var shifter;"
+              },
+              {
+                "text": "    if(u_in.length == key.length){"
+              },
+              {
+                "text": "        key = u_in;"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    var result = [];"
+              },
+              {
+                "text": "    for(var i = 0; i < LEN; i++){"
+              },
+              {
+                "text": "        shifter = Number(key.slice((i*2),(i*2)+1));"
+              },
+              {
+                "text": "        for(var j = 0; j < (bytes.length / LEN); j ++){"
+              },
+              {
+                "text": "            result[(j * LEN) + i] = bytes[(((j + shifter) * LEN) % bytes.length) + i]"
+              },
+              {
+                "text": "        }"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    while(result[result.length-1] == 0){"
+              },
+              {
+                "text": "        result = result.slice(0,result.length-1);"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    return result.slice(0, 16);"
+              },
+              {
+                "text": "}"
+              },
+              {
+                "text": "target = Array.from(\"137 80 78 71 13 10 26 10 0 0 0 13 73 72 68 82\".split(\" \"), x => Number(x)); // converted them to decimal, easier processing"
+              },
+              {
+                "text": "candidates = [[]];"
+              },
+              {
+                "text": "for (let i = 0; i < 16; i++) {"
+              },
+              {
+                "text": "    let next = [];"
+              },
+              {
+                "text": "    for (let partial of candidates) {"
+              },
+              {
+                "text": "        for (let j = 0; j < 10; j++) {"
+              },
+              {
+                "text": "            res = assemble_png((partial.join(\"0\") + \"0\" + j).padEnd(32, \"0\"));"
+              },
+              {
+                "text": "            if (res[i] == target[i]) {"
+              },
+              {
+                "text": "                next.push(partial.concat([j]));"
+              },
+              {
+                "text": "            }"
+              },
+              {
+                "text": "        }"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "    candidates = next;"
+              },
+              {
+                "text": "}"
+              },
+              {
+                "text": "candidates.forEach(e => console.log(e.join(\"0\") + \"0\")); // added 0s at odd indices since that's gonna be ignored anyway"
+              },
+              {
+                "text": "let's give this a shot",
+                "subNodes": [
+                  {
+                    "text": "ok, literally JACK SHI"
+                  },
+                  {
+                    "text": "yeah nah how could i write a script without it having at least one random logic error in it?"
+                  },
+                  {
+                    "text": "added some debug print statements, seems it's not doing any shifting at all?????"
+                  }
+                ]
+              },
+              {
+                "text": "oh. i just screwed up how i was assembling the test keys and the final output. changed the following two lines:",
+                "subNodes": [
+                  {
+                    "text": "res = assemble_png(partial.flatMap(d => [d, 0]).concat([j, 0]).join(\"\").padEnd(32, \"0\"));"
+                  },
+                  {
+                    "text": "candidates.forEach(e => console.log(e.flatMap(d => [d, 0]).join(\"\").padEnd(32, \"0\")));"
+                  }
+                ]
+              },
+              {
+                "text": "thank GOD for claude spotting that! upon running this code we get 36 candidates. this is gonna take a HOT minute",
+                "subNodes": [
+                  {
+                    "text": "i'm too lazy to automate this right now, one by one it is"
+                  },
+                  {
+                    "text": "YAY I ONLY HAD TO GO THROUGH 14 OF EM"
+                  },
+                  {
+                    "text": "correct key produces a QR code again! that's never gonna get old"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "that whole ordeal took about an hour - once again AI saved me from one hell of a rabbit hole. that coulda been WAY worse"
+        ]
+      },
+      "flag": "picoCTF{c1f4f2d57d0538d4e9e2ab53e3d1fedc}"
+    }
+  ]
+}
