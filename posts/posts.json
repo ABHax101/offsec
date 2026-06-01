@@ -4,7 +4,7 @@
     "file": "posts/crackthegate2.html",
     "date": "2026-06-01",
     "excerpt": "Repeater, Intruder, and the XFF header - what could go wrong?",
-    "tags": ["picoCTF", "Web Exploitation", "Learning Journey", "Medium"]
+    "tags": ["picoCTF", "Web Exploitation", "Learning Journey", "Burp Suite", "Medium"],
   },
   {
     "title": "picoCTF: The \"High School\" of Web Exploitation",
