@@ -4,7 +4,7 @@
     "file": "posts/crackthegate2.html",
     "date": "2026-06-01",
     "excerpt": "Repeater, Intruder, and the XFF header - what could go wrong?",
-    "tags": ["picoCTF", "Web Exploitation", "Learning Journey", "Burp Suite", "Medium"],
+    "tags": ["picoCTF", "Web Exploitation", "Learning Journey", "Burp Suite", "Medium"]
   },
   {
     "title": "picoCTF: The \"High School\" of Web Exploitation",
@@ -23,42 +23,42 @@
   {
     "title": "picoCTF: The \"Easy\" Web Boxes (Spoiler... They Weren't)",
     "file": "posts/pico-not-really-easy.html",
-    "date": "2026-2-28",
+    "date": "2026-02-28",
     "excerpt": "The boxes aren't the enemy. I am",
     "tags": ["picoCTF", "Web Exploitation", "Timeline", "Learning Journey", "Easy"]
   },
   {
     "title": "picoCTF: The Easier Easy Web Boxes",
     "file": "posts/pico-easier-easy.html",
-    "date": "2026-2-20",
+    "date": "2026-02-20",
     "excerpt": "I guess they weren't kidding when they said 'easy'",
     "tags": ["picoCTF", "Web Exploitation", "Timeline", "Easy"]
   },
   {
     "title": "Weeks 4 and 5 in TryHackMe",
     "file": "posts/weeks4-5.html",
-    "date": "2026-2-12",
+    "date": "2026-02-12",
     "excerpt": "Web Hacking Part 2 (and a Plot Twist)",
     "tags": ["Weekly Update", "TryHackMe", "Web Hacking", "picoCTF", "PT1"]
   },
   {
     "title": "My First Box: TakeOver",
     "file": "posts/takeover.html",
-    "date": "2026-2-1",
+    "date": "2026-02-01",
     "excerpt": "The 4-Minute box that took me 2 whole hours",
     "tags": ["TryHackMe", "Easy", "Subdomain Enumeration"]
   },
   {
     "title": "Week 3 in TryHackMe",
     "file": "posts/week3.html",
-    "date": "2026-1-28",
+    "date": "2026-01-28",
     "excerpt": "Everything is officially guilty until proven innocent",
     "tags": ["Weekly Update", "TryHackMe", "Learning Journey"]
   },
   {
     "title": "Weeks 1 and 2 in TryHackMe",
     "file": "posts/week1-2.html",
-    "date": "2026-1-18",
+    "date": "2026-01-18",
     "excerpt": "Back to the basics: Enumeration Isn't Optional (and Neither is Choosing the Right Cert)",
     "tags": ["Weekly Update", "TryHackMe", "Learning Journey", "PT1"]
   },
