@@ -197,7 +197,7 @@
         
         <p>The regex looked like it was supposed to block hex values, unicode escapes, URL encoding, file extensions, slashes, and <code>..</code>. Testing each pattern directly in the input showed they were actually just being removed rather than outright rejected—the response came back as <code>Error: Detected forbidden keyword ''.</code> An empty string—the pattern was just being stripped out. Ok, interesting.</p>
 
-        <p>What I found out was that there was one crucial thing missing from both the keyword list and the regex: <strong>underscores</strong>. If you're trying to secure a Python <code>eval()</code> and you forget to block underscores, you've kinda left the front door unlocked.</p
+        <p>What I found out was that there was one crucial thing missing from both the keyword list and the regex: <strong>underscores</strong>. If you're trying to secure a Python <code>eval()</code> and you forget to block underscores, you've kinda left the front door unlocked.</p>
 
         <p>Python's whole object model is accessible through dunder (double underscore) attributes: if underscores work, there's suddenly an entire class of payloads now available. I tried <code>''.__class__</code> and got back... absolutely nothing? But in Burp Suite, the raw response showed:</p>
 
@@ -215,7 +215,7 @@
 
         <pre><code>''.__class__.__mro__[1].__subclasses__()</code></pre>
 
-        <p>The first part of that, <code>''.__class__.__mro__</code>, references the inheritance tree for the 'str' class; at index 1 of that tree is the <code>object</code> class. Then, the call to object's <code>__subclasses__()</code> lists every class that inherits from it. In other words, since the method was called on the <code>object</code> class, that method call lists out every class we have available to mess with—which in a Flask app running with subprocess support includes things like <code>subprocess.Popen</code>. I found it at index 356.</p>
+        <p>The first part of that, <code>''.__class__.__mro__</code>, references the inheritance tree for the <code>str</code> class; at index 1 of that tree is the <code>object</code> class. Then, the call to object's <code>__subclasses__()</code> lists every class that inherits from it. In other words, since the method was called on the <code>object</code> class, it lists out every class available for us to mess with—which in a Flask app running with subprocess support includes things like <code>subprocess.Popen</code>. I found it at index 356.</p>
 
         <p>Now I needed to figure out how to run a shell command. The obvious attempt:</p>
 
