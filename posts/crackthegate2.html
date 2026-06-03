@@ -133,7 +133,7 @@
         </p>
 
         <p>
-          This was my first real use of Burp Suite in a real CTF challenge, and it just so happened to be the perfect box to learn it on. Though, admittedly, I'd already gotten a headstart. Around this point in time, the 'leader' of our pico team (we'll call him Jerry) was checking in with everyone: we'd decided to meet at lunch one of those days so that we could all lock in and do some challenges together. He couldn't help but notice that I was still using curl and the web inspector for everything—he said it was painful to watch. I told him it was working fine, and that I didn't see the problem. Silly me. He had me install Burp Suite right then and there, and he showed me the basics of Interceptor, Repeater, and Intruder—said that those three were the only tabs that I strictly <i>needed</i>, and that I could get familiar with the rest on my own time. That was a pretty helpful headstart—this box would have been a lot more painful without it.
+          This was my first real use of Burp Suite in a real CTF challenge, and it just so happened to be the perfect box to learn it on. Though admittedly, I'd already gotten a head start. Around this point in time, the 'leader' of our pico team (we'll call him Jerry) was checking in with everyone: we'd decided to meet at lunch one of those days so that we could all lock in and do some challenges together. He couldn't help but notice that I was still using curl and the web inspector for everything—he said it was painful to watch. I told him it was working fine, and that I didn't see the problem. Silly me. He had me install Burp Suite right then and there, and he showed me the basics of Interceptor, Repeater, and Intruder—said that those three were the only tabs that I strictly <i>needed</i>, and that I could get familiar with the rest on my own time. That was a pretty helpful head start—this box would have been a lot more painful without it.
         </p>
         <p>As per the challenge description:</p>
         <blockquote>
@@ -187,13 +187,13 @@
         <h2 class="sectheading"></h2>
                 
         <p>
-          One of the hints said "Read more about X-forwarded-For." That was interesting—sounded oddly familiar.
+          One of the hints said "Read more about X-Forwarded-For." That was interesting—sounded oddly familiar.
         </p>
 
         <h4>What actually is X-Forwarded-For?</h4>
 
         <p>
-          Turns out, <code>X-Forwarded-For</code> is what proxies and load balancers use to forward the original client's IP to the desination server. When a request goes through a proxy, the server would of course normally only see the proxy's IP, not the real client's; XFF gives it a way to preserve that information.
+          Turns out, <code>X-Forwarded-For</code> is what proxies and load balancers use to forward the original client's IP to the destination server. When a request goes through a proxy, the server would of course normally only see the proxy's IP, not the real client's; XFF gives it a way to preserve that information.
         </p>
         
         <p>
@@ -224,7 +224,7 @@
 
         <p>After a bit of looking around, I found the <strong>Pitchfork</strong> attack, which would pair up the payloads one-to-one, as in first IP with first password, second IP with second password, third with third, and so on. 20 requests total. Bingo.</p>
 
-        <p>For the IP addresses, I just created a simple text file with 20 arbitray IPs:</p>
+        <p>For the IP addresses, I just created a simple text file with 20 arbitrary IPs:</p>
 
         <pre><code>1.1.1.0
 1.1.1.1
@@ -234,9 +234,9 @@
 ...
 1.1.2.9</code></pre>
 
-        <p>From what I could tell, the actual IP values didn't matter, and the server wasn't validating them; it was just using them to track rate limiting, and nothing more.</p>
+        <p>From what I could tell, the actual IP values didn't matter, and the server didn't seem to be validating them; it was just using them to track rate limiting, and nothing more.</p>
 
-        <p>For the passwords, I simply plugged in the providede <code>passwords.txt</code>.</p>
+        <p>For the passwords, I simply plugged in the provided <code>passwords.txt</code>.</p>
 
         <p>From there, I said "here goes nothing," started the attack and watched the responses come in. Since there were only 20 requests, I just manually reviewed them all instead of trying to figure out Burp's filtering options. One of them stood out immediately:</p>
 
@@ -268,12 +268,12 @@
 
         <h4>What I'd Do Differently</h4>
         
-        <p>Honestly, not much. I wasted an embarassing amount of time trying the VPN approach and googling around for IP spoofing techniques, but once I saw the hint, everything fell into place in a solid five minutes—it was nothing crazy.</p>
+        <p>Honestly, not much. I wasted an embarrassing amount of time trying the VPN approach and googling around for IP spoofing techniques, but once I saw the hint, everything fell into place in a solid five minutes—it was nothing crazy.</p>
 
         <p>If anything, I should have stumbled upon XFF in my Google searches earlier—the challenge description literally said "the system might still trust user-controlled headers." That was a pretty clear hint in retrospect.</p>
 
         <h4>Final Thoughts</h4>
-        <p>This was a pretty satisfying challeng: it felt like it combined multiple skills to exploit a practical, real-world vulnerability, rather than just being a contrived CTF puzzle that forced you down an oddly-specific rabbit hole.</p>
+        <p>This was a pretty satisfying challenge: it felt like it combined multiple skills to exploit a practical, real-world vulnerability, rather than just being a contrived CTF puzzle that forced you down an oddly-specific rabbit hole.</p>
         
         <p>Plus, I finally got to use Burp Suite—that alone made this challenge worth doing.</p>
       </section><br>
