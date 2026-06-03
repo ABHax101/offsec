@@ -4,7 +4,7 @@
     "file": "posts/3val.html",
     "date": "2026-06-03",
     "excerpt": "When the filter blocks 'communicate' but not '__subclasses__()', priorities may have been misplaced.",
-    "tags": ["picoCTF", "Web Exploitation", "RCE", "Python", "Medium"];
+    "tags": ["picoCTF", "Web Exploitation", "RCE", "Python", "Medium"]
   },
   {
     "title": "Crack The Gate 2: A Love Letter to Burp Suite",
