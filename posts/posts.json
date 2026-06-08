@@ -1,5 +1,12 @@
 [
   {
+    "title": "picoCTF: The Java Script Kiddie Series",
+    "file": "posts/jskiddie.html",
+    "date": "2026-06-08",
+    "excerpt": "Code tracing like it's AP CSA again—oh boy.",
+    "tags": ["picoCTF", "Web Exploitation", "Timeline", "Learning Journey", "JavaScript", "Hard"]
+  },
+  {
     "title": "Startup Company: Gotta Love SQLi(te)",
     "file": "posts/startup_company.html",
     "date": "2026-06-07",
