@@ -1,5 +1,12 @@
 [
   {
+    "title": "Startup Company: Gotta Love SQLi(te)",
+    "file": "posts/startup_company.html",
+    "date": "2026-06-07",
+    "excerpt": "I think I just found my new favorite DBMS to inject into.",
+    "tags": ["picoCTF", "Web Exploitation", "SQLi", "SQLite", "Medium"]
+  },
+  {
     "title": "3v@l: chr(47) and Other Revelations",
     "file": "posts/3val.html",
     "date": "2026-06-03",
