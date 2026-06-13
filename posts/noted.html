@@ -12,36 +12,30 @@
   <link rel="stylesheet" href="pico.green.min.css">
   
   <style>
-    /* Custom styling for code blocks and technical content */
+    /* ===== Pico modifiers + timeline tree ===== */
     :root {
       --pico-font-family-monospace: 'Courier New', Courier, monospace;
+      --timeline-bullet: #2a7f62;
+      --timeline-line: #3d4b5c;
     }
-    
     pre {
       background-color: #1a1a1a;
       border-left: 4px solid var(--pico-primary);
       padding: 1rem;
       overflow-x: auto;
     }
-    
     code {
       background-color: #2a2a2a;
       padding: 0.2rem 0.4rem;
       border-radius: 3px;
       font-size: 0.9em;
     }
-    
-    pre code {
-      background-color: transparent;
-      padding: 0;
-    }
-    
+    pre code { background: none; padding: 0; }
     .post-meta {
       color: var(--pico-muted-color);
       font-size: 0.9rem;
       margin-bottom: 2rem;
     }
-    
     .tag {
       display: inline-block;
       background-color: var(--pico-primary-background);
@@ -50,44 +44,163 @@
       border-radius: 1rem;
       font-size: 0.85rem;
       margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
     }
-    
     .toc {
       background-color: #1a1a1a;
       padding: 1.5rem;
       border-radius: 0.5rem;
       margin-bottom: 2rem;
     }
-    
-    .toc h3 {
-      margin-top: 0;
-    }
-    
-    .toc ul {
-      margin-bottom: 0;
-    }
-    
+    .toc h3 { margin-top: 0; }
     blockquote {
       border-left: 4px solid var(--pico-primary);
       padding-left: 1rem;
       font-style: italic;
       color: var(--pico-muted-color);
     }
-    
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 0.5rem;
-      margin: 1rem 0;
-    }
-    
     .footer {
       margin-top: 4rem;
       padding-top: 2rem;
       border-top: 1px solid var(--pico-muted-border-color);
       text-align: center;
       color: var(--pico-muted-color);
+    }
+
+    /* ----- CTF boxes & vertical timeline (nested) ----- */
+    .ctf-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+    .ctf-box {
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 1rem;
+      background: var(--pico-card-background-color);
+      overflow: hidden;
+    }
+    .box-header {
+      background-color: #1e2a2f;
+      padding: 1rem 1.8rem;
+      border-bottom: 1px solid #2e3b44;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 1rem;
+    }
+    .box-header h3 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .difficulty-badge {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      padding: 0.3rem 0.9rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .box-order {
+      margin-left: auto;
+      color: var(--pico-muted-color);
+      font-size: 0.9rem;
+    }
+
+    /* timeline container - root level */
+    .timeline-root {
+      padding: 1.8rem 2rem 1rem 2.5rem;
+      position: relative;
+    }
+
+    /* kill Pico's default list styles on both ul and li */
+    .timeline-node,
+    .timeline-sub {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    .timeline-node > li,
+    .timeline-sub > li {
+      list-style: none; /* belt-and-suspenders against Pico specificity */
+      position: relative;
+      padding-left: 1.6rem;
+      margin-bottom: 0.8rem;
+      border-left: 2px solid var(--timeline-line);
+    }
+
+    .timeline-node > li:last-child,
+    .timeline-sub > li:last-child {
+      border-left-color: transparent;
+    }
+
+    /* colored circle bullet — centered over the left border line */
+    .timeline-node > li::before,
+    .timeline-sub > li::before {
+      content: '';
+      position: absolute;
+      left: -7px;   /* centers 12px circle over 2px border: -(12/2) + (2/2) = -5... optical -7 works best */
+      top: 0.45rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--timeline-bullet);
+      border: 2px solid #0f171f;
+      z-index: 2;
+    }
+
+    /* sub-nodes: indent, solid line to match root */
+    .timeline-sub {
+      margin: 0.5rem 0 0.8rem 0;
+      padding-left: 1rem;
+    }
+
+    /* node text */
+    .node-text {
+      display: block;
+      padding-bottom: 0.4rem;
+      color: #e1e7ec;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .timeline-sub .node-text {
+      color: #b6c6d4;
+      font-size: 0.96em;
+    }
+
+    /* reflections - plain inline block, no collapsible */
+    .reflections-box {
+      margin: 0.5rem 2rem 2rem 2rem;
+      padding: 1rem 1.6rem;
+      background-color: #16222b;
+      border-radius: 0.8rem;
+      border-left: 6px solid #cc7b2e;
+    }
+    .reflections-box p {
+      margin: 0.4rem 0;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+    }
+
+    /* flag reveal */
+    .flag-details {
+      margin: 1.2rem 2rem 1.8rem 2rem;
+      border-radius: 0.6rem;
+      padding: 0.5rem 1rem;
+    }
+    .flag-details pre {
+      margin: 0.8rem 0 0.2rem 0;
+    }
+
+    /* small tweaks */
+    .node-text code {
+      background-color: #1b2b33;
+    }
+    hr {
+      margin: 0.2rem 0;
     }
   </style>
 </head>
@@ -123,9 +236,61 @@
       <!-- Introduction -->
       <section>
         <h2>Introduction</h2>
+        <p>Hello again!</p>
+
         <p>
-          The entire challenge description for this one was just: "Do you want to fund my startup?" That's it. No hints about the vulnerability type, no obvious attack surface. Just a question and an inconspicous login page.
+          Before we get into this one, there's a problem that I need to address. Back in December of last year, when I wrote my very first post in this blog, the plan was to finish TryHackMe's Jr. Penetration Tester pathway in the first 2-3 months of the new year, and then spend the rest of the time I had before summer break on TryHackMe, HackTheBox, picoCTF, etc. in order to do as much practical work with those skills as I could. The plan for summer was to spend that time doing my capstone project.
         </p>
+
+        <p>Here's the problem. We're halfway through June already.</p>
+
+        <p>
+          It's been so long since I've had time to log into TryHackMe that they've literally revamped the <i>entire</i> curriculum that I was following: my percent completion of the pathway went from about 50% to now only 12%. I am <strong>RIDICULOUSLY</strong> behind schedule right now.
+        </p>
+
+        <p>
+          So I need time to get back into TryHackMe and make <i>generational</i> progress, while also keeping this blog up-to-date, making time for college tours and essay writing, as well as family trips and other summer fun, and somehow ALSO leaving enough time for me to do my capstone project this summer—<i>real</i> security audits of <i>real</i> apps, done as close to professionally as I can.
+        </p>
+
+        <p>
+          That's a lot of stuff to keep track of at once, and that time has to come from somewhere. So here's the plan:
+        </p>
+
+        <strong>First: I'm not going to publishing any more writeups.</strong>
+        
+        <p>That sounds crazy—am I just ending the blog here?</p>
+        <i>No. Absolutely not.</i>
+        <p>
+          The blog isn't ending here, and you'll still get the full story, beginning to end, of everything I do—it's just that it'll be in the form of my raw, unprocessed notes from each box, TryHackMe module, etc. I'm cutting the middleman: all that my formal 'writeups' do is retell those same notes, but in prose. That's really not adding all that much; the notes themselves are already a story. And for any context we need in order to understand, I'm here. That's a 10-minute job. Way better than <i>multiple hours</i>.
+        </p>
+
+        <strong>Second: the capstone project needs an update.</strong>
+
+        <p>
+          The idea I outlined in December of last year for the capstone project was to find 3-4 open-source apps, contact the developers for permission, do full security audits of each of them, and post them all on my blog.
+        </p>
+
+        <i>You know how hard that would be?</i>
+
+        <p>
+          Finding a maintainer, getting permission, scoping what I'm allowed to test, waiting for responses—that's a project in itself. And forget 3-4 apps, that could take an absurd amount of time even for <i>one</i>. In theory, this idea of reaching out and testing others' apps is absolutely doable. In practice, school will probably start before I even get past all the paperwork—I don't got time like that anymore.
+        </p>
+
+        <p>
+          So here's the idea: instead of digging around GitHub, asking developers if I break their code for my portfolio, I'm going to audit an app that I know really well. The chat app. The one I made in 7th grade. The one that I built with absolutely zero security knowledge. It's a gold mine of vulnerabilities; now I have the skills to systematically take it apart and explain exactly how and why.
+        </p>
+
+        <p>
+          And that's a complete arc, with a beginning, middle, and end. That chat app was essentially the thing that started it all; auditing it as a kind of exodus only feels right. It closes the loop.
+        </p>
+
+        <p>Oh, and also...I made that app. I'm the developer. I hereby give myself permission to break absolutely everything, and then post it online. There—that wasn't so hard.</p>
+
+        <br>
+
+        <p>So, there's the plan. Hop back on TryHackMe and finish all that I can, cut the middleman for the blog, and end it off on a full-circle moment.</p><br>
+
+        <p>Now, for the box, the thing we were actually here for. This one was a doozy—probably the most I've learned from any single challenge I've ever done.</p>
         
         <p>
           <strong>Challenge Name:</strong> noted<br>
@@ -134,136 +299,10 @@
           <strong>Category:</strong> Web Exploitation
         </p>
         
-        <p>This one took me a little over an hour, and it was genuinely one of my favorite challenges so far. No hints, a completely self-directed path from blank page to flag, and some of my cleanest SQLi yet. </p>
-        
         <p>Let's go.</p>
       </section><br>
     
-      <!-- Recon -->
-      <section class="blog-section">
-        <h2 class="sectheading"></h2>
-
-        <h4>Gobuster First</h4>
-        
-        <p>Skipping that first gobuster scan had burned me enough times before; by now I'd learned.</p>
-
-        <pre><code>gobuster dir -u http://target/ -w /usr/share/wordlists/dirb/common.txt</code></pre>
-
-        <p>It found <code>.hta</code>, <code>.htaccess</code>, and <code>.htpasswd</code>. All were returning 403, as expected since those are protected Apache files, but more importantly, I now knew the app was running PHP. Maybe that could be helpful.</p>
-
-        <h4>Walking the App</h4>
-
-        <p>The main page had a login form POSTing to <code>index.php</code>, and a registration link up top pointing to <code>/register.php</code>. Oddly, there was already an "Invalid Login" message displayed before I'd even tried anything. Looking at the response in Burp Suite, I did also see a freshly assigned <code>PHPSESSID</code>. It took me a second, but I realized that meant the app was probably doing something with <code>$_SESSION</code> on page load—maybe that was important.</p>
-
-        <p>I poked at the login form briefly—tried admin/foo, tried submitting with only a username, only a password—nothing interesting, though. No error messages, no behavior change. The login form seemed to just be a login form. Crazy, I know.</p>
-
-        <p>So I registered an account: <code>user=jerry&pass=mouse</code>. It sent me back to the index page with a new prompt: "Thank you for volunteering, you can fund us with as much money as you'd like." On this index page was now a number input and a submit button, POSTing to <code>contribute.php</code>.</p>
-
-        <p>I donated $5 and watched the request in Burp; there were two POST parameters: <code>moneys=5</code> and <code>captcha=36</code>. That captcha value was interesting—looking at the source, it was coming from a hidden form field that changed on every page refresh, kinda like a CSRF token.</p>
-
-        <p>The page now showed: <i>"You're latest contribution: $5"</i></p>
-        <p>Side note - it's <i>your</i>, dammit. Smh.</p>
-      </section><br>
-      
-      <!-- the injection point -->
-      <section class="blog-section">
-        <h2 class="sectheading"></h2>
-                
-        <p>It seemed like the <code>moneys</code> value was being reflected directly on the page—that's always interesting. Since it was just an HTML form, I pulled up the web inspector and changed the input type from <code>number</code> to <code>text</code> and just started throwing stuff at it.</p>
-
-        <h4>Testing for Injection</h4>
-        <ul>
-          <li>Input <code>hello</code> — "You're latest contribution: $hello". Ok, so that confirms the value is being reflected, and it's unsanitized too. Fun combination.</li>
-          <li>Input <code>&lt;?php echo "Hello from PHP"; ?&gt;</code> — "You're latest contribution: $". Alright, <i>something</i> happened, but no output.</li>
-          <li>Input <code>&lt;script&gt;alert("XSS")&lt;/script&gt;</code> — the page just froze while loading, indefinitely. I had to cancel. That script tag definitely did something.</li>
-          <li>Input <code>"</code> — that just reflected literally, nothing interesting</li>
-          <li>Input <code>;</code> — literally nothing</li>
-          <li>Input <code>'</code> — HEY, there we go!</li>
-        </ul>
-
-        <pre><code>Warning: SQLite3::query(): Unable to prepare statement: 1,
-near "jerry": syntax error in /var/www/html/contribute.php on line 11</code></pre>
-
-        <p>A single quote and the database explodes. Classic.</p>
-
-        <p>That error message was really generous—it revealed the file path, the line number, the database type (SQLite3), and the fact that my username "jerry" was somehow embedded in the query. And the <code>moneys</code> field was being inserted into a query that already contained my username. One could infer, then, that this was probably an INSERT or UPDATE statement, not a SELECT. That complicated things a little.</p>
-      </section><br>
-
-      <!-- exploitation -->
-      <section class="blog-section">
-        <h2 class="sectheading"></h2>
-        
-        <h4>Understanding the Query Structure</h4>
-        <p>Before trying payloads, I needed to figure out roughly what the query looked like. The error mentioning "jerry" in the same statement as my <code>moneys</code> input suggested something like:</p>
-
-        <pre><code>INSERT INTO some_table (money) VALUES (moneys) WHERE username='jerry'</code></pre>
-
-        <p>Or maybe it was an UPDATE statement, who knows. Either way, my input was probably going into a string field, since placing a single quote in my input broke things. I confirmed this by trying the good ol' <code>'--</code> payload as input—the SQL error disappeared and the "latest contribution" text went blank; the comment had cleanly eliminated the rest of the query.</p>
-
-        <p>So I was working with a quoted string context, in what was probably an INSERT/UPDATE, with output reflected back through the "latest contribution" display. The question was: how do I turn this write operation into a read operation so that I can exfiltrate data?</p>
-
-        <h4>The Humble SQLite Subquery</h4>
-        <p>I needed a way to exfiltrate data through a field that was storing and reflecting my input. I learned that in SQLite, you can concatenate strings with <code>||</code>—so if I could close my quoted string and somehow concatenate sensitive database info onto it, that sensitive info would get stored and then reflected back on the page.</p>
-
-        <p>And that's when I learned that <strong>subqueries</strong> are a thing. Conceptually:</p>
-
-        <pre><code>' || (some subquery that returns data);--</code></pre>
-
-        <p>The single quote closes my input string; the <code>||</code> can then concatenate the result of the subquery onto my input, and the <code>;--</code> would effectively terminate the query there. I had the tools I needed—now I just had to figure out how to use them.</p>
-
-        <h4>Enumerating the Database</h4>
-        <p>First, find what tables exist in the first place:</p>
-
-        <pre><code>' || (SELECT name FROM sqlite_master WHERE type='table' LIMIT 1);--</code></pre>
-
-        <p>That spit out: <code>startup_users</code>. One table—that was it. That made things easier. Now we get its schema:</p>
-
-        <pre><code>' || (SELECT sql FROM sqlite_master WHERE tbl_name='startup_users' AND type='table' LIMIT 1);--</code></pre>
-
-        <p>That gave us:</p>
-        <pre><code>CREATE TABLE startup_users (nameuser text, wordpass text, money int)</code></pre>
-
-        <p>Three columns. Coool. Now I could dump the whole table row by row:</p>
-
-        <pre><code>' || (SELECT nameuser FROM startup_users LIMIT 1 OFFSET 0) || ' pwd: ' || (SELECT wordpass FROM startup_users LIMIT 1 OFFSET 0) || ' money: ' || (SELECT money FROM startup_users LIMIT 1 OFFSET 0);--</code></pre>
-
-        <p>That handed me the first row. From there, I just ran it a bunch more times, incrementing the offset value each time. The table came back as:</p>
-
-        <pre><code>name: admin pwd: password money: 0
-name: ron pwd: not_the_flag_db1d1c41 money: null
-name: veronica pwd: not_the_flag_de19f38f money: null
-name: brick pwd: not_the_flag_6d8cfc3e money: null
-...</code></pre>
-
-        <p>There were a lot of entries. A few rows later, though, we got: <code>name: the_real_flag pwd: picoCTF{1_c4nn0t_s33_y0u_58183fce} money: null</code></p>
-
-        <p>They even named it <code>the_real_flag</code> for me—I appreciated the transparency.</p>
-      </section><br>
-      
-      <!-- Lessons Learned -->
-      <section class="blog-section">
-        <h2 class="sectheading"></h2>
-        
-        <p>
-          Manual SQLi, all on my own, without any hints pointing me toward it—that felt genuinely good. <i>This</i> one made me feel like a 'hacker,' lol
-        </p>
-
-        <h3>Key Takeaways</h3>
-        <ul>
-          <li><strong>Always poke at reflected values.</strong> The moment I saw <code>$5</code> echoed back on the page, that field became a suspect. Any reflected user input is worth testing, not just login forms and search boxes. Glad I kept looking.</li>
-          <li><strong>Know your database's quirks.</strong> SQLite uses <code>||</code> for string concatenation, not <code>+</code> or <code>CONCAT()</code>. MySQL, PostgreSQL, and SQLite all have slightly different syntax. Thankfully, that one descriptive error message told me what I was dealing with—but if I didn't know what the DBMS was, those differences could've cost me a LOT of troubleshooting.</li>          <li><strong>INSERT/UPDATE injection is different from SELECT injection.</strong> You can't just <code>UNION SELECT</code> your way to a result set—the query is writing, not reading. But if the written value gets reflected back somewhere on the page, you can subquery into that write and effectively turn it into a read.</li>
-          <li><strong>Manual SQLi is slow but teaches you what SQLMap is doing.</strong> Running the same query eight times with different OFFSET values to dump a table manually was somewhat tedious—but it just felt <i>so cool</i>. And now I knew exactly what SQLMap automates, from real experience—not just a THM lab.</li>
-        </ul>
-
-        <h3>What I'd Do Differently</h3>
-        <p>I spent a few minutes going down a CSRF bypass rabbit hole when I noticed the captcha token. That was a red herring—the captcha validated fine through normal usage, and the real vulnerability had nothing to do with it. I guess the lesson there is don't chase every suspicious detail at once. Note it, keep it in your back pocket, and keep walking the app first. That was a rabbit hole that had potential to eat a whole hour of my day—meanwhile, the answer was right there on the page staring back at me. Literally.</p>
-
-        <h4>Final Thoughts</h4>
-        <p>No hints, start to finish, just over an hour. For a challenge that gave me nothing but "do you want to fund my startup?" as a starting point, I will <i>absolutely</i> take it. The satisfaction of dumping a database row by row with a payload you built yourself is something that's hard to describe—but it's exactly why I wanted to learn this stuff in the first place.</p>
-      </section><br>
-    
-      <!-- Flags -->
-      <div id="flagbool"></div><br>
+      <section id="ctf-tier-container" class="ctf-grid"></section><br><br>
 
       <h3>Cheers!</h3>
     </article>
@@ -278,55 +317,165 @@ name: brick pwd: not_the_flag_6d8cfc3e money: null
   </main>
 
   <script>
-    // Variables for specifically this blog post
-
-    const TITLE = "noted - Six Hours. One Flag. Zero Chill";
-    const DATE = "2026-06-11";
-    const TAGS = ["picoCTF", "Web Exploitation", "Learning Journey", "XSS", "JavaScript", "Hard"];
-    const SECTIONS = ["Recon", "Building an Attack", "The Dead Ends", "The Solution That Finally Worked", "Lessons Learned"];
-    const FLAGS = {
-      user: null,
-      root: "picoCTF{p00rth0s_parl1ment_0f_p3p3gas_386f0184}"
-    };
-    
-    
-    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
-    
-    if (SECTIONS.length) {
-      SECTIONS.forEach(section => {
-        tocUl.insertAdjacentHTML(
-          "beforeend",
-          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
-        );
-      });
-    }
-
-    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
-
-    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
-    document.querySelector("h1#bigtitle").innerText = TITLE;
-    
-    document.querySelector("time#date").setAttribute("datetime", DATE);
-    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
-    
-    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
-    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
-
-
-    if (FLAGS) {
-      const flagLines = [];
-      if (FLAGS.user) flagLines.push(`User Flag: ${FLAGS.user}`);
-      if (FLAGS.root) flagLines.push(`Root Flag: ${FLAGS.root}`);
-      
-      const flagText = flagLines.join("\n");
-      
-      document.querySelector("div#flagbool").innerHTML = `<section id="flags">
-          <details>
-            <summary><strong>Flags (Click to Reveal)</strong></summary>
-            <pre><code>${flagText}</code></pre>
-          </details>
-        </section><br>`;
-    }
+    (function() {
+      // ---------- static config ----------
+      const TITLE = "noted - Six Hours. One Flag. Zero Chill";
+      const DATE = "2026-06-11";
+      const TAGS = ["picoCTF", "Web Exploitation", "Learning Journey", "XSS", "JavaScript", "Hard"];
+      const JSON_PATH = "/path/to/pico/boxes.json";
+  
+      // ---------- box filter ----------
+      // set to an array of order values to include only those boxes, e.g. [1, 2, 5]
+      // set to null to include all boxes
+      const INCLUDE_ORDERS = null;
+      // set to an array of order values to exclude, e.g. [3, 4]
+      // ignored if INCLUDE_ORDERS is set
+      const EXCLUDE_ORDERS = [];
+  
+      document.querySelector("#bigtitle").innerText = TITLE;
+      document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+      const dateEl = document.querySelector("#date");
+      dateEl.setAttribute("datetime", DATE);
+      dateEl.textContent = new Date(DATE).toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" });
+  
+      const tagsDiv = document.querySelector("#tags");
+      TAGS.forEach(t => tagsDiv.innerHTML += `<span class="tag">${t}</span>`);
+  
+      // ---------- load & render JSON ----------
+  
+      function buildTimelineHTML(nodes) {
+        if (!nodes || nodes.length === 0) return '';
+        let html = '<ul class="timeline-node">';
+        for (let node of nodes) {
+          html += '<li>';
+          html += `<span class="node-text">${escapeHTML(node.text)}</span>`;
+          if (node.subNodes && node.subNodes.length > 0) {
+            html += '<div class="timeline-sub">' + buildTimelineHTML(node.subNodes) + '</div>';
+          }
+          html += '</li>';
+        }
+        html += '</ul>';
+        return html;
+      }
+  
+      function escapeHTML(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/`/g, '&#96;')
+          .replace(/\{/g, '&#123;')
+          .replace(/\}/g, '&#125;');
+      }
+  
+      function filterBoxes(boxes) {
+        if (INCLUDE_ORDERS && INCLUDE_ORDERS.length > 0) {
+          return boxes.filter(b => INCLUDE_ORDERS.includes(b.order));
+        }
+        if (EXCLUDE_ORDERS && EXCLUDE_ORDERS.length > 0) {
+          return boxes.filter(b => !EXCLUDE_ORDERS.includes(b.order));
+        }
+        return boxes;
+      }
+  
+      function renderBoxes(boxes) {
+        const container = document.querySelector("#ctf-tier-container");
+        const toc = document.querySelector("#toc_ul");
+        container.innerHTML = '';
+        toc.innerHTML = '';
+  
+        const filtered = filterBoxes(boxes);
+  
+        if (!filtered || filtered.length === 0) {
+          container.innerHTML = '<p>no boxes loaded - check JSON file or filter config.</p>';
+          return;
+        }
+  
+        filtered.sort((a,b) => (a.order || 999) - (b.order || 999));
+  
+        filtered.forEach((box, idx) => {
+          if (!box.title) return;
+  
+          const anchor = `box-${idx}-${box.title.replace(/[^a-z0-9]/gi,'-').toLowerCase()}`;
+          toc.insertAdjacentHTML('beforeend', `<li><a href="#${anchor}">${escapeHTML(box.title)} (${escapeHTML(box.difficulty || 'easy')})</a></li>`);
+  
+          const boxDiv = document.createElement('div');
+          boxDiv.className = 'ctf-box';
+          boxDiv.id = anchor;
+  
+          let headerHTML = `
+            <div class="box-header">
+              <h3>${escapeHTML(box.title)}</h3>
+              <span class="difficulty-badge">${escapeHTML(box.difficulty || 'easy')}</span>
+              <span class="box-order">#${box.order || '-'}</span>
+            </div>
+          `;
+          boxDiv.innerHTML = headerHTML;
+  
+          if (box.content?.nodes && box.content.nodes.length > 0) {
+            const timelineWrapper = document.createElement('div');
+            timelineWrapper.className = 'timeline-root';
+            timelineWrapper.innerHTML = buildTimelineHTML(box.content.nodes);
+            boxDiv.appendChild(timelineWrapper);
+          } else {
+            const emptyNote = document.createElement('div');
+            emptyNote.className = 'timeline-root';
+            emptyNote.innerHTML = '<span class="node-text">-&nbsp;no&nbsp;notes&nbsp;-</span>';
+            boxDiv.appendChild(emptyNote);
+          }
+  
+          if (box.content?.reflections && box.content.reflections.length > 0) {
+            const reflDiv = document.createElement('div');
+            reflDiv.className = 'reflections-box';
+            let reflHTML = '<div class="reflections-inner">';
+            box.content.reflections.forEach(r => {
+              if (r.trim() === '') return;
+              reflHTML += `<p>${escapeHTML(r).charAt(0).toUpperCase()}${escapeHTML(r).slice(1)}</p>`;
+            });
+            reflHTML += '</div>';
+            reflDiv.innerHTML = reflHTML;
+            boxDiv.appendChild(reflDiv);
+          }
+  
+          if (box.flag) {
+            const flagDiv = document.createElement('div');
+            flagDiv.className = 'flag-details';
+            flagDiv.innerHTML = `
+              <details>
+                <summary><strong>Flags (Click to Reveal)</strong></summary>
+                <pre><code>${escapeHTML(box.flag)}</code></pre>
+              </details>
+            `;
+            boxDiv.appendChild(flagDiv);
+          }
+  
+          container.appendChild(boxDiv);
+        });
+      }
+  
+      async function loadJSON() {
+        try {
+          const response = await fetch(JSON_PATH);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (data.boxes && Array.isArray(data.boxes)) {
+            renderBoxes(data.boxes);
+          } else {
+            throw new Error('invalid json: missing boxes array');
+          }
+        } catch (e) {
+          console.error('failed to load json:', e);
+          document.querySelector("#ctf-tier-container").innerHTML =
+            `<p style="color:#c47">Error loading json: ${e.message}.<br>Make sure the file is accessible.</p>`;
+        }
+      }
+  
+      loadJSON();
+  
+    })();
   </script>
 </body>
 </html>
