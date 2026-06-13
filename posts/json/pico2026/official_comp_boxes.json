@@ -230,22 +230,9 @@
       "flag": "picoCTF{id0r_unl0ck_8b02a9fd}"
     },
     {
-      "title": "Interlude: Maintenance Woes",
-      "difficulty": "easy",
-      "order": 3,
-      "content": {
-        "nodes": [
-          {
-            "text": "DAMN, 3 of my web exploitation challenges are already under maintenance. they're all high point values toooooo, even the 500-pointer is gone. god dammit"
-          }
-        ],
-        "reflections": []
-      }
-    },
-    {
       "title": "Credential Stuffing",
       "difficulty": "easy",
-      "order": 4,
+      "order": 3,
       "content": {
         "nodes": [
           {
@@ -386,7 +373,7 @@
     {
       "title": "North-South",
       "difficulty": "easy",
-      "order": 5,
+      "order": 4,
       "content": {
         "nodes": [
           {
@@ -477,7 +464,7 @@
     {
       "title": "Secret Box",
       "difficulty": "medium",
-      "order": 6,
+      "order": 5,
       "content": {
         "nodes": [
           {
@@ -597,7 +584,7 @@
     {
       "title": "Fool the Lockout",
       "difficulty": "medium",
-      "order": 7,
+      "order": 6,
       "content": {
         "nodes": [
           {
@@ -659,7 +646,7 @@
     {
       "title": "No FA",
       "difficulty": "medium",
-      "order": 8,
+      "order": 7,
       "content": {
         "nodes": [
           {
@@ -848,7 +835,7 @@
     {
       "title": "Sql Map1",
       "difficulty": "hard",
-      "order": 9,
+      "order": 8,
       "content": {
         "nodes": [
           {
@@ -1073,7 +1060,7 @@
     {
       "title": "ORDER ORDER",
       "difficulty": "hard",
-      "order": 10,
+      "order": 9,
       "content": {
         "nodes": [
           {
@@ -1440,9 +1427,9 @@
       "flag": "picoCTF{s3c0nd_0rd3r_1t_1s_28c0f73b}"
     },
     {
-      "title": "paper2",
-      "difficulty": "insane",
-      "order": 11,
+      "title": "paper-2",
+      "difficulty": "hard",
+      "order": 10,
       "content": {
         "nodes": [
           {
@@ -1983,44 +1970,40 @@
                 ]
               }
             ]
+          },
+          {
+            "text": "it was about this point that i decided to take a break for a few days. this challenge is genuinely just WILD. ehhthing's last challenge (secure-email-service) is notorious because it's only like *technically* a web exploitation challenge yeah, but it still relies on some other super niche quirk - something that genuinely trips up people who do this kinda thing for a living. i take it paper-2 is similar. NOTHING i've tried is working.",
+            "subNodes": []
+          },
+          {
+            "text": "it's been a few days, i've come back to it, but im basically hitting the same walls over and over again: the CSP doesnt let you run JS, and you cant make anything other than a GET request with CSS which the CSP *does* allow. which is cool and all but like we can't really use that as a side channel just because of the nature of this box. so what do we even do? this has gotta just be something crazy. i tried handing it to Claude with extended thinking - it went at it for a solid 20 minutes and then LITERALLY SURRENDERED TO EXHAUSTION 😭✌️",
+            "subNodes": []
+          },
+          {
+            "text": "it's now the last day of the comp. decided i may as well give it one more shot",
+            "subNodes": []
+          },
+          {
+            "text": "OK imma save you the trouble - it was the same shit again. more rabbit holes. not one of them actually had a rabbit inside.",
+            "subNodes": []
+          },
+          {
+            "text": "im not getting this one lmao, gg",
+            "subNodes": []
           }
         ],
         "reflections": [
-          "it was about this point that i decided to take a break for a few days. this challenge is genuinely just WILD. ehhthing's last challenge (secure-email-service) is notorious because it's only like *technically* a web exploitation challenge yeah, but it still relies on some other super niche quirk - something that genuinely trips up people who do this kinda thing for a living. i take it paper-2 is similar. NOTHING i've tried is working.",
-          "it's been a few days, i've come back to it, but im basically hitting the same walls over and over again: the CSP doesnt let you run JS, and you cant make anything other than a GET request with CSS which the CSP *does* allow. which is cool and all but like we can't really use that as a side channel just because of the nature of this box. so what do we even do? i tried handing it to Claude with extended thinking - it went at it for a solid 20 minutes and then LITERALLY SURRENDERED TO EXHAUSTION. this has gotta just be something crazy.",
-          "it's now the last day of the comp. decided i may as well give it one more shot",
-          "OK imma save you the trouble - it was the same shit again. more rabbit holes. not one of them actually had a rabbit inside. hell, even Claude \"surrendered to exhaustion\" 😭✌️",
-          "im not getting this one lmao, gg"
-        ]
-      }
-    },
-    {
-      "title": "Wrap-Up: picoCTF 2026",
-      "difficulty": "insane",
-      "order": 12,
-      "content": {
-        "nodes": [
-          {
-            "text": "OK, comp is now over and i just read a writeup. this is genuinely wild, like SERIOUSLY creative solution. never woulda thought of this. linked here: https://www.vipin.xyz/blog/picoctf2026"
-          },
-          {
-            "text": "that's so COOOL THOUGH WOAHH"
-          },
-          {
-            "text": "TL;DR: the redis LRU eviction settings in this box are set at a small enough size that it IS feasible to just stuff the database full of random shit and exceed that size. the problem with the css attribute selector trick was that we couldn't exfiltrate any data because we couldn't send anything other than GET requests. what these guys did was upload a bunch of oracle files to the database and then ran the bot with the same CSS trick, and then in that time, stuffed the database with enough random shit that every oracle that hadn't been visited got evicted. from there they were able to figure out what files still remained and reconstruct the flag with that information."
-          },
-          {
-            "text": "what the ACTUAL FUUUUUU"
-          },
-          {
-            "text": "that's awesome."
-          },
-          {
-            "text": "good stuff."
-          }
-        ],
-        "reflections": [
+          "OK, comp is now over and i just read a writeup. this is genuinely wild, like SERIOUSLY creative solution. never woulda thought of this. linked here: https://www.vipin.xyz/blog/picoctf2026",
+          "that's so COOOL THOUGH WOAHH",
+          "",
+          "TL;DR: the redis LRU eviction settings in this box are set at a small enough size that it IS feasible to just stuff the database full of random shit and exceed that size. the problem with the css attribute selector trick was that we couldn't exfiltrate any data because we couldn't send anything other than GET requests. what these guys did was upload a bunch of oracle files to the database and then ran the bot with the same CSS trick, and then in that time, stuffed the database with enough random shit that every oracle that hadn't been visited got evicted. from there they were able to figure out what files still remained and reconstruct the flag with that information.",
+          "what the ACTUAL FUUUUUU",
+          "",
+          "",
+          "that's awesome.",
+          "good stuff.",
           "good comp, really enjoyed it. can't believe it's all over lol",
+          "",
           "we finished EVERYTHING within the first two days except paper-2 and the 500-point reverse engineering challenge. that's a top 5% global finish as a first-year team, and i've only started this shit like less than 2 months ago!! sure we didn't win anything, but that's absolutely a win for me. really proud of what we've accomplished.",
           "this was amazing."
         ]
