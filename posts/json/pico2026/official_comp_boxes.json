@@ -96,7 +96,7 @@
     },
     {
       "title": "Hashgate",
-      "difficulty": "easy",
+      "difficulty": "medium",
       "order": 2,
       "content": {
         "nodes": [
@@ -231,7 +231,7 @@
     },
     {
       "title": "Credential Stuffing",
-      "difficulty": "easy",
+      "difficulty": "medium",
       "order": 3,
       "content": {
         "nodes": [
@@ -372,7 +372,7 @@
     },
     {
       "title": "North-South",
-      "difficulty": "easy",
+      "difficulty": "medium",
       "order": 4,
       "content": {
         "nodes": [
@@ -834,7 +834,7 @@
     },
     {
       "title": "Sql Map1",
-      "difficulty": "hard",
+      "difficulty": "medium",
       "order": 8,
       "content": {
         "nodes": [
