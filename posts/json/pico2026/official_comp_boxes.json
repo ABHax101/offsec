@@ -1,0 +1,2192 @@
+{
+  "boxes": [
+    {
+      "title": "Old Sessions",
+      "difficulty": "easy",
+      "order": 1,
+      "content": {
+        "nodes": [
+          {
+            "text": "100pt"
+          },
+          {
+            "text": "kinda long description for this one:"
+          },
+          {
+            "text": "Proper session timeout controls are critical for securing user accounts. If a user logs in on a public or shared computer but doesn’t explicitly log out (instead simply closing the browser tab), and session expiration dates are misconfigured, the session may remain active indefinitely. This then allows an attacker using the same browser later to access the user’s account without needing credentials, exploiting the fact that sessions never expire and remain authenticated."
+          },
+          {
+            "text": "ok, this is prob gonna be pretty simple - likely just using the web inspector to grab a session cookie"
+          },
+          {
+            "text": "imma start every box with a gobuster scan, using the SecLists' web discovery common.txt, just making sure i dont miss a robots.txt or some crucial endpoint like that"
+          },
+          {
+            "text": "gobuster found:",
+            "subNodes": [
+              {
+                "text": "health (Status: 200) [Size: 2]"
+              },
+              {
+                "text": "login (Status: 200) [Size: 923]"
+              },
+              {
+                "text": "logout (Status: 302) [Size: 199] [--> /login]"
+              },
+              {
+                "text": "register (Status: 200) [Size: 1075]"
+              },
+              {
+                "text": "sessions (Status: 302) [Size: 199] [--> /login]"
+              }
+            ]
+          },
+          {
+            "text": "ok, we're greeted with a big ol' login form - just a username and password box.",
+            "subNodes": [
+              {
+                "text": "let's try admin/admin?",
+                "subNodes": [
+                  {
+                    "text": "redirected us to /register. probably wrong."
+                  }
+                ]
+              },
+              {
+                "text": "ok, let's register as a user real quick",
+                "subNodes": [
+                  {
+                    "text": "trying to register as admin reveals that admin user DOES exist. cool"
+                  }
+                ]
+              },
+              {
+                "text": "registered as jerry/mouse.",
+                "subNodes": [
+                  {
+                    "text": "main page shows some comments. one of them says \"Hey I found a strange page at /sessions\""
+                  },
+                  {
+                    "text": "let's see what that is real quick"
+                  },
+                  {
+                    "text": "oh it's literally a bunch of session cookies lmao"
+                  },
+                  {
+                    "text": "the first line says \"session:MR0vSBbAtmXOf2A4vn3J2vmUMPf-OUzGHKxHdNZNZXY, {'_permanent': True, 'key': 'admin'}\""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "let's set our session cookie to that value",
+            "subNodes": [
+              {
+                "text": "done; revisit the homepage"
+              },
+              {
+                "text": "flag is right there. beautiful"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      }
+    },
+    {
+      "title": "Hashgate",
+      "difficulty": "easy",
+      "order": 2,
+      "content": {
+        "nodes": [
+          {
+            "text": "100pt"
+          },
+          {
+            "text": "description says:"
+          },
+          {
+            "text": "You have gotten access to an organisation's portal. Submit your email and password, and it redirects you to your profile. But be careful: just because access to the admin isn’t directly exposed doesn’t mean it’s secure. Maybe someone forgot that obscurity isn’t security... Can you find your way into the admin’s profile for this organisation and capture the flag?"
+          },
+          {
+            "text": "ok, interesting. very interesting."
+          },
+          {
+            "text": "gobuster found:",
+            "subNodes": [
+              {
+                "text": "literally jack shit. awesome"
+              }
+            ]
+          },
+          {
+            "text": "on the page we're greeted with a nice little AeStHeTiC login prompt. let's check source",
+            "subNodes": [
+              {
+                "text": "ah, cheeky little HTML comment"
+              },
+              {
+                "text": "<!-- Email: guest@picoctf.org Password: guest -->"
+              },
+              {
+                "text": "submitting the login form causes a client-side script to POST email and password to /login"
+              },
+              {
+                "text": "the response of that POST seems to be a JSON object - one of the keys in that are \"url\". if response.redirected is true then we're redirected to response.url."
+              }
+            ]
+          },
+          {
+            "text": "ok, let's try logging in with random creds",
+            "subNodes": [
+              {
+                "text": "we get a JSON object back - success: false. checks out."
+              }
+            ]
+          },
+          {
+            "text": "let's try the guest creds",
+            "subNodes": [
+              {
+                "text": "we get redirected to /profile/user/e93028bdc1aacdfb3687181f2031765d"
+              },
+              {
+                "text": "it says \"Access level: Guest (ID: 3000). Insufficient privileges to view classified data. Only top-tier users can access the flag.\""
+              },
+              {
+                "text": "that looks like some sort of hash, looks like MD5. pretty short",
+                "subNodes": [
+                  {
+                    "text": "wait a sec, if you MD5 \"3000\" you get the same hash as in the url."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "what if i hash \"0\" or something and put that in?",
+            "subNodes": [
+              {
+                "text": "user not found. touche."
+              },
+              {
+                "text": "hang on lmao it's called \"hashgate\" right, what if i hash \"gate\" and try getting that?",
+                "subNodes": [
+                  {
+                    "text": "ok yea nothing lol, worth a shot"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "the hint says there's about 20 employees in this organization. what do i do with that lol",
+            "subNodes": [
+              {
+                "text": "wait admins usually don't have high id numbers right, what if it's like just 0, 1, 2, 3, 4, ..., 20?"
+              },
+              {
+                "text": "let's run a sniper attack in burp",
+                "subNodes": [
+                  {
+                    "text": "ok, so it's not anything from 0 to 25."
+                  },
+                  {
+                    "text": "maybe it's 1000, 2000, 3000, etc?"
+                  },
+                  {
+                    "text": "nope lmao"
+                  }
+                ]
+              },
+              {
+                "text": "ok, let's try like 0-200 or something, step by 1",
+                "subNodes": [
+                  {
+                    "text": "at 130 right now, so far nothing."
+                  },
+                  {
+                    "text": "yeah nothing for all 200 of em"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, what if i go from 3000-3100 or smth?",
+            "subNodes": [
+              {
+                "text": "oh. there we go. it's at 3012."
+              },
+              {
+                "text": "here we are - \"Welcome, admin! Here is the flag: picoCTF{...}\""
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{id0r_unl0ck_8b02a9fd}"
+    },
+    {
+      "title": "Interlude: Maintenance Woes",
+      "difficulty": "easy",
+      "order": 3,
+      "content": {
+        "nodes": [
+          {
+            "text": "DAMN, 3 of my web exploitation challenges are already under maintenance. they're all high point values toooooo, even the 500-pointer is gone. god dammit"
+          }
+        ],
+        "reflections": []
+      }
+    },
+    {
+      "title": "Credential Stuffing",
+      "difficulty": "easy",
+      "order": 4,
+      "content": {
+        "nodes": [
+          {
+            "text": "100pt"
+          },
+          {
+            "text": "pretty sure the title just gave me the solution lol. description:"
+          },
+          {
+            "text": "\"Credential stuffing is the automated injection of stolen username and password pairs (“credentials”) in to website login forms, in order to fraudulently gain access to user accounts.\""
+          },
+          {
+            "text": "\"Since many users will re-use the same password and username/email, when those credentials are exposed (by a database breach or phishing attack, for example) submitting those sets of stolen credentials into dozens or hundreds of other sites can allow an attacker to compromise those accounts too. Download the credentials dump here.\""
+          },
+          {
+            "text": "ok wtf, it says \"Connect to the service with nc crystal-peak.picoctf.net 61961\"",
+            "subNodes": [
+              {
+                "text": "how tf am i supposed to do this one lmao"
+              }
+            ]
+          },
+          {
+            "text": "oh i see, when you run the netcat command it has a prompt to enter username and password to log in. we can prob write a script to send it all the combos",
+            "subNodes": [
+              {
+                "text": "in the creds dump txt that we were given, it's formatted as one combo per line and \"username;password\""
+              },
+              {
+                "text": "the remote netcat listener expects you to enter the username, press enter, enter password, press enter again. then it gives you a message like \"Invalid username or password\", or, i assume if the creds are correct, the flag."
+              },
+              {
+                "text": "lemme see if there's like a way that we can brute force this straight from terminal",
+                "subNodes": [
+                  {
+                    "text": "thisll be a little tricky - basically you have to open the netcat connection, wait for it to connect, THEN enter the username and press enter, THEN once it response enter the password and press enter, and THEN the very last line of the output will give you the result message - whether it worked or not. but the netcat connection also doesnt terminate immediately when you get a right or wrong credential pair."
+                  }
+                ]
+              },
+              {
+                "text": "ok, now that i think about it this is prob gonna easier to do in python than with a bash script - let's do that instead"
+              }
+            ]
+          },
+          {
+            "text": "alrighty, this is where i skip ahead a bit. this challenge gave me a lot of trouble for no actual reason. there are a lot of notes where i'm debugging the script i made, but it's like OBSCENELY long for a simple 100pt challenge like this, and it was frankly just stupid as shit. lemme sum it up for you:",
+            "subNodes": [
+              {
+                "text": "when you run the nc command to connect to the service and you enter creds manually, it looks a bit like this:"
+              },
+              {
+                "text": "$ nc crystal-peak.picoctf.net 60681"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "========================================="
+              },
+              {
+                "text": "Welcome to the Online Banking Service!"
+              },
+              {
+                "text": "========================================="
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "Please enter your username & password to login."
+              },
+              {
+                "text": "Username: SomeUsernameHere"
+              },
+              {
+                "text": "SomeUsernameHere"
+              },
+              {
+                "text": "Password: SomePasswordHere"
+              },
+              {
+                "text": "SomePasswordHere"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "Invalid username or password"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "see the first occurence of \"SomeUsernameHere\"? I typed that one in. the second occurence though, the one right after it? that's the server echoing it back. same with the password."
+              },
+              {
+                "text": "I guess when I was making this script i didn't see that or something? but yeah, you can imagine how extra lines of output may have skewed the script's results somewhat. no wonder i got no results lmao"
+              }
+            ]
+          },
+          {
+            "text": "here's what the final script ended up looking like - for each username/password pair:",
+            "subNodes": [
+              {
+                "text": "using python's socket module, create a socket and connect to the picoCTF instance"
+              },
+              {
+                "text": "receive the next 10KB of data from the socket"
+              },
+              {
+                "text": "send the current username + \"\\n\" to the socket"
+              },
+              {
+                "text": "receive the next 10KB of data from the socket"
+              },
+              {
+                "text": "send the current password + \"\\n\" to the socket"
+              },
+              {
+                "text": "receive the next 20KB of data from the socket"
+              },
+              {
+                "text": "within this final 20KB, we have the password that was echoed back at us by the server, as well as the very last line, the \"Invalid username or password\" line. or, in the case of a successful run, something different."
+              },
+              {
+                "text": "we run this 20KB through a simple filter - does it contain \"Invalid username or password\"? if it does then scrap it. if not, echo out that last 20KB."
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "i'm genuinely embarrassed to admit that that took a whole hour and 15 lmao, this is such a simple premise.",
+          "the winning creds combo was #1387 - tandie;griffith. this was like way at the end of the file and i was starting to lose hope watching the stuffer at that point lmao. we got it though. all's well that ends well"
+        ]
+      },
+      "flag": "picoCTF{d0nt_r3u5e_cr3d3nt1als_3c13ac81}"
+    },
+    {
+      "title": "North-South",
+      "difficulty": "easy",
+      "order": 5,
+      "content": {
+        "nodes": [
+          {
+            "text": "100pt"
+          },
+          {
+            "text": "\"I've set up geo-based routing - can you outsmart it? You're trying to retrieve the flag, but there's a catch: access to the real service is restricted based on your geographic location. Only requests from a specific region are routed to the server that holds the flag. Everyone else is sent somewhere... less interesting.\""
+          },
+          {
+            "text": "i remember doing a medium box that used XFF to bypass rate limiting. prob something like that could work. or maybe i get a free vpn lmao"
+          },
+          {
+            "text": "oh we're given some nginx conf. let's take a look at that first things first",
+            "subNodes": [
+              {
+                "text": "ok there's this line right here: if ($geoip2_data_country_code = IS) { proxy_pass http://south; }"
+              },
+              {
+                "text": "so we gotta change our country code to IS somehow",
+                "subNodes": [
+                  {
+                    "text": "looked it up, that's Iceland apparently"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, i bet we can just use XFF again - seems like this is just geo-blocking based on IP. just gotta find an iceland IP address somehow",
+            "subNodes": [
+              {
+                "text": "seems that 89.160.128.0 to 89.160.255.255 is a very common iceland IP range"
+              },
+              {
+                "text": "let's set XFF header to 89.160.130.24 - just some random numbers lmao"
+              },
+              {
+                "text": "not working. hmmmmmm"
+              }
+            ]
+          },
+          {
+            "text": "maybe i can find a free iceland HTTP proxy or something",
+            "subNodes": [
+              {
+                "text": "found one! 193.4.2.141:80"
+              },
+              {
+                "text": "add this to foxyproxy..."
+              },
+              {
+                "text": "pretty sure the mf proxy is down"
+              }
+            ]
+          },
+          {
+            "text": "HOLY CRAP WHY ARE ALL THE PROXIES DOWN"
+          },
+          {
+            "text": "ok, asked Claude - we can prob connect to a TOR relay in iceland. this shi better work lmao",
+            "subNodes": [
+              {
+                "text": "added the following to my torrc:",
+                "subNodes": [
+                  {
+                    "text": "ExitNodes {IS}"
+                  },
+                  {
+                    "text": "StrictNodes 1"
+                  }
+                ]
+              },
+              {
+                "text": "so now i should be able to curl with my tor proxy at socks5://127.0.0.1:9050",
+                "subNodes": [
+                  {
+                    "text": "HOLY SHIT IT WORKED"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{g30_b453d_r0u71n9_da3971e1}"
+    },
+    {
+      "title": "Secret Box",
+      "difficulty": "medium",
+      "order": 6,
+      "content": {
+        "nodes": [
+          {
+            "text": "200pt"
+          },
+          {
+            "text": "description says:"
+          },
+          {
+            "text": "\"This secret box is designed to conceal your secrets. It's perfectly secure—only you can see what's inside. Or can you? Try uncovering the admin's secret.\""
+          },
+          {
+            "text": "how much you bet the username in this one is gonna be \"admin\"?"
+          },
+          {
+            "text": "oooh we get source code to look at! fun",
+            "subNodes": [
+              {
+                "text": "we're dealing with postgres. possible SQLi?"
+              },
+              {
+                "text": "ayy ok we get an initdb.sql file",
+                "subNodes": [
+                  {
+                    "text": "there's a users table: username and password column as well as an ID column (generates a UUID)"
+                  },
+                  {
+                    "text": "thers a tokens table: ID column (uuid) as well as an owner_id column (REFERENCES users(id))"
+                  },
+                  {
+                    "text": "finally there's a secrets table: id (uuid), owner_id, content (text)"
+                  },
+                  {
+                    "text": "we create a user named admin and we create a single secret belonging to admin which contains the flag"
+                  }
+                ]
+              },
+              {
+                "text": "seems like the admin user id is hardcoded in this one: e2a66f7d-2ce6-4861-b4aa-be8e069601cb"
+              }
+            ]
+          },
+          {
+            "text": "hint says \"How to use sql injection\". ok, let's hit the login page with a good old \"admin';--\"",
+            "subNodes": [
+              {
+                "text": "\"User Not Found or The password is wrong\" ok then"
+              },
+              {
+                "text": "looking in the code it seems like all the queries are being prepared with knex"
+              },
+              {
+                "text": "ALL BUT ONE NVM, the query for POSTs to /secrets/create is not escaped."
+              }
+            ]
+          },
+          {
+            "text": "let's create a new user and see what we can do with ts",
+            "subNodes": [
+              {
+                "text": "signing up as \"jerry\"/\"mouse\" as usual"
+              },
+              {
+                "text": "ok, the query at /secrets/create is `INSERT INTO secrets(owner_id, content) VALUES ('${userId}', '${content}')`"
+              },
+              {
+                "text": "i think i know this one! since we're in postgres you can stack multiple rows into the same statement, so like i could do:",
+                "subNodes": [
+                  {
+                    "text": "INSERT INTO secrets(owner_id, content) VALUES ('id1', 'content1'), ('id2', 'content2'), ('id3', 'content3')"
+                  }
+                ]
+              },
+              {
+                "text": "so if we just figure out wtf our user ID is, we can use nested queries to create a new secret on our userID with the admin's secret's content inside it"
+              }
+            ]
+          },
+          {
+            "text": "let's create a test secret; burpsuite will tell me what my ID is",
+            "subNodes": [
+              {
+                "text": "never mind, burpsuite tells me what my TOKEN id is, not my user id. pretty sure i can just use another query to fetch that from the table and concat it into the string lmao"
+              },
+              {
+                "text": "i love SQLi"
+              },
+              {
+                "text": "let's try this:",
+                "subNodes": [
+                  {
+                    "text": "dummy'), ((SELECT id FROM users WHERE username='jerry'), (SELECT content FROM secrets where owner_id='e2a66f7d-2ce6-4861-b4aa-be8e069601cb'))--"
+                  }
+                ]
+              },
+              {
+                "text": "plugging that into the full query, that gets us:",
+                "subNodes": [
+                  {
+                    "text": "INSERT INTO secrets(owner_id, content) VALUES ('${userId}', 'dummy'), ((SELECT id FROM users WHERE username='jerry'), (SELECT content FROM secrets where owner_id='e2a66f7d-2ce6-4861-b4aa-be8e069601cb'))--')"
+                  }
+                ]
+              },
+              {
+                "text": "looks pretty damn good to me"
+              }
+            ]
+          },
+          {
+            "text": "BEAUTIFUL, FIRST TRY"
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{sq1_1nject10n_429d1d8c}"
+    },
+    {
+      "title": "Fool the Lockout",
+      "difficulty": "medium",
+      "order": 7,
+      "content": {
+        "nodes": [
+          {
+            "text": "200pt"
+          },
+          {
+            "text": "\"Your friend is building a simple website with a login page. To stop brute forcing and credential stuffing, they’ve added an IP-based rate limit: exceed the attempt threshold and your IP is blocked for a while. They’re convinced this makes guessing credentials impossible. To test their defense, they’ve: Created a dummy account with a random username–password pair from public credential lists, Given you those username and password lists, Shared the full source code. Can you bypass the rate limit, log in, and capture the flag?\""
+          },
+          {
+            "text": "hint says \"The python requests library might be useful\""
+          },
+          {
+            "text": "might this just be XFF again? if it is, this is basically just Crack the Gate 2 again lmao",
+            "subNodes": [
+              {
+                "text": "looking at the source code, i think that's exactly what's going on here. theres no checks for proxies or anything like that, so i think itll just *believe me* lol. let's do this with burpsuite, can prob just pitchfork this"
+              },
+              {
+                "text": "it's the same credentials dump file as in the Credential Stuffing box, awesome"
+              },
+              {
+                "text": "i wrote a little python script to take each line and split the usernames into one file and passwords into another"
+              }
+            ]
+          },
+          {
+            "text": "now we configure the attack in intruder:",
+            "subNodes": [
+              {
+                "text": "captured a normal login request; sent it to intruder"
+              },
+              {
+                "text": "one payload spot in the username (assigned it the usernames list)"
+              },
+              {
+                "text": "one payload spot in the password (assigned it the passwords list)"
+              },
+              {
+                "text": "one payload spot in the content of XFF header (got GPT to make me a giant list of sequential IPs, we'll plug this in)"
+              }
+            ]
+          },
+          {
+            "text": "now we start the attack AND......",
+            "subNodes": [
+              {
+                "text": "beautiful, first try!"
+              },
+              {
+                "text": "winning combo is khalid;sting"
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{f00l_7h4t_l1m1t3r_011089cc}"
+    },
+    {
+      "title": "No FA",
+      "difficulty": "medium",
+      "order": 8,
+      "content": {
+        "nodes": [
+          {
+            "text": "200pt"
+          },
+          {
+            "text": "\"Seems like some data has been leaked! Can you get the flag?\""
+          },
+          {
+            "text": "how descriptive lmao"
+          },
+          {
+            "text": "hints are:",
+            "subNodes": [
+              {
+                "text": "What happens when there's no salt?"
+              },
+              {
+                "text": "rockyou rockyou rockyou"
+              },
+              {
+                "text": "What makes 2FA safe?"
+              }
+            ]
+          },
+          {
+            "text": "ok this is basically a crypto challenge lmao not web. let's do it",
+            "subNodes": [
+              {
+                "text": "ok, we're given more source code (another app.py), as well as a users.db (which presumably we gotta decrypt somehow)"
+              },
+              {
+                "text": "the webpage itself is just a simple little login form POSTing to /login, nothing crazy. i assume we just gotta get creds out of the users.db."
+              }
+            ]
+          },
+          {
+            "text": "looking at users.db, i can see the username and email in cleartext, but i definitely see some hashes",
+            "subNodes": [
+              {
+                "text": "upon further inspection i think theyre SHA256. one of the hints is literally rockyou rockyou rockyou though so i have a hunch we can crack them lmao"
+              },
+              {
+                "text": "but once we get our password we have to deal with a TOTP. how tf?"
+              }
+            ]
+          },
+          {
+            "text": "oh actually thisll be pretty easy. looking in the app.py, there's not a LICK of rate limiting for the TOTP checker - as long as we can brute force the mf in 2 minutes we're good. the possible OTPs are only in range 1000-9999 so that's pretty doable."
+          },
+          {
+            "text": "first order of business - crack some hashes",
+            "subNodes": [
+              {
+                "text": "holy shi rockyou is like 140MB lmao, absolutely gigantic"
+              },
+              {
+                "text": "ok, we got our admin guy - adminiamadmin@nfs.comc20fa16907343eef642d10f0bdb81bf629e6aaf6c906f26eabda079ca9e5ab67e??#3?",
+                "subNodes": [
+                  {
+                    "text": "there were some random bytes, i replaced them with question marks."
+                  }
+                ]
+              },
+              {
+                "text": "the password hash then is c20fa16907343eef642d10f0bdb81bf629e6aaf6c906f26eabda079ca9e5ab67"
+              },
+              {
+                "text": "crack it with hashcat (hashcat -m 1400 -a 0 hash.txt rockyou.txt)",
+                "subNodes": [
+                  {
+                    "text": "got it! it's apple@123"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "now that we're on the OTP screen, imma write some js to brute force it"
+          },
+          {
+            "text": "for (let i = 1000; i <= 9999; i++) {"
+          },
+          {
+            "text": "    fetch(\"/two_fa\", {"
+          },
+          {
+            "text": "        method: \"POST\","
+          },
+          {
+            "text": "        headers: { \"Content-Type\": \"application/x-www-form-urlencoded\" },"
+          },
+          {
+            "text": "        body: `otp=${i}&action=`"
+          },
+          {
+            "text": "    }).then(r=>r.text()).then(r=>{"
+          },
+          {
+            "text": "        if (r.indexOf(\"Invalid OTP or OTP expired\") == -1) console.log(i, r);"
+          },
+          {
+            "text": "    });"
+          },
+          {
+            "text": "}"
+          },
+          {
+            "text": "well my 2 minutes is up lmao, let's re-login"
+          },
+          {
+            "text": "ok, tried running the script and we're getting net::ERR_INSUFFICIENT_RESOURCES",
+            "subNodes": [
+              {
+                "text": "oh yknow what, i found the problem. the \".then\" chain would work, but only if this was a single request. the loop aint waiting, it's just spinning up like 9000 requests basically simultaneously."
+              }
+            ]
+          },
+          {
+            "text": "I added some async/await:"
+          },
+          {
+            "text": "(async () => {"
+          },
+          {
+            "text": "    for (let i = 1000; i <= 9999; i++) {"
+          },
+          {
+            "text": "        const res = await fetch(\"/two_fa\", {"
+          },
+          {
+            "text": "            method: \"POST\","
+          },
+          {
+            "text": "            headers: { \"Content-Type\": \"application/x-www-form-urlencoded\" },"
+          },
+          {
+            "text": "            body: `otp=${i}&action=`"
+          },
+          {
+            "text": "        })"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        const t = await res.text();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        console.log(\"trying\", i);"
+          },
+          {
+            "text": "        if (t.indexOf(\"Invalid OTP or OTP expired\") == -1) {"
+          },
+          {
+            "text": "            console.log(\"CORRECT OTP:\", i, t);"
+          },
+          {
+            "text": "            break;"
+          },
+          {
+            "text": "        }"
+          },
+          {
+            "text": "    }"
+          },
+          {
+            "text": "})();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "(async () => {"
+          },
+          {
+            "text": "    for (let i = 1000; i <= 3333; i++) {"
+          },
+          {
+            "text": "        const res = await fetch(\"/two_fa\", {"
+          },
+          {
+            "text": "            method: \"POST\","
+          },
+          {
+            "text": "            headers: { \"Content-Type\": \"application/x-www-form-urlencoded\" },"
+          },
+          {
+            "text": "            body: `otp=${i}&action=`"
+          },
+          {
+            "text": "        })"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        const t = await res.text();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        console.log(\"trying\", i);"
+          },
+          {
+            "text": "        if (t.indexOf(\"Invalid OTP or OTP expired\") == -1) {"
+          },
+          {
+            "text": "            console.log(\"CORRECT OTP:\", i, t);"
+          },
+          {
+            "text": "            break;"
+          },
+          {
+            "text": "        }"
+          },
+          {
+            "text": "    }"
+          },
+          {
+            "text": "})();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "(async () => {"
+          },
+          {
+            "text": "    for (let i = 3334; i <= 6666; i++) {"
+          },
+          {
+            "text": "        const res = await fetch(\"/two_fa\", {"
+          },
+          {
+            "text": "            method: \"POST\","
+          },
+          {
+            "text": "            headers: { \"Content-Type\": \"application/x-www-form-urlencoded\" },"
+          },
+          {
+            "text": "            body: `otp=${i}&action=`"
+          },
+          {
+            "text": "        })"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        const t = await res.text();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        console.log(\"trying\", i);"
+          },
+          {
+            "text": "        if (t.indexOf(\"Invalid OTP or OTP expired\") == -1) {"
+          },
+          {
+            "text": "            console.log(\"CORRECT OTP:\", i, t);"
+          },
+          {
+            "text": "            break;"
+          },
+          {
+            "text": "        }"
+          },
+          {
+            "text": "    }"
+          },
+          {
+            "text": "})();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "(async () => {"
+          },
+          {
+            "text": "    for (let i = 6667; i <= 9999; i++) {"
+          },
+          {
+            "text": "        const res = await fetch(\"/two_fa\", {"
+          },
+          {
+            "text": "            method: \"POST\","
+          },
+          {
+            "text": "            headers: { \"Content-Type\": \"application/x-www-form-urlencoded\" },"
+          },
+          {
+            "text": "            body: `otp=${i}&action=`"
+          },
+          {
+            "text": "        })"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        const t = await res.text();"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "        console.log(\"trying\", i);"
+          },
+          {
+            "text": "        if (t.indexOf(\"Invalid OTP or OTP expired\") == -1) {"
+          },
+          {
+            "text": "            console.log(\"CORRECT OTP:\", i, t);"
+          },
+          {
+            "text": "            break;"
+          },
+          {
+            "text": "        }"
+          },
+          {
+            "text": "    }"
+          },
+          {
+            "text": "})();"
+          },
+          {
+            "text": "i ran out of time while brute forcing. new plan - imma open 3 tabs, log in on all of em, and then have the loops one one tab go from 1000-3333, next one go from 3334-6666, last one go from 6667-9999. should work i think",
+            "subNodes": [
+              {
+                "text": "hell yeah, third tab got it! it was 7137. logged in and waiting for me is the flag - we done. mic drop."
+              }
+            ]
+          }
+        ],
+        "reflections": []
+      },
+      "flag": "picoCTF{n0_r4t3_n0_4uth_d4a8be75}"
+    },
+    {
+      "title": "Sql Map1",
+      "difficulty": "hard",
+      "order": 9,
+      "content": {
+        "nodes": [
+          {
+            "text": "300pt"
+          },
+          {
+            "text": "\"You’ve been hired by a shadowy group of pentesters who love a good puzzle. The system looks ordinary, but appearances lie. Somewhere inside, sloppy code and legacy hashing practices left a tiny, perfect doorway for an attacker. Your mission — should you choose to accept it — is to slip through that doorway, act as a legit user and retrieve the secret flag.\""
+          },
+          {
+            "text": "given that this is literally called sqlmap1, i think i know what imma be doing here."
+          },
+          {
+            "text": "hints say:",
+            "subNodes": [
+              {
+                "text": "Search box looks interesting."
+              },
+              {
+                "text": "Passwords should not be stored in md5 format."
+              },
+              {
+                "text": "CrackStation is a great online tool for cracking hashes."
+              },
+              {
+                "text": "Sample SqlMap command: sqlmap -u <URL_for_search> --cookie=\"PHPSESSID=1111111111111\" -p <vulnerable_parameter> --batch --tables"
+              }
+            ]
+          },
+          {
+            "text": "ok AINT NO WAY WE GOT A WHOLE SAMPLE SQLMAP COMMAND LOL. i think the plan of attack is pretty clear. i havent even started up the machine yet lmao"
+          },
+          {
+            "text": "ok, we're greeted with a (really nice looking btw) register/login page. let's sign up as jerry/mouse real quick",
+            "subNodes": [
+              {
+                "text": "alright we're logged in now - i see that search box it was talking about. looking at page source we see:",
+                "subNodes": [
+                  {
+                    "text": "it's a GET form pointing to vuln.php"
+                  },
+                  {
+                    "text": "the search term is called \"q\""
+                  },
+                  {
+                    "text": "there's a hidden-type input PHPSESSID with a value in it (for me it's 7d7e01ab5835d9ca6282f577451e1bff)"
+                  },
+                  {
+                    "text": "there's a submit button as well as a logout button. cool"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "sqlmap time",
+            "subNodes": [
+              {
+                "text": "connection timed out? wtf?"
+              },
+              {
+                "text": "wow yeah sqlmap does NOT wanna do this right now."
+              },
+              {
+                "text": "screw it imma pull up tryhackme attackbox lmao, at least their sqlmap works"
+              }
+            ]
+          },
+          {
+            "text": "alright - i'm in attackbox now, but it still keeps doing this crap: [01:13:45] [CRITICAL] unable to connect to the target URL. sqlmap is going to retry the request(s)",
+            "subNodes": [
+              {
+                "text": "ah ok i tried without --batch and it's working now."
+              }
+            ]
+          },
+          {
+            "text": "we got 2 tables! sqli and users.",
+            "subNodes": [
+              {
+                "text": "let's inspect the sqli table, that one seems pretty on-brand",
+                "subNodes": [
+                  {
+                    "text": "lmao nevermind it said it cant do it. let's dump users instead"
+                  },
+                  {
+                    "text": "ok now attackbox is doing the same stuff. whyyyyyyyyy"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "this happened once before where i just COULD NOT use sqlmap at all. genuinely dont know what to do at this point"
+          },
+          {
+            "text": "ok, what does this search thing do anyway?",
+            "subNodes": [
+              {
+                "text": "searching \"eeeeeeee\"",
+                "subNodes": [
+                  {
+                    "text": "\"No flags matched your search.\" fair enough"
+                  }
+                ]
+              },
+              {
+                "text": "searching \"jerry\" (my username)",
+                "subNodes": [
+                  {
+                    "text": "same result."
+                  }
+                ]
+              },
+              {
+                "text": "wait, it's searching for flags right? searching \"pico\":",
+                "subNodes": [
+                  {
+                    "text": "OK we got a bunch of random flags"
+                  },
+                  {
+                    "text": "flag1: picoCTF{n0T_F0uNd_s3cr3T_K3y_34rd76s1}"
+                  },
+                  {
+                    "text": "flag2: picoCTF{n0T_F0uNd_s3cr3T_k3Y_c5d243edq}"
+                  },
+                  {
+                    "text": "flag3: picoCTF{i5_tH15_s3cr3T_k3Y_5tbax3er}"
+                  },
+                  {
+                    "text": "flag4: picoCTF{tH15_lS_n0T_s3cr3T_k3Y_vbr1qa43}"
+                  },
+                  {
+                    "text": "suspicious: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "flag6: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "flag7: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "ctf-player: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "noaccess: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "malicious: picoCTF{tH15_lS_n0T_f!@G_5rwdf731q}"
+                  },
+                  {
+                    "text": "none of them are the flag lol, i tried."
+                  }
+                ]
+              },
+              {
+                "text": "ok so this is the param that we're exploiting right, lemme try a '",
+                "subNodes": [
+                  {
+                    "text": "nothing"
+                  }
+                ]
+              },
+              {
+                "text": "''",
+                "subNodes": [
+                  {
+                    "text": "nothing"
+                  }
+                ]
+              },
+              {
+                "text": "'pico' maybe?",
+                "subNodes": [
+                  {
+                    "text": "AHA WE GET A SQL ERROR COOOOL"
+                  },
+                  {
+                    "text": "Warning: SQLite3::query(): Unable to prepare statement: 1, near \"pico\": syntax error in /var/www/html/vuln.php on line 39"
+                  },
+                  {
+                    "text": "Fatal error: Uncaught Error: Call to a member function fetchArray() on bool in /var/www/html/vuln.php:40 Stack trace: #0 {main} thrown in /var/www/html/vuln.php on line 40"
+                  }
+                ]
+              },
+              {
+                "text": "ok, if this is SQLi-able, let's see if i can get it to resolve to true or false",
+                "subNodes": [
+                  {
+                    "text": "assuming our true condition is that we get all the decoy flags listed and that false is that we get the \"No flags matched your search\" message"
+                  },
+                  {
+                    "text": "found one! \"anythinghere' OR 1=1--\" is consistently returning true. we could prob just go from here to \"anythinghere OR (select whatever like 'xyz%')\" and enumerate to our heart's content"
+                  },
+                  {
+                    "text": "imma write a script to automate the blind sqli, i am NOT doing all this crap by hand lmao"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "OK! WE GOT ADMIN'S PASSWORD HASH",
+            "subNodes": [
+              {
+                "text": "crackstation says his password is \"dyesebel\" interesting choice bud lmao"
+              },
+              {
+                "text": "wtf? apparently that's not correct. i'm worried now"
+              }
+            ]
+          },
+          {
+            "text": "ok yall aint gonna believe this - i was just messing around with this right, i tried logging in as \"ctf-player\"/\"dyesebel\" and that just WORKED. WTFFFFFFF"
+          }
+        ],
+        "reflections": [
+          "all's well that ends well. i have absolutely no idea what's going on."
+        ]
+      },
+      "flag": "picoCTF{F0uNd_s3cr3T_K3y_f0R_w3_<>}"
+    },
+    {
+      "title": "ORDER ORDER",
+      "difficulty": "hard",
+      "order": 10,
+      "content": {
+        "nodes": [
+          {
+            "text": "300pt"
+          },
+          {
+            "text": "\"Can you try to get the flag from our website. I've prepared my queries everywhere! I think!\""
+          },
+          {
+            "text": "yeah we'll see about that buddy"
+          },
+          {
+            "text": "hint says \"What does order in SQL Injection mean?\" oooh ok"
+          },
+          {
+            "text": "gobuster found:",
+            "subNodes": [
+              {
+                "text": "dashboard (Status: 302) [Size: 199] [--> /login]"
+              },
+              {
+                "text": "inbox (Status: 302) [Size: 199] [--> /login]"
+              },
+              {
+                "text": "login (Status: 200) [Size: 1746]"
+              },
+              {
+                "text": "logout (Status: 302) [Size: 189] [--> /]"
+              },
+              {
+                "text": "signup (Status: 200) [Size: 1978]"
+              }
+            ]
+          },
+          {
+            "text": "we're hit with a very white and orange page",
+            "subNodes": [
+              {
+                "text": "\"Welcome to the Expense Tracker; This application helps you track and manage your expenses efficiently. You can add, edit, and delete your expenses, and view detailed reports to better understand your spending habits.\""
+              },
+              {
+                "text": "theres a link to a signup and a login page"
+              },
+              {
+                "text": "let's hit the login with the ol' admin';--",
+                "subNodes": [
+                  {
+                    "text": "ok he prepared that query i guess."
+                  }
+                ]
+              },
+              {
+                "text": "let's register as jerry/mouse"
+              }
+            ]
+          },
+          {
+            "text": "ok, now that we're logged in we have access to some new links",
+            "subNodes": [
+              {
+                "text": "dashboard - literally COMPLETELY useless, just says \"Welcome to your dashboard, jerry!\""
+              },
+              {
+                "text": "inbox tab - seems interesting but it's empty lmao"
+              },
+              {
+                "text": "expenses tab - ok, here's our attack surface",
+                "subNodes": [
+                  {
+                    "text": "POST form to /expenses"
+                  },
+                  {
+                    "text": "text input \"description\""
+                  },
+                  {
+                    "text": "number input \"amount\""
+                  },
+                  {
+                    "text": "date input"
+                  },
+                  {
+                    "text": "there's a generate report button at the bottom."
+                  }
+                ]
+              },
+              {
+                "text": "let's create an expense normally and see what happens",
+                "subNodes": [
+                  {
+                    "text": "ok, we get a success message at the top"
+                  },
+                  {
+                    "text": "the generate report button is at the top of a table - now that table is populated with my new expense."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "lemme make another one and see what this report thing is",
+            "subNodes": [
+              {
+                "text": "ooooh ok, it says \"Report generation requested successfully! Check your inbox after 10 seconds!!!\""
+              },
+              {
+                "text": "i see the report and this is interesting - it has subject (Expense report as of 10/03/2026, 02:40:11), a date, but also a FILE PATH (./reports/report_jerry_1773110411.csv) and a download button."
+              },
+              {
+                "text": "ok. inside that csv file we see a column for description, amount and date, and we see all three of the fields i put in there. something tells me this is gonna be used for data exfiltration later",
+                "subNodes": [
+                  {
+                    "text": "or maybe not? the same shit is on the expenses page lol"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "i think it's time to start SQLi-ing.",
+            "subNodes": [
+              {
+                "text": "let's put quotes in weird places"
+              },
+              {
+                "text": "ok so changing the type of the input does nothing, it just works"
+              },
+              {
+                "text": "putting quotes in them did nothing special, they just appeared in the table with quotes in em. imma add ';-- to each of these cols and see which one gets commented out"
+              },
+              {
+                "text": "damn, whatever i do it's literally just appearing as i typed it in. he cant have prepared ALL his queries..."
+              }
+            ]
+          },
+          {
+            "text": "OOOOHHHHHH hang on a minute, we might have something",
+            "subNodes": [
+              {
+                "text": "each of the entries in the table at the bottom has a delete button. inspecting this, it looks like they're all POST forms to /delete_expense/3, /delete_expense/10, /delete_expense/7, whatever the ID is. possibly something?",
+                "subNodes": [
+                  {
+                    "text": "nah that wasnt it lmao, it just gives a 404 when i try to POST there"
+                  }
+                ]
+              },
+              {
+                "text": "there's also the ability to make multiple pages when theres a crap ton of expenses logged. the ?page=1, 2, 3, whatever URL param - maybe i can SQLi that?",
+                "subNodes": [
+                  {
+                    "text": "absolutely not lol, changing it just defaults to page 1 - that's all i can really get out of that"
+                  }
+                ]
+              },
+              {
+                "text": "ooh shi in the inbox there's a download button next to each report right, the URL for that is /download_report/1. that's an ID isn't it? possible IDOR too?",
+                "subNodes": [
+                  {
+                    "text": "ok well at the very least if u give it a random number like 75 then it gives HTTP 500 instead of 404 lmao, idk what that means for us though"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, this was the part where i tried all the random bullshit i possibly could lmao, nothing worked. i have an idea now though"
+          },
+          {
+            "text": "remember the dashboard i said was hella useless? it still has our username on it. what if we inject some shit into the REGISTRATION FORM and then that shows up on the dashboard? like what if i put some math shit into my username like \" jerry'||7*7||' \" or sum like that? could that work?",
+            "subNodes": [
+              {
+                "text": "GOD DAMMIT"
+              },
+              {
+                "text": "this dude is GOOD."
+              }
+            ]
+          },
+          {
+            "text": "ooh i just googled the hint",
+            "subNodes": [
+              {
+                "text": "'\"Order\" in SQL Injection refers to the distinction between first-order (immediate execution) and second-order (stored execution) attacks. A second-order SQL injection occurs when an application safely stores malicious user input but later executes it insecurely in a different query, bypassing initial security checks."
+              },
+              {
+                "text": "WAIT SO LIKE STORED XSS BUT STORED SQLi THAT's GENIUS"
+              },
+              {
+                "text": "WE HAVE THE PERFECT CANDIDATE FOR IT TOO (the reports)",
+                "subNodes": [
+                  {
+                    "text": "when reports are generated theyre prob being sorted a certain way right? let's figure out how tf that is real quick"
+                  },
+                  {
+                    "text": "AHAHAHAH NOPE THEYRE LITERALLY JUST THE SAME ORDER AS WHEN I INSERTED THEM"
+                  }
+                ]
+              },
+              {
+                "text": "hol on, this thing i just tried was with a new account - if i go back to my jerry'||7*7||' account, the entire contents of the file is just the header row - description,amount,date - rest of it is blank. that's WEIRD. WE LIKE WEIRD RIGHT NOW",
+                "subNodes": [
+                  {
+                    "text": "ok let's sign up as \" jerry'||(SELECT 'HiSQLi')||' \", if \"HiSQLi\" appears in our report somewhere then it's confirmed.",
+                    "subNodes": [
+                      {
+                        "text": "damn, all we see in the csv is still the \"description,amount,date\" row and blank row underneath that. that's interesting though"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "let's sign up as like \"hi'\" because that quote would break a query",
+                    "subNodes": [
+                      {
+                        "text": "OOHHHH SHIT WE GOT SOMETHING"
+                      },
+                      {
+                        "text": "Report generation failed. Cause unrecognized token: \"'hi''\""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, if i just SELECT my own username again then it should just hand me the correct expenses right? what if i sign up with one account \"heyo\" and one account heyo'||(SELECT '')||', if i create some sample expenses as \"heyo\" then go to the SQLi'd username, it should just show me \"heyo\"'s expenses right?",
+            "subNodes": [
+              {
+                "text": "alright, created two sample expenses as \"heyo\" whose descriptions are \"this belongs to HEYO\" #1 and #2."
+              },
+              {
+                "text": "now logged in as heyo'||(SELECT '')||' now, created an expense called \"sample\" and \"faseksskfjks\""
+              },
+              {
+                "text": "generating as a report..."
+              },
+              {
+                "text": "AND IT FRIGGIN WORKED LETS GOOOOO",
+                "subNodes": [
+                  {
+                    "text": "response:"
+                  },
+                  {
+                    "text": "description,amount,date"
+                  },
+                  {
+                    "text": "this one belongs to HEYO #1,30.0,2020-02-02"
+                  },
+                  {
+                    "text": "this one belongs to HEYO #2,20.0,3030-03-03"
+                  }
+                ]
+              },
+              {
+                "text": "ok so our query is prob sth like SELECT description, amount, date FROM expenses WHERE user='injectable'. so then like by making our user resolve to some other user's name we're pulling their shit instead. we can prob use this as blind bool-based sqli - we can use a similar query to resolve to regular \"heyo\" and if the response to the download_report endpoint has anything more than the title row (like heyo's actual expenses), it's true - otherwise if it's empty beyond the title row then it's false."
+              },
+              {
+                "text": "we can prob make another python script to do this"
+              }
+            ]
+          },
+          {
+            "text": "actually we might not even need blind sqli, might be able to union this thing",
+            "subNodes": [
+              {
+                "text": "create a user \"x\", create a sample expense"
+              },
+              {
+                "text": "new user called: x' UNION SELECT name,'1','1111-11-11' FROM sqlite_master WHERE type='table'--",
+                "subNodes": [
+                  {
+                    "text": "as this guy we make a dummy expense and generate a report AND...."
+                  },
+                  {
+                    "text": "HOLY SHIT WE GOT SOMETHING"
+                  },
+                  {
+                    "text": "i was right that reports are our data exfil channel - within the returned CSV we have:"
+                  },
+                  {
+                    "text": "description,amount,date"
+                  },
+                  {
+                    "text": "aDNyM19uMF9mMTRn,1,1111-11-11"
+                  },
+                  {
+                    "text": "e,1.0,1111-11-11"
+                  },
+                  {
+                    "text": "expenses,1,1111-11-11"
+                  },
+                  {
+                    "text": "inbox,1,1111-11-11"
+                  },
+                  {
+                    "text": "reports,1,1111-11-11"
+                  },
+                  {
+                    "text": "sqlite_sequence,1,1111-11-11"
+                  },
+                  {
+                    "text": "users,1,1111-11-11"
+                  },
+                  {
+                    "text": "x,120.0,2301-02-20"
+                  },
+                  {
+                    "text": "the \"x\" and \"e\" are the sample expenses i made as user \"x\""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, just simple sqli now - let's see wtf this aDNyM19uMF9mMTRn table looks like",
+            "subNodes": [
+              {
+                "text": "wait that's base64 aint it lmao",
+                "subNodes": [
+                  {
+                    "text": "it says \"h3r3_n0_f14g\". yeah ok screw you too man"
+                  },
+                  {
+                    "text": "let's dump it anyway, it might actually be in there"
+                  }
+                ]
+              },
+              {
+                "text": "new user - x' UNION SELECT sql,'1','1111-11-11' FROM sqlite_master WHERE type='table' AND name='aDNyM19uMF9mMTRn'--",
+                "subNodes": [
+                  {
+                    "text": "ok it has columns name (text) and value (also text)"
+                  }
+                ]
+              },
+              {
+                "text": "x' UNION SELECT name||'|'||value,'1','1111-11-11' FROM sqlite_master WHERE type='table' AND name='aDNyM19uMF9mMTRn'--",
+                "subNodes": [
+                  {
+                    "text": "shi i guess not. Report generation failed. Cause no such column: value"
+                  },
+                  {
+                    "text": "OH IM STILL QUERYING sqlite_master lol"
+                  }
+                ]
+              },
+              {
+                "text": "x' UNION SELECT name,value,'1111-11-11' FROM aDNyM19uMF9mMTRn--",
+                "subNodes": [
+                  {
+                    "text": "LESSS GOOOOOOOOOOO"
+                  },
+                  {
+                    "text": "we generate a report and the flag WAS in that table"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "I CANT EVEN DESCRIBE HOW HAPPY I AM RIGHT NOW that took so goddamn long lmaooooooooo"
+        ]
+      },
+      "flag": "picoCTF{s3c0nd_0rd3r_1t_1s_28c0f73b}"
+    },
+    {
+      "title": "paper2",
+      "difficulty": "insane",
+      "order": 11,
+      "content": {
+        "nodes": [
+          {
+            "text": "500pt"
+          },
+          {
+            "text": "this is it, this is the final webexp box. this is the final test. only 6 teams have solved this mf"
+          },
+          {
+            "text": "\"A piece of paper is a blank canvas, what do you want on yours? Source code: paper-2.tar Please test your exploits against a local instance using the included docker compose file before running against remote, thanks!\""
+          },
+          {
+            "text": "gobuster found:",
+            "subNodes": [
+              {
+                "text": "an endpoint to /flag (200 OK)"
+              },
+              {
+                "text": "/secret (200 OK)"
+              },
+              {
+                "text": "let's see what those are real quick:",
+                "subNodes": [
+                  {
+                    "text": "/flag just says \"nice try\" ok fair enough"
+                  },
+                  {
+                    "text": "/secret gives us this weird lookin md5 0123456789abcdef0123456789abcdef",
+                    "subNodes": [
+                      {
+                        "text": "it's not on crackstation. possibly the flag"
+                      },
+                      {
+                        "text": "im stupid it's literally just hardcoded random chars lmao"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok let's look in this source real quick",
+            "subNodes": [
+              {
+                "text": "files we get are:",
+                "subNodes": [
+                  {
+                    "text": "package.json"
+                  },
+                  {
+                    "text": "bun.lock"
+                  },
+                  {
+                    "text": "docker-compose.yml"
+                  },
+                  {
+                    "text": "Dockerfile"
+                  },
+                  {
+                    "text": "index.ts"
+                  },
+                  {
+                    "text": "INFORMATION"
+                  },
+                  {
+                    "text": "LICENSE"
+                  }
+                ]
+              },
+              {
+                "text": "OOOHHHH \"puppeteer-core\": \"^24.36.1\" I REMEMBER THAT MF FROM NOTED"
+              },
+              {
+                "text": "other dep is \"mkcert\": \"^3.2.0\""
+              },
+              {
+                "text": "ok it looks like we're running this on a redis-base container, redis:7-alpine",
+                "subNodes": [
+                  {
+                    "text": "command is command: redis-server --maxmemory 512M --maxmemory-policy allkeys-lru --save \"\" --appendonly no"
+                  },
+                  {
+                    "text": "maps 8443:443"
+                  }
+                ]
+              },
+              {
+                "text": "let's look at this INFORMATION file",
+                "subNodes": [
+                  {
+                    "text": "\"This challenge is based off of the original paper challenge written by me (@ehhthing) for corctf-2025. Some changes were made to patch all previously known solutions, notably the challenge now prevents navigation to external websites, which was used by all solutions of the original challenge.\""
+                  },
+                  {
+                    "text": "ok so this is basically like \"noted\" again maybe"
+                  },
+                  {
+                    "text": "OH LMAO in the rest of the info file he says \"Below, I've included one solution to the original challenge just so everyone is on the same page.\""
+                  },
+                  {
+                    "text": "ok, interesting."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "wait holy shit this is surprisingly similar to noted. we might have this. it's like noted but with redis in it now",
+            "subNodes": [
+              {
+                "text": "oh damn, the content security policy blocks JS"
+              },
+              {
+                "text": "wait actually looking in the INFORMATION file, it seems like in paper-v1 they used css to do this shit - that's really interesting",
+                "subNodes": [
+                  {
+                    "text": "basically visiting /secret?payload=abc renders <body secret=\"${secret}\">${secret}\\n${payload}</body>"
+                  },
+                  {
+                    "text": "what v1 did is it used css attribute selectors (like body[secret^=\"abc\"] or whatever) to leak the secret character by character, used <object> tags to detect matches, and then it used navigator.sendBeacon to exfiltrate char-by-char"
+                  },
+                  {
+                    "text": "it used `meta refresh` to bypass SameSite=Strict"
+                  },
+                  {
+                    "text": "whats now patched is that the puppeteer can't navigate to the external network, so no beacon exfiltration - this is where our \"noted\" knowledge comes in",
+                    "subNodes": [
+                      {
+                        "text": "also: the secret is stored in redis but expires after 60s, deleted after we visit /flag, so we have to exfiltrate and submit the full secret WHILE IT'S LIVE."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "so here's the thing now - the CSS trick from v1 will still work, but we can't exfiltrate with navigator.sendBeacon (because we're limited to internal network), so we gotta figure out a way to internally expose it to an endpoint we can externally access. just like noted - use the bot to POST the secret from the bot account into our known account so that we can just log in and grab it"
+              }
+            ]
+          },
+          {
+            "text": "looking at index.ts, this might work. in the visit method (the puppeteer call method), it first sets a cookie \"secret\" with the value of our flag. samesite is strict and domain is set to the \"host\" variable (which is set at the top of the file to \"web\"). i think that's just the url - i could be wrong about that though. after setting the cookie it sets \"secret\" in redis, opens a new tab and visits our url, then sleeps for 61s - just enough for the redis entry to have just expired.",
+            "subNodes": [
+              {
+                "text": "how we did it in noted is that we handed it a data url containing an html file that basically opened up the web app (on the bot account - session cookie still existed) in a named window, then logged into my known account, updating the session cookie, and then when it logged in to my account my XSS that i planted on my homepage would run, referencing the named window and extracting the flag from its DOM, POSTing it into a new \"note\" on my account"
+              },
+              {
+                "text": "bypassing CORS on noted was annoying too - what i did is that apparently HTML form element submissions, even if the form action isn't the same as the original context calling it, ISN'T treated as a cross-origin request so CORS just doesnt get triggered. that's how i was able to login from a parent context of about:blank"
+              },
+              {
+                "text": "so since in paper2 our parent context will be chrome://newtab, we might still be able to inject an HTML form and use that to upload the file"
+              },
+              {
+                "text": "i dont know how we're gonna go from there but i think that might work for a CORS bypass - the only thing is that we can't use JS so we can't used the named window.open trick again."
+              }
+            ]
+          },
+          {
+            "text": "before I actually do anything, i think i should try to understand the app better:",
+            "subNodes": [
+              {
+                "text": "ok, so our endpoints are:",
+                "subNodes": [
+                  {
+                    "text": "GET / - just returns an HTML form that lets us upload a file"
+                  },
+                  {
+                    "text": "POST /upload - takes our file, stores it in redis as file|<id, an auto-incrementing integer>; the stored value in redis is JSON.stringify([filetype, base64 of file data]).",
+                    "subNodes": [
+                      {
+                        "text": "the file expires after 10 minutes"
+                      },
+                      {
+                        "text": "once the file is uploaded you get redirected to /paper/id."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "GET /paper/:id - fetches the corresponding file from redis, decodes the base64, and serves it back with whatever content-type it was originally uploaded with"
+                  },
+                  {
+                    "text": "GET /secret -",
+                    "subNodes": [
+                      {
+                        "text": "reads the value of the \"secret\" cookie set on your browser as well as a \"payload\" query param"
+                      },
+                      {
+                        "text": "serves <body secret=\"your secret cookie val\">(secret val) (payload)</body>"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "GET /flag - takes query param \"secret\", compares it to the current val in redis as key \"secret\", and if they're the same, it hands us the flag.",
+                    "subNodes": [
+                      {
+                        "text": "the key gets deleted on read so we only have one shot at getting the secret right"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "GET /visit/:id",
+                    "subNodes": [
+                      {
+                        "text": "this is the puppeteer endpoint"
+                      },
+                      {
+                        "text": "if no browsers are open, it calls visit(\"https://web/paper/<id>\") where id is our file"
+                      },
+                      {
+                        "text": "THIS is our key to solving this challenge"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "the visit function:",
+                "subNodes": [
+                  {
+                    "text": "first it generates a random 32-hex-char secret"
+                  },
+                  {
+                    "text": "it sets a cookie in the browser called \"secret\" to that 32-char value, sameSite:strict and domain: web"
+                  },
+                  {
+                    "text": "stores the same secret in redis with key \"secret\", which expires after 60 secondss"
+                  },
+                  {
+                    "text": "opens chrome and visits your uploaded file at \"https://web/paper/<id>\""
+                  },
+                  {
+                    "text": "sleeps for 61 seconds and then closes chrome, deletes the redis key, basically resets"
+                  }
+                ]
+              },
+              {
+                "text": "so what makes this hard is:",
+                "subNodes": [
+                  {
+                    "text": "CSP says no javascript, so that's pretty messed up"
+                  },
+                  {
+                    "text": "chrome's URL blocklist is gonna be blocking everything but \"https://web\" so we need to stay within the internal network, but we also can't visit any data:// or file:// or anything like that"
+                  },
+                  {
+                    "text": "we only get 60s to get the flag once the secret exists"
+                  },
+                  {
+                    "text": "/flag deletes the secret on read so it's literally u get it or u dont"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "so from here, what's actually achievable is:",
+            "subNodes": [
+              {
+                "text": "since the bot is visiting my file at https://web/paper/id, where the domain is still \"https://web\", my file WILL have access to the secret cookie (no CORS problem)",
+                "subNodes": [
+                  {
+                    "text": "but without JS that's gonna be tricky"
+                  }
+                ]
+              },
+              {
+                "text": "at /secret the secret value is gonna be embedded into the DOM as an attr of the body",
+                "subNodes": [
+                  {
+                    "text": "in paper v2 the CSS exploits can still work - we can still use CSS attribute selectors in order to selectively apply styles based on the value of the secret, without needing any js."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "so that's our thing right now - the CSS can read the secret character by character. the problem now is that once CSS knows a character, how do we exfiltrate that without external network access, javascript, etc?",
+            "subNodes": [
+              {
+                "text": "in our HTML file we can probably have a form - i think there may be a way to have CSS conditionally submit it. so the challenge i guess is how do we dynamically hardcode the secret value into our HTML form so that our CSS can then submit the form, POSTing a new file with the secret inside?"
+              }
+            ]
+          },
+          {
+            "text": "ok, i spun up a local server with docker compose.",
+            "subNodes": [
+              {
+                "text": "can confirm that uploading files and basic functionality stuff works"
+              },
+              {
+                "text": "at /secret i can set ?payload=<style>body{background-color: red}</style> and that works."
+              },
+              {
+                "text": "ooh ok i can also set it to <style>body::after{content: attr(secret)}</style> - we get 2 of em on the page"
+              },
+              {
+                "text": "let's test if we can actually use CSS within a file to trigger a web request",
+                "subNodes": [
+                  {
+                    "text": "test.html contains <body><iframe src='/secret?payload=<style>body[secret]{background-image:url(/paper/999);}</style>' width=\"800\" height=\"400\"></iframe></body>"
+                  },
+                  {
+                    "text": "if this works then in the network tab i should see a request to /paper/999.",
+                    "subNodes": [
+                      {
+                        "text": "wtf, no?"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "maybe the body doesnt like the background img",
+                    "subNodes": [
+                      {
+                        "text": "https://localhost:8443/secret?payload=<div id=\"x\"></div><style>body[secret] #x{background-image:url(/paper/999);}</style> maybe????",
+                        "subNodes": [
+                          {
+                            "text": "YES ok we get a GET to /paper/999"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "after some messing around, figured out that if we have a <meta http-equiv=\"refresh\" content=\"0;url=/paper/999\"> inside of a div style=\"display:none\" and then we update it to display:block, it will navigate THE ENTIRE PAGE. that's freaking crazy - we can prob use this to enumerate the secret or something, like we could store it one character at a time inside of a URL param, like almost recursively redirect until we have the full thing",
+                    "subNodes": [
+                      {
+                        "text": "ok, THEN wtf do we do with it? how do we exfil if we can't make a POST to a new file?"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "idk what i'm doing anymore. i looked back in the INFORMATION file though, saw this - \"Yes we're back to a CSP bypass challenge this year. I ran out of cool, hard server-side challenge ideas.\" that actually gives us some info on what we're meant to be doing - this is a CSP bypass thing. how can we do that?",
+            "subNodes": [
+              {
+                "text": "ok so looking at the CSP it's only explicitly overriding script-src, default-src is set to 'self' 'unsafe-inline'. so like what if i just make an <object> instead of a script?",
+                "subNodes": [
+                  {
+                    "text": "uploaded test.svg, <svg xmlns=\"http://www.w3.org/2000/svg\"> <script>alert(1)</script> </svg>"
+                  },
+                  {
+                    "text": "testing /secret?payload=<object data=\"/paper/7\"></object>"
+                  }
+                ]
+              },
+              {
+                "text": "shit, nope"
+              },
+              {
+                "text": "it does say this - Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. what's the hash part of that?",
+                "subNodes": [
+                  {
+                    "text": "we can't supply that, it's serverside lmao"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "hang on, i literally have the source code and am running it locally. i can add whatever tf debug / print statements or logic that i could possibly need to any part of this mf"
+          },
+          {
+            "text": "debug statements genuinely didnt help for shit. here's where i spiraled and went friggin insane for a little while. but then claude said some interesting shit:",
+            "subNodes": [
+              {
+                "text": "first - the --jitless flag that our index.ts is using is also known to affect certain V8 behaviors; there's a known issue where --jitless + certain Chrome versions affects how some CSP checks are evaluated for dynamically generated code. niche as hell but possibly worth checking"
+              },
+              {
+                "text": "this next one though - this one is more interesting at the moment. yknow how this shit is called \"paper2\"? paper? how bout a PDF?",
+                "subNodes": [
+                  {
+                    "text": "supposedly when you're redirected to a PDF, chromium like makes its own PDF reader lookin thing - the CSP might not apply there."
+                  },
+                  {
+                    "text": "at this point ANYTHING is worth a try - since this one is more \"paper\"-like, i really hope this is it. you CAN embed scripts in PDFs - if this works itll be fucking legendary"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, if i upload like THE SMALLEST PDF POSSIBLE, it DOES render it directly in my browser when i get redirected to it - that's good. lemme see if i can add an alert or like a console.log to this mf",
+            "subNodes": [
+              {
+                "text": "ok, we got that part working - let's upload it and see what happens. if this comes up with CSP i swear to FUCKING GOD"
+              },
+              {
+                "text": "YESSSS LETS FUCKING GOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
+              },
+              {
+                "text": "4 0 obj"
+              },
+              {
+                "text": "<< /Type /Action /S /JavaScript /JS (app.alert(\"pdf xss\");) >>"
+              },
+              {
+                "text": "endobj"
+              },
+              {
+                "text": "THAT ONE ACTUALLY RAN"
+              }
+            ]
+          },
+          {
+            "text": "if i understand correctly, PDF js and regular browser js is a bit different. let's see what I have to work with here",
+            "subNodes": [
+              {
+                "text": "fetch and XHR dont exist - makes sense"
+              },
+              {
+                "text": "\"Net\" doesn't exist"
+              },
+              {
+                "text": "app.launchURL exists"
+              },
+              {
+                "text": "this.submitForm exists"
+              },
+              {
+                "text": "this.getURL exists"
+              },
+              {
+                "text": "app.openDoc exists"
+              },
+              {
+                "text": "none of them are working. sick"
+              },
+              {
+                "text": "wait if this whole thing is just a little PDF exploit then what's the payload parameter in /secret even for? is PDF just a red herring?",
+                "subNodes": [
+                  {
+                    "text": "let's try /secret?payload=<iframe src=\"/paper/45\"></iframe>"
+                  },
+                  {
+                    "text": "OK, THE ALERT DID EXECUTE. does the pdf maybe inherit the parent page's data or something? like it can run js functions from the parent page?",
+                    "subNodes": [
+                      {
+                        "text": "damn, XHR is still undefined lol"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "the server interprets our content-type literally right? what if i put some HTML inside a .pdf file?",
+                "subNodes": [
+                  {
+                    "text": "oh, failed to load PDF document. seems about right."
+                  }
+                ]
+              },
+              {
+                "text": "ok maybe my chrome and the puppeteer will treat the PDF differently. let's put like this.submitForm('https://web/flag?secret=test'); or something into it and try visit'ing that",
+                "subNodes": [
+                  {
+                    "text": "the logs dont show any hits on /flag. dammit"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "it's been 7 hours i need a break"
+          },
+          {
+            "text": "i'm back"
+          },
+          {
+            "text": "wait a minute, we were able to run PDF JS despite the CSP in the PDF environment yeah - maybe it cant make requests off the page but it's not throwing errors either. that's interesting. can it call javascript urls?",
+            "subNodes": [
+              {
+                "text": "<< /Type /Action /S /JavaScript /JS ( app.alert(\"pdf js running\"); app.launchURL(\"javascript:alert('hello from JS')\", true); ) >>"
+              },
+              {
+                "text": "ok the js alert isn't launching in regular chrome"
+              },
+              {
+                "text": "<< /Type /Action /S /JavaScript /JS ( app.alert(\"pdf xss\"); app.launchURL(\"javascript:fetch('/flag?secret=test')\", true); ) >>",
+                "subNodes": [
+                  {
+                    "text": "this should make a hit on /flag in my logs hopefully if i /visit it. let's try",
+                    "subNodes": [
+                      {
+                        "text": "nothing. alright, screw u too"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "it's been a couple hours. new idea - if CSP is a header then what if we just inject our own headers? can we do that?",
+            "subNodes": [
+              {
+                "text": "looked it up, apparently theres a thing called CRLF injection - basically you inject a \\r\\n into the file itself and if it's not sanitized then that terminates that line of the response. since the server dont give a shit what our Content-Type is, what if we put a \\r\\n right at the end of our Content-Type in our file and then add a header like \"Content-Security-Policy: default-src *\" or something like that?"
+              },
+              {
+                "text": "curl -vk -X POST https://localhost:8443/upload -F \"file=@test.html;type=text/html%0d%0aX-CRLF-Injection: hahascrewyou\""
+              },
+              {
+                "text": "if this works then when we pull up /paper/1, we should see that new CSP field in our headers",
+                "subNodes": [
+                  {
+                    "text": "ok we get some goofy curl error, curl: (26) Failed to open/read local data from file/application"
+                  }
+                ]
+              },
+              {
+                "text": "maybe with curl -vk -X POST https://localhost:8443/upload -F $'file=@test.html;type=text/html\\r\\nX-CRLF-Injection: hahascrewyou'",
+                "subNodes": [
+                  {
+                    "text": "the $ should encode the \"\\r\\n\" as bytes instead of literally \"\\\", \"r\", \"\\\", \"n\""
+                  },
+                  {
+                    "text": "still the same error",
+                    "subNodes": [
+                      {
+                        "text": "oh lmao i'm stupid dawg, that syntax is trying to send a test.html from my disk. lemme create that real quick",
+                        "subNodes": [
+                          {
+                            "text": "<h1>hi from test.html</h1>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "trying again with original payload (since test.html exists now) and.....",
+                "subNodes": [
+                  {
+                    "text": "AHAHAHAHA nothing useful. dont think CRLF injection will work here, i think bun itself is sanitizing the filetype not just the index.ts"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "it was about this point that i decided to take a break for a few days. this challenge is genuinely just WILD. ehhthing's last challenge (secure-email-service) is notorious because it's only like *technically* a web exploitation challenge yeah, but it still relies on some other super niche quirk - something that genuinely trips up people who do this kinda thing for a living. i take it paper-2 is similar. NOTHING i've tried is working.",
+          "it's been a few days, i've come back to it, but im basically hitting the same walls over and over again: the CSP doesnt let you run JS, and you cant make anything other than a GET request with CSS which the CSP *does* allow. which is cool and all but like we can't really use that as a side channel just because of the nature of this box. so what do we even do? i tried handing it to Claude with extended thinking - it went at it for a solid 20 minutes and then LITERALLY SURRENDERED TO EXHAUSTION. this has gotta just be something crazy.",
+          "it's now the last day of the comp. decided i may as well give it one more shot",
+          "OK imma save you the trouble - it was the same shit again. more rabbit holes. not one of them actually had a rabbit inside. hell, even Claude \"surrendered to exhaustion\" 😭✌️",
+          "im not getting this one lmao, gg"
+        ]
+      }
+    },
+    {
+      "title": "Wrap-Up: picoCTF 2026",
+      "difficulty": "insane",
+      "order": 12,
+      "content": {
+        "nodes": [
+          {
+            "text": "OK, comp is now over and i just read a writeup. this is genuinely wild, like SERIOUSLY creative solution. never woulda thought of this. linked here: https://www.vipin.xyz/blog/picoctf2026"
+          },
+          {
+            "text": "that's so COOOL THOUGH WOAHH"
+          },
+          {
+            "text": "TL;DR: the redis LRU eviction settings in this box are set at a small enough size that it IS feasible to just stuff the database full of random shit and exceed that size. the problem with the css attribute selector trick was that we couldn't exfiltrate any data because we couldn't send anything other than GET requests. what these guys did was upload a bunch of oracle files to the database and then ran the bot with the same CSS trick, and then in that time, stuffed the database with enough random shit that every oracle that hadn't been visited got evicted. from there they were able to figure out what files still remained and reconstruct the flag with that information."
+          },
+          {
+            "text": "what the ACTUAL FUUUUUU"
+          },
+          {
+            "text": "that's awesome."
+          },
+          {
+            "text": "good stuff."
+          }
+        ],
+        "reflections": [
+          "good comp, really enjoyed it. can't believe it's all over lol",
+          "we finished EVERYTHING within the first two days except paper-2 and the 500-point reverse engineering challenge. that's a top 5% global finish as a first-year team, and i've only started this shit like less than 2 months ago!! sure we didn't win anything, but that's absolutely a win for me. really proud of what we've accomplished.",
+          "this was amazing."
+        ]
+      }
+    }
+  ]
+}
