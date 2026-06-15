@@ -1,5 +1,12 @@
 [
   {
+    "title": "picoCTF 2026: Brute Force and Happy Accidents",
+    "file": "posts/pico2026_harder.html",
+    "date": "2026-06-13",
+    "excerpt": "Sqlmap simply said \"no.\"",
+    "tags": ["picoCTF 2026", "Web Exploitation", "Timeline", "Burp Suite", "SQLi", "Medium"]
+  },
+  {
     "title": "picoCTF 2026: The Confidence Boosters",
     "file": "posts/pico2026_easy.html",
     "date": "2026-06-13",
