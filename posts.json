@@ -1,5 +1,12 @@
 [
   {
+    "title": "paper-2: The One That Got Away",
+    "file": "posts/paper2.html",
+    "date": "2026-06-14",
+    "excerpt": "You know it's bad when even Claude has to \"surrender to exhaustion.\"",
+    "tags": ["picoCTF 2026", "Web Exploitation", "Learning Journey", "Timeline", "XSS", "JavaScript", "Hard"]
+  },
+  {
     "title": "ORDER ORDER: A lesson in reading the hint twice",
     "file": "posts/order_order.html",
     "date": "2026-06-14",
