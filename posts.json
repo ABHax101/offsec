@@ -4,7 +4,7 @@
     "file": "posts/order_order.html",
     "date": "2026-06-14",
     "excerpt": "He prepared his queries everywhere. He just forgot about second-order SQLi. Me too, bud, me too.",
-    "tags": ["picoCTF 2026", "Web Exploitation", "Timeline", "SQLi", "Hard"]
+    "tags": ["picoCTF 2026", "Web Exploitation", "Learning Journey", "Timeline", "SQLi", "Hard"]
   },
   {
     "title": "picoCTF 2026: Brute Force and Happy Accidents",
