@@ -1,0 +1,322 @@
+{
+  "boxes": [
+    {
+      "title": "Passive Reconnaissance",
+      "difficulty": "easy",
+      "order": 1,
+      "content": {
+        "nodes": [
+          {
+            "text": "TL;DR: This was a pretty simple room. Learned what WHOIS is; the rest of it was just a refresher."
+          },
+          {
+            "text": "Started off with active vs. passive recon - this is still pretty familiar. Passive relies on OSINT; Active involves direct interaction with the target. pretty simple so far."
+          },
+          {
+            "text": "WHOIS - this sounds familiar but don't know what it does",
+            "subNodes": [
+              {
+                "text": "ah, protocol for getting info on a domain from the registrar. stuff like domain registration date, nameservers, registrar name, etc."
+              },
+              {
+                "text": "ok, kinda cool. dont really see how i'd actually use this in a pentesting scenario but good to know it exists",
+                "subNodes": [
+                  {
+                    "text": "ah well actually it makes sense, it can reveal info that i can use as broader context and scoping, identifying other services that may be related or important, etc."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "dig and nslookup - i know this one! yay lol. just querying DNS records, nothing crazy. moving right along."
+          },
+          {
+            "text": "aha, more DNS stuff",
+            "subNodes": [
+              {
+                "text": "this part goes into DNSDumpster and crt.sh - i actually remember these from the original THM pathway that I was doing. they were part of the Intro to Web Hacking section. good refresher though"
+              },
+              {
+                "text": "oh hey, shodan. there's another familiar name."
+              }
+            ]
+          },
+          {
+            "text": "ok, well that's it for this one. pretty simple room."
+          }
+        ],
+        "reflections": [
+          "TL;DR: This was a pretty simple room. Learned what WHOIS is; the rest of it was just a refresher."
+        ]
+      }
+    },
+    {
+      "title": "Active Reconnaissance",
+      "difficulty": "easy",
+      "order": 2,
+      "content": {
+        "nodes": [
+          {
+            "text": "TL;DR: I finally know how a reverse shell ACTUALLY works. Netcat and telnet are cool."
+          },
+          {
+            "text": "lmao it's talking about the web inspector, my bread and butter. i got this one"
+          },
+          {
+            "text": "ok now it's talking about ping - that one's pretty simple too.",
+            "subNodes": [
+              {
+                "text": "now we're on traceroute. giving me CTI-120 vibes lol. no new info here either"
+              }
+            ]
+          },
+          {
+            "text": "telnet - this was mostly familiar as well, though the THM room did introduce one new thing: banner grabbing.",
+            "subNodes": [
+              {
+                "text": "basically since telnet is all cleartext and operates over TCP, you can use it to connect to any tcp port and see the server's raw response."
+              },
+              {
+                "text": "you connect to the service and read the initial response it sends back (the 'banner') which can have stuff like the name and version of the software running on that port.",
+                "subNodes": [
+                  {
+                    "text": "since many services now require/enforce encryption, telnet may not for every situation. you can do this with curl and the openssl client too though, so it's ok"
+                  }
+                ]
+              },
+              {
+                "text": "now that i think about it, maybe this is what nmap does"
+              },
+              {
+                "text": "pretty cool. didn't know this was a thing"
+              }
+            ]
+          },
+          {
+            "text": "the final thing discussed in this room is netcat. i've used this before but I guess I just never really knew what it actually does / how it works?",
+            "subNodes": [
+              {
+                "text": "essentially it's like telnet except it also supports UDP, and it can also be a listener. makes sense.",
+                "subNodes": [
+                  {
+                    "text": "so we can do banner grabbing with netcat too, in exactly the same way as with telnet. cool!"
+                  }
+                ]
+              },
+              {
+                "text": "i've pretty much ONLY used netcat for reverse shells, but i never really knew how that worked. now i do - the victim machine opens one of these arbitrary network tunnels to our attacker machine (acting as a listener), and pipes the output of a process (e.g., /bin/bash) into that tunnel. whatever output that victim receives (i.e. whatever we as the attacker type in) gets piped into that process as input."
+              },
+              {
+                "text": "now that i know what's actually happening under the hood, this actually seems really simple now."
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "TL;DR: I finally know how a reverse shell ACTUALLY works. Netcat and telnet are cool."
+        ]
+      }
+    },
+    {
+      "title": "Protocols and Servers",
+      "difficulty": "easy",
+      "order": 3,
+      "content": {
+        "nodes": [
+          {
+            "text": "TL;DR: the internet was built on cleartext protocols, but they're insecure, because anyone who has a network sniffer can see EVERYTHING. that was the main recurring takeaway from this room. The rest of it just explained how those protocols work - I finally learned how email works lol"
+          },
+          {
+            "text": "The description of this room is \"Learn about common protocols such as HTTP, FTP, POP3, SMTP and IMAP, along with related insecurities.\" I think I got the common protocols part down - just gotta brush up on the related insecurities bit. Let's go"
+          },
+          {
+            "text": "Ok so most of this room was pretty simple",
+            "subNodes": [
+              {
+                "text": "Went over telnet, talked about how it's unsafe because it's a cleartext protocol"
+              },
+              {
+                "text": "Went over HTTP, talked about how it's the backbone of the web, but is also a cleartext protocol"
+              },
+              {
+                "text": "Went over FTP, how it's also insecure because it's a cleartext protocol"
+              },
+              {
+                "text": "Need I say more?"
+              }
+            ]
+          },
+          {
+            "text": "The rest of the room was actually pretty helpful - i kinda forgot how email works.",
+            "subNodes": [
+              {
+                "text": "quick recap:",
+                "subNodes": [
+                  {
+                    "text": "the email client sends the mail to a mail submission agent (MSA)"
+                  },
+                  {
+                    "text": "the MSA checks that mail for any errors or whatever and sends it to a mail transfer agent (MTA)"
+                  },
+                  {
+                    "text": "the mail is transfered across MTAs - this is basically the shipping/delivery part"
+                  },
+                  {
+                    "text": "the MTA delivers the mail to the recipient's mailbox - a mail delivery agent (MDA)"
+                  },
+                  {
+                    "text": "the recipient email client can then fetch the mail from that MDA"
+                  },
+                  {
+                    "text": "in other words, the delivery 'network' that the mail is transfered through is like a 'network' of MTAs; the MSA and MDA are what connect a sender and receiver to that 'network.'"
+                  }
+                ]
+              },
+              {
+                "text": "in that chain of events:",
+                "subNodes": [
+                  {
+                    "text": "SMTP sits between the sender's email client and the MSA"
+                  },
+                  {
+                    "text": "POP3 or IMAP sit between the MDA and the recipient email client"
+                  }
+                ]
+              },
+              {
+                "text": "makes sense now. cool!"
+              }
+            ]
+          },
+          {
+            "text": "the thing with sending email is that SMTP can use cleartext - of course it can lmao, here we go again",
+            "subNodes": [
+              {
+                "text": "email spoofing is also possible. didn't know that was a thing. basically, SMTP itself doesn't validate the `mail from:` and `rcpt to:` fields; an attacker can manipulate the `mail from` to make it seem like the mail is coming from a legitimate address. interesting."
+              }
+            ]
+          },
+          {
+            "text": "ah, sick - POP3 and IMAP can also use cleartext. so they're also insecure for the same reasons as pretty much every other cleartext protocol"
+          },
+          {
+            "text": "i never understood why there were so many email protocols. SMTP makes sense now; that leaves IMAP and POP3. here's what I learned:",
+            "subNodes": [
+              {
+                "text": "both POP3 and IMAP are used for receiving mail; both do it in a different way. both have really fitting names."
+              },
+              {
+                "text": "POP3 is \"Post Office Protocol v3:\"",
+                "subNodes": [
+                  {
+                    "text": "when a message is retrieved from the post office, the post office no longer has it. similarly, when a device retrieves a message from a POP3 server, the server deletes it"
+                  },
+                  {
+                    "text": "the client takes it out of the post office, and it's their responsibility now."
+                  }
+                ]
+              },
+              {
+                "text": "IMAP is \"Internet Message Access Protocol:\"",
+                "subNodes": [
+                  {
+                    "text": "messages and their status, flags, folders, etc are all stored on that IMAP server, not in the email client"
+                  },
+                  {
+                    "text": "it's the \"message access\" server; messages are accessed on that server and don't leave the server."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reflections": [
+          "TL;DR: the internet was built on cleartext protocols, but they're insecure, because anyone who has a network sniffer can see EVERYTHING. that was the main recurring takeaway from this room. The rest of it just explained how those protocols work - I finally learned how email works lol"
+        ]
+      }
+    },
+    {
+      "title": "Protocols and Servers 2",
+      "difficulty": "medium",
+      "order": 4,
+      "content": {
+        "nodes": [
+          {
+            "text": "TL;DR: more review - nothing super interesting here. use TLS lol."
+          },
+          {
+            "text": "room description is \"Learn about attacks against passwords and cleartext traffic; explore options for mitigation via SSH and SSL/TLS.\"",
+            "subNodes": [
+              {
+                "text": "looking at the tasks, it looks like this is indeed gonna be like split across 2 parts: attacks on cleartext protocols and how to secure cleartext protocols"
+              }
+            ]
+          },
+          {
+            "text": "went over sniffing attacks - this was super straightforward, just explained tcpdump/wireshark."
+          },
+          {
+            "text": "went over MITM attacks - also pretty straightforward.",
+            "subNodes": [
+              {
+                "text": "we did mention some MTIM tools though, i'll keep these in mind:",
+                "subNodes": [
+                  {
+                    "text": "bettercap"
+                  },
+                  {
+                    "text": "ettercap"
+                  },
+                  {
+                    "text": "mitmproxy"
+                  },
+                  {
+                    "text": "Responder"
+                  }
+                ]
+              },
+              {
+                "text": "also went over modern defenses against MITM - these are good to have written down as well prob:",
+                "subNodes": [
+                  {
+                    "text": "using HTTPS everywhere"
+                  },
+                  {
+                    "text": "HSTS"
+                  },
+                  {
+                    "text": "cert transparency logs"
+                  },
+                  {
+                    "text": "cert pinning"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "text": "ok good we're FINALLY talking about TLS lol, took long enough.",
+            "subNodes": [
+              {
+                "text": "once again pretty much just a refresher - went over the TLS handshake, talked about implicit TLS vs upgrading, talked about how all those cleartext protocols from earlier have 'secure' TLS versions."
+              },
+              {
+                "text": "nothing especially new here."
+              }
+            ]
+          },
+          {
+            "text": "went over SSH - nothing especially new there either. I use SSH all the time lol"
+          },
+          {
+            "text": "talked about hydra for cracking passwords on network services. nothing new there either. haven't had to use hydra in a good bit because i haven't hacked a non-web app in a while - but yeah, nothing new."
+          }
+        ],
+        "reflections": [
+          "TL;DR: more review - nothing super interesting here. use TLS lol."
+        ]
+      }
+    }
+  ]
+}
