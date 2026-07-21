@@ -1,5 +1,12 @@
 [
   {
+    "title": "The Capstone, For Real This Time",
+    "file": "posts/capstone_planning.html",
+    "date": "2026-07-20",
+    "excerpt": "It's time to get this show on the road. Watch me.",
+    "tags": ["Capstone", "Learning Journey"]
+  },
+  {
     "title": "paper-2: The One That Got Away",
     "file": "posts/paper2.html",
     "date": "2026-06-14",
@@ -32,7 +39,7 @@
     "file": "posts/noted.html",
     "date": "2026-06-12",
     "excerpt": "The hard-difficulty box where the solution was both everywhere and nowhere.",
-    "tags": ["picoCTF", "Web Exploitation", "Learning Journey", "XSS", "JavaScript", "Hard"]
+    "tags": ["Capstone", "picoCTF", "Web Exploitation", "Learning Journey", "XSS", "JavaScript", "Hard"]
   },
   {
     "title": "picoCTF: The Java Script Kiddie Series",

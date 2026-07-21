@@ -1,0 +1,189 @@
+:root {
+    --pico-font-family-monospace: 'Courier New', Courier, monospace;
+    --timeline-bullet: #2a7f62;
+    --timeline-line: #3d4b5c;
+}
+pre {
+    background-color: #1a1a1a;
+    border-left: 4px solid var(--pico-primary);
+    padding: 1rem;
+    overflow-x: auto;
+}
+code {
+    background-color: #2a2a2a;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+pre code { background: none; padding: 0; }
+.post-meta {
+    color: var(--pico-muted-color);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+}
+.tag {
+    display: inline-block;
+    background-color: var(--pico-primary-background);
+    color: var(--pico-primary-inverse);
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+}
+.toc {
+    background-color: #1a1a1a;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+.toc h3 { margin-top: 0; }
+blockquote {
+    border-left: 4px solid var(--pico-primary);
+    padding-left: 1rem;
+    font-style: italic;
+    color: var(--pico-muted-color);
+}
+.footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--pico-muted-border-color);
+    text-align: center;
+    color: var(--pico-muted-color);
+}
+
+/* ----- CTF boxes & vertical timeline (nested) ----- */
+.ctf-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+.ctf-box {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 1rem;
+    background: var(--pico-card-background-color);
+    overflow: hidden;
+}
+.box-header {
+    background-color: #1e2a2f;
+    padding: 1rem 1.8rem;
+    border-bottom: 1px solid #2e3b44;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 1rem;
+}
+.box-header h3 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+.difficulty-badge {
+    background: var(--pico-primary-background);
+    color: var(--pico-primary-inverse);
+    padding: 0.3rem 0.9rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.box-order {
+    margin-left: auto;
+    color: var(--pico-muted-color);
+    font-size: 0.9rem;
+}
+
+/* timeline container - root level */
+.timeline-root {
+    padding: 1.8rem 2rem 1rem 2.5rem;
+    position: relative;
+}
+
+/* kill Pico's default list styles on both ul and li */
+.timeline-node,
+.timeline-sub {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+
+.timeline-node > li,
+.timeline-sub > li {
+    list-style: none; /* belt-and-suspenders against Pico specificity */
+    position: relative;
+    padding-left: 1.6rem;
+    margin-bottom: 0.8rem;
+    border-left: 2px solid var(--timeline-line);
+}
+
+.timeline-node > li:last-child,
+.timeline-sub > li:last-child {
+    border-left-color: transparent;
+}
+
+/* colored circle bullet — centered over the left border line */
+.timeline-node > li::before,
+.timeline-sub > li::before {
+    content: '';
+    position: absolute;
+    left: -7px;   /* centers 12px circle over 2px border: -(12/2) + (2/2) = -5... optical -7 works best */
+    top: 0.45rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--timeline-bullet);
+    border: 2px solid #0f171f;
+    z-index: 2;
+}
+
+/* sub-nodes: indent, solid line to match root */
+.timeline-sub {
+    margin: 0.5rem 0 0.8rem 0;
+    padding-left: 1rem;
+}
+
+/* node text */
+.node-text {
+    display: block;
+    padding-bottom: 0.4rem;
+    color: #e1e7ec;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+.timeline-sub .node-text {
+    color: #b6c6d4;
+    font-size: 0.96em;
+}
+
+/* reflections - plain inline block, no collapsible */
+.reflections-box {
+    margin: 0.5rem 2rem 2rem 2rem;
+    padding: 1rem 1.6rem;
+    background-color: #16222b;
+    border-radius: 0.8rem;
+    border-left: 6px solid #cc7b2e;
+}
+.reflections-box p {
+    margin: 0.4rem 0;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+}
+
+/* flag reveal */
+.flag-details {
+    margin: 1.2rem 2rem 1.8rem 2rem;
+    border-radius: 0.6rem;
+    padding: 0.5rem 1rem;
+}
+.flag-details pre {
+    margin: 0.8rem 0 0.2rem 0;
+}
+
+/* small tweaks */
+.node-text code {
+    background-color: #1b2b33;
+}
+hr {
+    margin: 0.2rem 0;
+}

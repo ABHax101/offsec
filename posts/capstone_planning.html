@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+        <p>Alrighty. This is gonna be a bit of a different post. Buckle up.</p>
+
+        <p>Essentially what's going on right now is that it's July 20th, and I haven't hacked anything in something like 4 full months at this point. It's <i>bad</i>. This isn't really the kind of 'consistency' that I'd imagined way back in December of last year, when I decided that I was gonna become a hacker this year, but the blog has been quiet for a whole month, my security journey has completely stalled, and I think the senioritis is already setting in.</p>
+
+        <p>College applications open on August 1st, so I have a good week and a half or so before this gets absolutely <i>insane</i> for me. One of the big reasons I was gonna do a capstone project this year at all was for college apps—you see the problem? I can't really write about 'that time I audited my crappy 7th grade chat app' in a college essay if it hasn't actually, y'know, <i>happened</i> yet. I need to get a move on, and I think this is realistically the only time I have left for that.</p>
+
+        <p>I feel like I've let myself down a little. I guess that's ok, though, because I'm aware of that feeling and I'm actually choosing to act on it. It's the kind of feeling that I can use to motivate myself, drive myself to actually get this thing done now—the pressure is on, but I'm glad that it's there.</p>
+
+        <p>Here's the real problem, though. I don't know what the hell I'm actually meant to do. No clue where to start, no plan.</p>
+
+        <p>At least not yet.</p>
+
+        <p>I said this is gonna be a bit of a different post; here's what I mean by that. You've seen me do polished writeups before, and you've seen me dump streams of consciousness (I love calling my CTF notes that lol) from events that have already happened—picoCTF challenges that I've completed all the way through. This one is gonna be like a stream of consciousness, but I have no idea where this is going to go. This blog is called The Offsec <i>Journal</i>; this is where the "journal" part of it comes in. I'm not gonna stop writing here today until I've figured out what I need to do for this capstone and how I'm gonna approach it.</p>
+
+        <p>Essentially, you guys get to watch me think in real time, <i>and</i> you finally get more information about this long-awaited capstone. If I lay everything out plainly, it'll stop being complicated—I just <i>know</i> that this simply CANNOT be as hard as it feels in my head right now.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- The Task At Hand -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        <p>Alright, first thing's first—what do I actually need to do here? A security audit, yes, but what does that entail?</p>
+
+        <p>What I wrote back in December was this: "Once I've gotten a good handle on [the security domain I want to specialize in], I'll work on essentially a 'capstone' project—something that proves I can do real work. The plan is to find 3-4 open-source projects that I can audit and professionally document. It would be something that I'm proud to show people, something that demonstrates that I didn't just follow tutorials. Something that shows that I can apply what I'd have learned to create something valuable."</p>
+
+        <p>Ok, so, as I've already written about in my writeup for <a href="/posts/noted.html">noted</a>, the idea of 3-4 open-source projects by other people is out now. Instead I'll be auditing the chat app I built back in 7th grade, the one that essentially set off my entire career in computing. Ending it off on a beautifully tied-up full-circle moment.</p>
+
+        <p>As for the domain that I want to specialize in, I already know that it's gonna be web security—web apps the one thing I always, almost instinctively, gravitate to when it comes to computers. It's a huge domain but I absolutely love it—it's what I've been drawn to from the beginning. When I was writing that very first post back in December, I already had a hunch that this is what it would come down to. I guess this is a full-circle moment lol</p>
+
+        <p>Ok, so the 'audit and professionally document' part—that's the big thing we gotta figure out today. What are my deliverables gonna be here?</p>
+
+        <p>Just looked on Google, looks like it's gonna be one comprehensive report, which seems to have a pretty consistent formula: an Executive Summary, a Technical Vulnerability Report, a Tactical Remediation Plan, and an Attacker Narrative. So:</p>
+        <ul>
+            <li><strong>Executive Summary</strong>: where we outline the scope (ooh we need one of those lol, we'll do that next), explain what's actually wrong with the app in simple, non-technical terms, detail business risks, essentially answer the question "So... how bad is it?"</li>
+            <li><strong>Vuln Report</strong>: this is the meat of the report where we log the actual vulns we find, in order of severity, and give a proof of concept (PoC). From what I can tell, where in a CTF you have a flag to bring back, essentially the PoC is your flag in a pentest; it's the actual payload that broke the app, and the steps you took to get there. Ok, sounds good—you'll be seeing more 'streams of consciousness' from this audit too lol. I'll post em here separately since I'll have to strip out all the personality for the report.</li>
+            <li><strong>Tactical Remediation Plan</strong>: this is where we tell the IT team how to fix it. Ok, so in my notes that I'll take while doing the pentest, I should be looking out for how to fix my BS as well. Noted. I take it that part shouldn't be too hard—I built the app in 7th grade, for god's sake lol. "Hey, make sure passwords are being encrypted, like... At all."</li>
+            <li><strong>Attacker Narrative</strong>: so this is where we tell the full story from start to finish. Essentially all of my notes for every part of the test kinda strung together to show like 'this is what I did first, and this is where I went next, these are the vulns that I chained together.' I doubt we're really gonna have a whole lot of <i>chaining</i> on this one; I think I'll be documenting more entry points and like how they <i>could</i> be abused, but not the whole privilege escalation chain after you walk through those open doors, exactly how I got the root password from there 'n stuff. If I take every single vuln to the max like that then we're gonna be here <i>forever</i>.</li>
+        </ul>
+
+        <p>Cool.</p>
+
+        <p>So we gotta build a report. My instinct right now is that I have a living document going where I build up my notes for every part of the app I test systematically, and we can pull information out of there for the actual reporting part of it. It's just like picoCTF: I'll be logging everything that happens so that when we find a flag (I guess a vuln in this case), we can go back in the logs and see exactly what happened and where, so that I can tell people about it.</p>
+
+        <p>I'm a lot less worried about the report now—it actually seems really straightforward. Maybe I'll eat my words later, but that's how it's looking right now. What I <i>am</i> worried about now is how I'm actually gonna test this app. Let's figure that out.</p>
+      </section><br>
+      
+      <!-- Scoping -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Scoping. That part's pretty important. I'm looking back through my codebase now and it looks like there's 5 main components to this app as a whole:</p>
+        <ul>
+            <li>The main web app, the chat app itself, which in itself has a lot of parts lol</li>
+            <li>The websocket server, which I had set up as a separate NodeJS project entirely</li>
+            <li>The voice chat server, which is a separate app entirely—an app that I "borrowed" from someone else on GitHub and skinned so that it would match the aesthetic</li>
+            <li>The database, which is just postgres running on the Ubuntu server itself</li>
+            <li>The router, which is a NodeJS-based reverse proxy that can map requests to the root domain to the main chat app, requests to the <code>ws</code> subdomain to the websocket server, requests to the <code>vc</code> subdomain to voice chat.</li>
+        </ul>
+
+        <p>The vc app is absolutely gigantic in itself, and it's built in react, like <i>properly</i> lol. If you step back and look at it, the actual chat app and the vc app are two entirely different entities—pentesting the vc app would be a whole other project in itself. I think I'm gonna leave that out of my scope for the capstone. First is the fact that I didn't build it, and so I need permission from the creator. Second is the fact that I genuinely do not have the time to do all that. I've got a whole chat app to audit here too.</p>
+
+        <p>It's looking like vulns with the database are more likely to be vulns in that specific postgres version and stuff, rather than inherent problems in my database schema. I'm not gonna cover OS-level vulns here - I don't have the experience to do that, nor do I have the time to gain it. The actual SQL code I wrote is kinda just <i>bad</i> lol, in the way that this was genuinely like the very first SQL code I ever wrote kinda bad. That was bound to happen. If you look close, the password fields are just <code>varchar(50)</code>'s, which could be a tell of the fact that passwords are being stored in plaintext. But at the same time, you technically <i>could</i> fit a base64'd sha256 hash in that space—it's not inherently a shortcoming.</p>
+
+        <p>The problem seems to be more with the actual web app that's handling this whole password thing rather than the schema itself.</p>
+
+        <p>Allowing for a normal hash in there wouldn't be a bad idea either lol. But oh well.</p>
+
+        <p>The websocket and router apps are really simple, literally just single-file NodeJS apps. I can test these. In fact I can already think of a couple problems that stem from that websocket app. No rate limiting, no max payload size, no authentication to connect to the websocket server, no cross-origin checks, the fact that what people send is being inserted into the databases directly. Oh also my database creds are hardcoded in there. Crap. Yeah nah this is making it into the scope for sure lol.</p>
+
+        <p>Looking at the router app, I really don't see much—this is just a really typical implementation of redbird. Not inherently insecure. I've been thinking and I'm gonna make the call that this can stay as it is.</p>
+
+        <p>The one thing that's left: the chat app itself. This is the real monster, the one main priority. This is where most of the BS is actually hiding. SQL errors being forwarded straight to the DOM, storing passwords in plain text, some weird iframes, every goddamn injection you could think of. Hardcoded credentials. Probably some file polyglot stuff you could pull with the image system. Not to mention that my API endpoints are completely open to the public and do absolutely ZERO validation whatsoever. Most of that stuff is being rendered straight into the DOM so that may be a <i>teeny tiny</i> problem. This is really just looking like a bunch of the picoCTF challenges I've done in the past but like shoved all together into one big playground. This is gonna get messy.</p>
+
+        <p>Ok, so our scope is final then: The main PHP chat app, and the websocket server, and that's it.</p>
+      </section><br>
+
+      <!-- Something of a Plan -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Now—how am I actually gonna test all of this?</p>
+
+        <p>The websocket server is the most straightforward part to test—as I said earlier, it's one JS file. That's like an afternoon at max. The actual chat app looks like this:</p>
+
+        <blockquote><div id="tree">
+        <details>
+        <summary><strong>(Click to Reveal)</strong></summary>
+<pre><code>+---web
+|   index.php
+|   landing.php
+|   potato.php /* a different chatroom within the chat app
+|                 which is for some reason just open:
+|                 you don't even have to log in. damn */
+|
+|
+|   // Oh look, a bunch of admin utilities right at web root.
+|   blacklist.php
+|   clear.php
+|   users.php
+|   log.txt
+|
+|   // Notice how these files also exist under `/api`
+|   conn.php
+|   image.php
+|   imageget.php
+|   push.php
+|
++---api
+|       conn.php
+|       image.php
+|       imageget.php
+|       login.php
+|       messageget.php
+|       mpush.php
+|
++---mobile  /* I used apache cordova to make the mobile apps,
+|   |          so for some reason I rewrote the entire chatroom in
+|   |          raw html/css/js with no PHP—but only for the
+|   |          mobile version. Prob worth looking at too. */
+|   |
+|   |   index.html
+|   |   landing.html
+|   |
+|   \---rooms
+|       +---code // this is one of the 4 chatrooms
+|       |       landing.html
+|       |       messages.html
+|       |       newmessage.html
+|       |       notif.mp3
+|       |       room.html
+|       |
+|       +---general /* this is another chatroom; it has
+|       |              the same files as the one above
+|       |              except with different colored CSS */
+|       |
+|       +---offtopic // room #3
+|       |
+|       \---work // room #4
+|
+\---rooms
+    +---code // room #1
+    |       exitmessage.php
+    |       landing.php
+    |       log.txt
+    |       messages.php
+    |       newmessage.php
+    |       notif.mp3
+    |       room.php
+    |       sidebar.php
+    |       socket.js
+    |       vc.php
+    |
+    +---general // room #2
+    |
+    +---offtopic // room #3
+    |
+    \---work // room #4</code></pre>
+        </details></div></blockquote><br>
+
+        <p>There's a LOT going on there. When I post this on the blog I'm probably gonna have to make that collapsible or something lol. But anyway—that's the whole attack surface. I'm definitely gonna have to work through this piece by piece. I think I might be able to go directory by directory. It helps that the diffs from room to room are largely just visual, and that they're just copies of the same files over and over—that part's gonna be a lot less painful to work through now. I can probably start at the web root, see what I can already break from there, and then work my way into the rooms. There's already so much happening, just at the root. Like that users.php file? It literally just dumps a list of <code>username, password</code> pairs from the database. It's password protected. The password is hardcoded though. Why the hell is that there...</p>
+
+        <p>Alright, well now that I have a map of the attack surface, I'll create a running markdown document, drop it in there - as I work from file to file, I guess I'll mark them off on the tree.</p>
+
+        <p>I really don't see what else I can plan right now. I think the move from here is just to get started, treat each directory like its own box. If I do a box a day then I can probably have this done in a couple weeks and get to reporting.</p>
+      </section><br>
+
+      <!-- Heh. Easy, Right? -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Right...?</p>
+
+        <p>Man, this is gonna be <i>something</i>.</p>
+
+        <p>Well, regardless, I think I have a plan now. I think the only thing left to do is get started.</p>
+
+        <p>Stay tuned. Wish me luck!</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "The Capstone, For Real This Time";
+    const DATE = "2026-07-20";
+    const TAGS = ["Capstone", "Learning Journey"];
+    const SECTIONS = ["The Task At Hand", "Scoping", "Something of a Plan", "Heh. Easy, Right?"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
