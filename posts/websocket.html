@@ -189,12 +189,11 @@ code.on('close', function close() {
         <p><strong>The Database Connection</strong> - That's this bit:</p>
 
         <pre><code>const client = new Pool({
-            connectionString: "postgres://(redacted):(redacted)@db.parity.nimbusdigital.org/(redacted)"
-        })
-        if (client) {
-            console.log("PG Client Connected: ", client);
-        }
-        </code></pre>
+    connectionString: "postgres://(redacted):(redacted)@db.parity.nimbusdigital.org/(redacted)"
+})
+if (client) {
+    console.log("PG Client Connected: ", client);
+}</code></pre>
 
         <p>Gotta love the hardcoded database creds.</p>
 
@@ -228,11 +227,10 @@ code.on('close', function close() {
         <pre><code>require("https").createServer({ key: ..., cert: ... })</code></pre>
         <p>In the upgrade event callback that we have right after that though, I can't help but notice something. My upgrade handling 'scheme,' if you will, is as such:</p>
         <pre><code>if (pathname === '/xyz') { // where we're in "xyz" chatroom
-            xyz.handleUpgrade(request, socket, head, (ws)=>{
-                xyz.emit('connection', ws, request);
-            });
-        } else if (pathname === '/abc') { // ... same thing
-        </code></pre>
+    xyz.handleUpgrade(request, socket, head, (ws)=>{
+        xyz.emit('connection', ws, request);
+    });
+} else if (pathname === '/abc') { // ... same thing</code></pre>
         <p>It's checking the pathname and passing it on to the correct WebSocket server—that part's fine. But there's literally <i>zero</i> authentication. It's accepting clients unconditionally, not even checking origin or anything. I bet I could go to <a href="https://example.com/">https://example.com/</a>, open a JS console, try to connect from there and it'll work just fine.</p>
 
         <p>Let's try.</p>
