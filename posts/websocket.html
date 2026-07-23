@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Hey again!</p>
+
+        <p>Looking through that WebSocket server app today. This should be interesting.</p>
+
+        <p>If all goes according to plan (<i>AHEM</i>), then I think we can get through this whole thing in 30-45 minutes. The file is 175 lines long, but most of it is just the same things duplicated for different chatrooms with slightly different hardcoded values.</p>
+
+        <p>Here's how I think this might be able to work: I stare really hard at the file, piece by piece, and pick out everything I see that could <i>potentially</i> be wrong with it. Then, I go and test it for my PoC, and report back here. Again—it's simple enough that I think that should just <i>work</i> for this one.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- Anatomy -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>I'm gonna drop this file here for you guys so you can stare at what I'm staring at. Then we'll talk about how I'm splitting this thing up.</p>
+
+        <blockquote><div id="tree">
+        <details>
+        <summary><strong>(Click to Reveal)</strong></summary>
+        <pre><code>const WebSocketServer = require('ws');
+const { Pool } = require('pg');
+const client = new Pool({
+    connectionString: "postgres://(redacted):(redacted)@db.parity.nimbusdigital.org/(redacted)"
+})
+if (client) {
+    console.log("PG Client Connected: ", client);
+}
+
+require("https").createServer({
+    key: require("fs").readFileSync("../ssl/privkey.pem"),
+    cert: require("fs").readFileSync("../ssl/fullchain.pem")
+}).on("upgrade", (request, socket, head)=> {
+    const { pathname } = require("url").parse(request.url);
+    if (pathname === '/potato') {
+        potato.handleUpgrade(request, socket, head, (ws)=>{
+            potato.emit('connection', ws, request);
+        });
+    } else if (pathname === '/code') {
+        code.handleUpgrade(request, socket, head, (ws)=>{
+            code.emit('connection', ws, request);
+        });
+    } else if (pathname === '/general') {
+        general.handleUpgrade(request, socket, head, (ws)=>{
+            general.emit('connection', ws, request);
+        });
+    } else if (pathname === '/offtopic') {
+        offtopic.handleUpgrade(request, socket, head, (ws)=>{
+            offtopic.emit('connection', ws, request);
+        });
+    } else if (pathname === '/work') {
+        work.handleUpgrade(request, socket, head, (ws)=>{
+            work.emit('connection', ws, request);
+        });
+    }
+}).listen(process.env.PORT || 8080);
+
+function heartbeat() {
+  this.isAlive = true;
+}
+
+const potato = new WebSocketServer.Server({ noServer: true })
+potato.on("connection", ws => {
+    console.log(new Date()+": new client connected");
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
+    ws.on("message", data => {
+        potato.clients.forEach(function each(client) {client.send(Buffer.from(data).toString());console.log(new Date()+": Sent: " + data);});
+    });
+    ws.on("close", () => {
+        console.log(new Date()+": the client has disconnected");
+    });
+    ws.onerror = function (e) {
+        console.log(new Date()+": Some Error occurred: " + e.code)
+    }
+});
+console.log(new Date()+": The WebSocket server `potato` is running");
+
+const code = new WebSocketServer.Server({ noServer: true })
+code.on("connection", ws => {
+    console.log(new Date()+": new client connected");
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
+    ws.on("message", data => {
+        client.query("INSERT INTO code(msg) VALUES($1)", [Buffer.from(data).toString()], (err, res) => { if (err) { console.log(err.stack); } else { console.log("Queried successfully!"); code.clients.forEach(function each(client) {client.send(Buffer.from(data).toString());console.log(new Date()+": Sent: " + data);}); } });
+        
+    });
+    ws.on("close", () => {
+        console.log(new Date()+": the client has disconnected");
+    });
+    ws.onerror = function (e) {
+        console.log(new Date()+": Some Error occurred: " + e.code)
+    }
+});
+console.log(new Date()+": The WebSocket server `code` is running");
+
+const general = new WebSocketServer.Server({ noServer: true })
+general.on("connection", ws => {
+    // just like the one for `code` above but different DB table.
+});
+console.log(new Date()+": The WebSocket server `general` is running");
+
+const offtopic = new WebSocketServer.Server({ noServer: true })
+offtopic.on("connection", ws => {
+    // same thing
+});
+console.log(new Date()+": The WebSocket server `offtopic` is running");
+
+const work = new WebSocketServer.Server({ noServer: true })
+work.on("connection", ws => {
+    // same thing
+});
+console.log(new Date()+": The WebSocket server `work` is running");
+
+const interval = setInterval(function ping() {
+  potato.clients.forEach(function each(ws) {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping();
+  });
+  code.clients.forEach(function each(ws) {
+    // same thing as the above code block but for `code`
+  });
+  general.clients.forEach(function each(ws) { /* same thing */ });
+  offtopic.clients.forEach(function each(ws) { /* same thing */ });
+  work.clients.forEach(function each(ws) { /* same thing */ });
+}, 30000);
+
+potato.on('close', function close() {
+  clearInterval(interval);
+});
+code.on('close', function close() {
+  clearInterval(interval);
+});
+// ... same thing for the others ...</code></pre>
+        </details></div></blockquote><br>
+
+        <p>Ok, now for the "piece by piece" part.</p><br>
+
+
+        <p><strong>The Database Connection</strong> - That's this bit:</p>
+
+        <pre><code>const client = new Pool({
+            connectionString: "postgres://(redacted):(redacted)@db.parity.nimbusdigital.org/(redacted)"
+        })
+        if (client) {
+            console.log("PG Client Connected: ", client);
+        }
+        </code></pre>
+
+        <p>Gotta love the hardcoded database creds.</p>
+
+        <p><strong>The HTTP Server</strong>, from <code>require("https").createServer({</code> down to <code>}).listen(process.env.PORT || 8080);</code>, seems like a good next piece to look at. It's what I have handling the actual upgrades: each individual chatroom has its own WebSocket server and a pathname that corresponds with it. That was the way I figured out how to have multiple different WebSocket servers running without each one needing to be its own separate node.js app—and yes, that <i>is</i> what I was doing before I figured this out.</p>
+
+        <p><strong>The Server.on("connection") Callbacks</strong> - these are what's doing the actual <i>chat app</i> work here, handling message broadcasts and putting stuff into the database. There's some mild spaghetti going on in the middle there—should be fun to poke through.</p>
+
+        <p><strong>The Rest of the File</strong> - WebSocket client keepalives, and handling server 'close' events. I don't think I'll find much here. Maybe I'll surprise myself, who knows.</p>
+
+        <p>Ok, so we've got 4 main parts to poke around in. Onward.</p>
+      </section><br>
+      
+      <!-- The DB Connection -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>As I said earlier—gotta love the hardcoded credentials. Not a dotenv in sight.</p>
+
+        <p>But not only are there hardcoded creds here—they're the <i>exact same</i> hardcoded creds that I have hardcoded in the other parts of the app. They're literally being reused across <i>more than one</i> codebase right now lol, that's kinda crazy. I think that's worth putting in the report.</p>
+            
+        <p>I think this piece is about as good as audited already—I mean the evidence is <i>right there</i>.</p>
+
+        <blockquote>Number of findings in this file: 1</blockquote>
+      </section><br>
+
+      <!-- The HTTP Server -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Ok. Looking at that first bit, so far so good:</p>
+        <pre><code>require("https").createServer({ key: ..., cert: ... })</code></pre>
+        <p>In the upgrade event callback that we have right after that though, I can't help but notice something. My upgrade handling 'scheme,' if you will, is as such:</p>
+        <pre><code>if (pathname === '/xyz') { // where we're in "xyz" chatroom
+            xyz.handleUpgrade(request, socket, head, (ws)=>{
+                xyz.emit('connection', ws, request);
+            });
+        } else if (pathname === '/abc') { // ... same thing
+        </code></pre>
+        <p>It's checking the pathname and passing it on to the correct WebSocket server—that part's fine. But there's literally <i>zero</i> authentication. It's accepting clients unconditionally, not even checking origin or anything. I bet I could go to <a href="https://example.com/">https://example.com/</a>, open a JS console, try to connect from there and it'll work just fine.</p>
+
+        <p>Let's try.</p>
+
+        <p>Aha! Check it out!</p>
+
+        <p>First what it looks like when I send a message myself, from the actual chat app:</p>
+        <img src="/assets/img/capstone/ws/chat-pre.png"><br>
+
+        <p>My work in the JS console, from origin example.com:</p>
+        <img src="/assets/img/capstone/ws/example-com.png"><br>
+
+        <p>As we can see, it went through no problem—check out the chat:</p>
+        <img src="/assets/img/capstone/ws/chat-post.png"><br>
+
+        <blockquote>Number of findings in this file: 2</blockquote>
+
+        <p>But also—not only can we connect to WebSocket from any random origin, but it's even worse because those WebSocket servers are directly linked up to the database:</p>
+        <img src="/assets/img/capstone/ws/db_1.png"><br>
+
+        <p>Nice.</p>
+
+        <blockquote>Number of findings in this file: 3</blockquote>
+      </section><br>
+
+      <!-- WebSocket Server Callbacks -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Alrighty, this is a lot of lines. Looking at it now, most of it seems fine—it's that one absolutely giant oneliner in the middle that's really suspicious right now:</p>
+        <pre><code>client.query("INSERT INTO general(msg) VALUES($1)", [Buffer.from(data).toString()], (err, res) => { if (err) { console.log(err.stack); } else { console.log("Queried successfully!"); general.clients.forEach(function each(client) {client.send(Buffer.from(data).toString());console.log(new Date()+": Sent: " + data);}); } });</code></pre><br>
+
+        <p>Here, lemme make this actually <i>readable</i> real quick:</p>
+        <pre><code>client.query("INSERT INTO general(msg) VALUES($1)",
+    [Buffer.from(data).toString()], // where data is the client payload
+    (err, res) => {
+        if (err) {
+            console.log(err.stack);
+        } else {
+            console.log("Queried successfully!");
+            general.clients.forEach(function each(client) {
+                client.send( Buffer.from(data).toString() );
+                console.log(new Date()+": Sent: " + data);
+            });
+        }
+    }
+);</code></pre><br>
+
+        <p>Ok, so here's what I'm seeing right now:</p>
+        <ul>
+            <li>I'M ACTUALLY PREPARING MY QUERIES HERE YAY! No SQLi on this layer.</li>
+            <li>Beside from that, there's no input validation of any sort. The input could be like 250MB long and it'll still try to put it into the database.</li>
+            <li>Also on the topic of no input validation: while queries are being prepared, the raw user input that was sent to the server is still being broadcasted as-is to the other users, so maybe possible XSS there depending on how the app displays it. Not confirmed yet but that sounds like something to try.</li>
+            <li>There's not a <i>lick</i> of rate-limiting here. Very easy DoS. The lack of user and/or origin authentication helps with that too.</li>
+            <ul>
+                <li>An attacker <i>could</i> just spam messages really quickly. Or, they could amplify it by opening like 1000 clients and then spamming with all of them at once. There's nothing stopping that.</li>
+                <li>If they spam really large messages, like a million emojis at a time or something stupid like that, they all go straight to the database and can eat RAM and storage.</li>
+                <li>For each incoming message we're calling <code>Buffer.from</code>, which has potential to be taxing on the CPU. Right after that, we're running database queries, which can also be really taxing on the CPU. And then, in the callback, we're running <code>Buffer.from</code> <i>again</i>.</li>
+                <li>With hundreds, maybe even thousands or hundreds of thousands of attacker clients open, all spamming at once, an attacker could probably eat all of the server's bandwidth and render it unusable.</li>
+            </ul>
+        </ul>
+
+        <p>The potato server has one advantage, which is that it's not connected to the database in any way—but everything else still applies to that one too lol. Amazing.</p>
+
+        <p>Alrighty, let's test this stuff...</p>
+
+        <p>It looks like the potential XSS I found earlier actually <i>isn't</i> a problem in the main rooms:</p>
+        <img src="/assets/img/capstone/ws/noxss.png"><br>
+
+        <p>In the potato room is a different story, though, as we found out in the last post. Still a valid finding.</p>
+
+        <blockquote>Number of findings in this file: 4</blockquote>
+
+        <p>Now: I've never done a DoS before. Let's give it a shot.</p>
+
+        <pre><code>function spam(ws) {
+    let sent = 0;
+    let loop = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN || sent >= 10000) {
+            clearInterval(loop); return;
+        }
+
+        ws.send("🥰".repeat(1000));
+        sent++;
+    }, 1);
+}
+
+let sockets = []
+for (let i = 0; i < 250; i++) {
+    let sock = new WebSocket("wss://ws.parity.nimbusdigital.org/general");
+
+    sock.onopen = () => spam(sock);
+    sockets.push(sock);
+}</code></pre><br>
+
+        <p>And, of course, I'll be running this from example.com lol, because why not add a little more BS to the fire.</p>
+
+        <p>Alrighty, that took a little bit, but we got it! I screen-recorded it:</p>
+
+        <video controls src="/assets/video/capstone/ws/DoS.mp4"></video><br>
+
+        <p>First, it ran from example.com no problem—no auth required. Second, we can see just how unusable the app became for anyone who was inside the chatroom. We can also watch RAM usage climbing slowly but surely in HTOP on the right—this is only with one attacker machine with only 250 clients. Imagine what'd happen if we had like 10, 20, or 200 of those running at the same time.</p>
+
+        <p>Oh hey, and look! It just OOM'd in front of my eyes. Beautiful. Congratulations, we've just caused an outage.</p>
+        <img src="/assets/img/capstone/ws/ws-oom-fullscreen.png"><br>
+
+        <blockquote>Number of findings in this file: 5</blockquote>
+      </section><br>
+
+      <!-- The Rest of the File -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>This part seems pretty tame. Essentially what we've got going on is:</p>
+        <pre><code>const interval = setInterval(function ping() {
+    xyz.clients.forEach(function each(ws) { // where we're in "xyz" chatroom
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping();
+  });
+  // ... one of those for each room ...
+}, 30000);
+
+xyz.on('close', function close() {
+  clearInterval(interval);
+});
+// ... one of those for each room ...</code></pre><br>
+
+        <p>I'm not seeing any inherent security problems here in that first part, with the pingpong logic. Seems pretty standard—in fact I'm pretty sure I got that off of the example code they have in the <code>ws</code> package docs.</p>
+
+        <p>There is one thing bugging me here, though. While not a <i>security</i> problem, per se, it is still a bug: when any one of the 5 WebSocket servers close, the pingpong interval gets cleared for <i>all</i> of them, regardless of whether they're still running or not.</p>
+
+        <blockquote>Number of findings in this file: 6</blockquote>
+
+        <p>Apart from that, we seem fine.</p>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Alright, I think that's a wrap for this one. Here's what we found:</p>
+
+        <ul>
+            <li>Hardcoded database credentials—which are, in fact, the same credentials that are used in the main PHP codebase as well. So not only hardcoded creds, but credential reuse across literally <i>multiple entire codebases</i>.</li>
+            <li>No auth whatsoever: anyone can connect to the WebSocket servers, from any origin at any time, as long as they know one of the pathnames (which ain't hard to figure out).</li>
+            <li>The WebSocket servers are connected to the database directly with zero validation, so anyone with access to the WebSocket server (i.e. literally anyone lol) can make records in our database of any size and shape. Tens, hundreds of megabytes, maybe even gigabytes at a time, if <code>ws</code>'s defaults allow it.</li>
+            <li>User input is being broadcasted verbatim, once again with zero validation, so XSS in the potato room is very very easy to pull off.</li>
+            <li>The WebSocket server is very DoS-able due to a complete and utter lack of rate limiting, <i>everywhere</i>.</li>
+            <li>If one WebSocket server goes down, the keepalive loop for <i>every</i> WebSocket server goes down—not a huge security risk (at least as far as I know, maybe someone could figure something out with that), but still a bug.</li>
+        </ul>
+
+        <p>That did NOT take 30-45 minutes, by the way. It's been a few hours. That DoS was fun though, lol. Worth it.</p>
+
+        <p>Tomorrow I'm gonna try to break my auth system as fully as I can—let's see how real the SQLi on this thing <i>really</i> is.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "A Deep Dive of the WebSocket Server";
+    const DATE = "2026-07-23";
+    const TAGS = ["Capstone", "Learning Journey", "WebSocket", "DoS", "Database"];
+    const SECTIONS = ["Anatomy", "The DB Connection", "The HTTP Server", "WebSocket Server Callbacks", "The Rest of the File", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
