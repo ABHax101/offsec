@@ -1,5 +1,12 @@
 [
   {
+    "title": "The Ball Is Officially Rolling!",
+    "file": "posts/capstone_getting_started.html",
+    "date": "2026-07-22",
+    "excerpt": "The painfully unglamorous side of this whole thing—the stuff they'll never see in the report.",
+    "tags": ["Capstone", "Learning Journey", "XSS", "Virtualization", "DNS"]
+  },
+  {
     "title": "The Capstone, For Real This Time",
     "file": "posts/capstone_planning.html",
     "date": "2026-07-20",

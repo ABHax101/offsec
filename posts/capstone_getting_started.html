@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Hi!</p>
+
+        <p>This is gonna be another journal-style stream of consciousness post.</p>
+
+        <p>What I'm doing in this one is getting the app running locally in a little Ubuntu Server VM so that I can start testing it just like any other pico box.</p>
+
+        <p>I think my old domain name (nimbusdigital.org) is hardcoded into the app in a bunch of different places, so I'll have to figure out a way to make that resolve to the VM's IP—I don't own that domain anymore so that should be interesting.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- Setting Up a VM -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>I still have VMWare Workstation Pro installed from when I took NOS-110 (Operating System Concepts) at my local community college—that'll be useful. First thing's first, though, what the hell Ubuntu version was this thing running?</p>
+
+        <p>It's looking like the bulk of the commits for specifically this repo are from June 2023 (to clarify: that's not when I was in 7th grade; 2023 was when I started self-hosting the app on an Oracle Cloud Ubuntu server. Before then I was using sketchy free PHP webhosts lol). 2023 means the current LTS release was Ubuntu 22.04, but I also kinda vaguely remember wanting to use 20.04 just because it's what I'd always worked with.</p>
+
+        <p>Don't really know. It shouldn't matter too much though, I don't think. We'll go 22.04.</p>
+
+        <p>Installing the OS now.</p>
+
+        <p>While that's going, let's figure out networking.</p>
+
+        <p>I think it's probably for the best that we air-gap the actual chat app VM. In VMWare, it looks like we can use a <code>Host-only</code> network for that—basically like an isolated network that VMWare spins up; a virtual switch that only the host, and the machines using <code>Host-only</code> are connected to.</p>
+
+        <p>As for how I'm gonna map nimbusdigital.org to that, I can probably just drop it in my <code>/etc/hosts</code> file, point it at the VM's IP. My plan earlier was to use WSL on my PC as the attacker machine, but I'm thinking now that I could probably just create another VM, maybe a Kali box. I've never actually used Kali for its intended purpose lol, only ever when I was just kinda messing around with it. This'll be a first for me. Nice.</p>
+
+        <p>For that attacker machine, I guess I'll have 2 network adapters then—one <code>Host-only</code> and one NAT or Bridged or something so that it can access the internet—for the attacker machine, that seems kinda important lol.</p>
+
+        <p>Oh hey, look, it's done!</p>
+      </section><br>
+      
+      <!-- Setting Up the App -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Just cloned my git repo. Thankfully when I revamped this chat app (to allow it to be hosted on Oracle Cloud), I built a big ol' <code>configure.sh</code> that would install all necessary packages and stuff automatically. If that worked, then, in theory, postgres should be running now, nodeJS 18 should be installed, and PHP should be installed.</p>
+
+        <p>The only thing is that my script for <code>certbot</code> to request an SSL cert from letsencrypt won't work because I don't own that domain anymore. I'm just gonna make a self-signed cert for that, should be ok. I'll add it to my trusted certs in Kali.</p>
+
+        <p>Ok, app deps have been installed and self-signed certs have been requested. I added them to Kali's trusted certs as well. The only thing left now is to switch the app VM's network card to <code>Host-only</code> mode and then see if it actually starts lol. I remember back in 2023, when I tried it on a fresh Oracle server, it gave me a lot of weird trouble and I couldn't figure out why it wasn't working. I don't remember what went wrong lol, just praying it just works this time.</p>
+
+        <p>Both VMs are now on <code>VMNet1</code>. Lemme get the app VM's IP first thing's first...</p>
+
+        <p>Ok, cool, added it to Kali's <code>/etc/hosts</code> and it's resolving properly. Let's see if the app runs now...</p>
+
+        <p>No errors in the tmux sessions it spun up so far...</p>
+
+        <p>Aaaand of course I can't visit the webpage from Kali. Not surprised ngl lol. I have no idea what's going on.</p>
+      </section><br>
+
+      <!-- 15 Minutes Later... -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Man now I just feel stupid. I had the burpsuite proxy enabled in chromium, and burpsuite itself wasn't running. Turned it off and it resolves fine. Of course it does. Damn lol.</p>
+
+        <p>Ok, well it works!</p>
+
+        <p>Oh. Ok, the <i>web server</i> works. It can't access the database. I think this was what went wrong on the Oracle server a few years back too lol. Here we go.</p>
+
+        <strong>Wait, what the hell?</strong>
+
+        <p>If I use the <code>psql</code> command straight from the kali terminal to interact with the database, it works <i>perfectly</i> fine. The web app, though, can't access it for whatever reason.</p>
+
+        <p>I just added the db subdomain to my <code>/etc/hosts</code> on both the Kali VM <i>and</i> the app VM. It's not throwing any sql connection failure errors anymore in the app, but it's not looking like my <code>POST</code>s are going through. I see them in the actual PHP dev server logs (yes, I'm using the PHP development server and not apache2 to serve this app, damn lol) but the database is blank as ever.</p>
+
+        <p>Maybe it's the router being funny? Lemme try adding a rule for the db subdomain.</p>
+
+        <p>No wait that makes no sense, 5432 is already exposed...</p>
+
+        <p>Ok, idk what's happening. I'm gonna go eat dinner.</p>
+      </section><br>
+
+      <!-- Debugging (yikes) -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <h4>The Signup/Login System</h4>
+
+        <p>WOW This Code Sucks. Already. I figured out what the problem was—it wasn't that the database was unreachable or anything like that. The database was <i>perfectly</i> reachable, in fact. The problem was that the <code>users</code> table in the database was blank. That's literally the whole thing lol.</p>
+
+        <p>My <code>index.php</code> is running a <code>SELECT * FROM users</code> query, and then a <code>foreach</code> loop on the results, comparing the <code>uname</code> field of each result to the user's chosen username. If they match, an error is thrown; if not, the username and password are inserted into the database (plaintext btw 😭🫶).</p>
+
+        <p>We're gonna ignore the two obvious problems there—that passwords aren't being hashed, and that the <code>foreach</code> loop only needs one non-match in order to try and insert the new user's creds. The problem: because the database was blank, the returned results from the sql query were also just... blank. The foreach loop had nothing to run on, so it wasn't running at all.</p>
+
+        <p>I guess that's a reasonable mistake to make—but yeah, in order to make my signup/login page work, I've just added an <code>admin/admin</code> record to the <code>users</code> table. Now that there's actually something for the query to return, the foreach loop is actually running, and new users can be created. Hell of a fix right there.</p>
+
+
+        <h4>Self-signed Certificates (Again)</h4>
+
+        <p>Next up: whenever you try to enter a chatroom, it tries to create a websocket connection first, and if it can't connect to websocket, it won't let you into the room. Fair enough, yeah?</p>
+
+        <p>Well it can't connect to websocket. I. Wonder. Why.</p>
+
+        <p>Hmmm.</p>
+
+        <p>OH! WAIT A SEC.</p>
+
+        <p>If I try to visit the WebSocket server's address in my browser, all I see is <code>DEPTH_ZERO_SELF_SIGNED_CERT</code>. Node.JS itself doesn't trust the cert.</p>
+
+        <p>Looks like I can run <code>export NODE_EXTRA_CA_CERTS="/path/to/my/fullchain.pem"</code> to force node to trust it. Let's try adding that before all my start commands...</p>
+
+        <p>Ok, that worked for <i>that</i> error. Now it's throwing <code>ERR_TLS_CERT_ALTNAME_INVALID</code>. Goddamn you. Looks like I can add <code>NODE_TLS_REJECT_UNAUTHORIZED=0</code>, let's try.</p>
+
+        <p>It's been like 15 minutes. This one's not working. Just did some more googling, apparently this exists: <code>npm config set strict-ssl false</code>. Trying that now before starting the apps.</p>
+
+        <p>Still nothing. Still don't know what's happening.</p>
+
+
+        <h4>Surprise! I did it again.</h4>
+
+        <p>Oh. I goofed lmao. Like kinda hard.</p>
+
+        <p>I requested the self-signed cert for <code>ws.parity.nimbusdigital.org</code>, <code>vc.parity.nimbusdigital.org</code>, and <code>db.parity.nimbusdigital.org</code> all under the SAN <code>.nimbusdigital.org</code>. That is absolutely not how that works. Grrrr.</p>
+
+        <p>Requesting a new cert for <code>parity.nimbusdigital.org</code> and <code>*.parity.nimbusdigital.org</code>. This better work.</p>
+
+        <p>Oh my lord. It's 11:11 PM. That's literally all that was wrong.</p>
+      </section><br>
+
+      <!-- Success! -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>We've finally got this damn app running lol, yay!</p>
+
+        <p>I already found my first XSS vuln too, while debugging that whole websocket issue. On the landing page I have a link to <code>potato.php</code>—basically a chatroom I created for people with "potato PCs" which, as far as middle-school me knew, <i>deeefinitely</i> couldn't handle something as absolutely <i>crazyyyy</i> sophisticated as the other chatrooms, lol.</p>
+
+        <p>The "potato" room is open to the whole wide internet with no login required, and it's literally just a Websocket broadcast server—a client connects, a javascript <code>prompt()</code> asks you for what you want your username to be, and then whatever you send to that websocket gets broadcasted to EVERY connected client (including the one that sent it lol) and then placed straight into the <code>innerHTML</code> of the div with ID <code>bruh</code>.</p>
+
+        <p>I wish I was kidding.</p>
+
+        <p>Nothing in that room gets put in the database—but that was like the cleanest XSS of my life. You have all sorts of different flavors since there's neither a message length limit nor any character escaping whatsoever.</p>
+
+        <p>The first payload I tried that worked was:</p>
+        <pre><code>&lt;img src=&quot;https://google.com/favicon.ico&quot; onload=&quot;alert(&#39;heyyyyy&#39;)&quot;&gt;</code></pre>
+        <p>Nice and simple. That image URL can be literally anything lol. I had it work with <code>/images/logo.png</code> as well—that one's just sitting on the homepage for you. The result - everyone who was connected to the room at the time (i.e. just me, but in a bunch of different tabs) got an alert.</p>
+
+        <p>Now what happens when I do, like, <i>bad</i> things with it?</p>
+
+        <p>Mmmmm.</p>
+
+        <p>I was planning on starting this audit by testing the WebSocket server itself, like the single-file app that I talked about in the last post—but yeah, mark that down as vuln #1, I guess.</p>
+
+        <p>It's about midnight now. Gonna dig into the WebSocket server tomorrow. See you then.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "The Ball Is Officially Rolling!";
+    const DATE = "2026-07-22";
+    const TAGS = ["Capstone", "Learning Journey", "XSS", "Virtualization", "DNS"];
+    const SECTIONS = ["Setting Up a VM", "Setting Up the App", "15 Minutes Later...", "Debugging (yikes)", "Success!"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
