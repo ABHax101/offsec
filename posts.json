@@ -1,5 +1,12 @@
 [
   {
+    "title": "User Auth & Session Management",
+    "file": "posts/auth_system.html",
+    "date": "2026-07-24",
+    "excerpt": "It turns out that logging in is *optional* in here. Oh boy.",
+    "tags": ["Capstone", "Learning Journey", "PHP", "SQLi", "XSS"]
+  },
+  {
     "title": "A Deep Dive of the WebSocket Server",
     "file": "posts/websocket.html",
     "date": "2026-07-23",

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Well, well. It's tomorrow!</p>
+
+        <p>Gonna be looking at the whole auth and session management system today—or at least as much as I can get through today. Should be interesting.</p>
+
+        <p>I can smell the SQLi from here.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- The Plan -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>It would of course help for me to know what the hell I'm doing first, before I just dive straight in. Probably a good idea to define a sort of scope for today:</p>
+
+        <ul>
+            <li>We'll definitely be looking at <code>index.php</code>, <code>/api/login.php</code>, <code>landing.php</code> and <code>blacklist.php</code> today. Depending on what I find, we may branch into one of the 4 <code>room.php</code>'s as well, just to see if something breaks, for example.</li>
+            <li>Today's testing is essentially gonna be split into two parts: <strong>SQLi</strong> and <strong>session management</strong>.</li>
+            <ul>
+                <li><code>index.php</code> and <code>login.php</code> are prob gonna be where the most SQL action is for today</li>
+                <li><code>landing.php</code> and <code>blacklist.php</code> <i>do</i> deal with user auth, but by the time those two files are required, it's assumed that the user is logged in by then, so they deal more with the session side of things—though probably not very well lol.</li>
+            </ul>
+        </ul>
+
+        <p>When one firsts visits the app, they're placed in <code>index.php</code> of course—I think that's as good a starting point as any.</p>
+      </section><br>
+      
+      <!-- index.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Alrighty, first thing's first: I just went in and deleted all my site data from yesterday's testing, and I've gone into the database and cleared it (except for the apparently-very-necessary admin/admin account lol). Now we're starting this from a clean slate.</p>
+
+        <p>Up at the top on this page I have a couple paragraphs where I'm just kinda explaining the origin story of the app/giving a little synopsis of what new users are getting into. First thing I notice: I have a couple links in that intro paragraph. One is a <code>mailto:</code> straight to my personal email lmao, prob not a great idea. The second one is <i>broken</i>. Fun.</p>
+
+        <blockquote>Number of Findings Today: 2</blockquote>
+
+        <p>Also, I love the honesty here:</p>
+        <blockquote>
+            "Parity is a small, mostly web-based chat service (apps available <a href='javascript:alert("This was the link that was broken lol")'>here</a>), built almost entirely on PHP by a middle schooler (me). I really have no idea how i got this far."<br>
+            So Parity started off as a little chat server for my school, as a way for us to collaborate. To get work done together. To ask questions when we cant ask the teacher. Over time, we stepped it up, made it more advanced, and here we are now. So my goal with this: think of it like a really big discord server, but open to the web... I'm not too sure about it either."<br>
+            You have a bunch of public rooms--text channels--and anyone who is logged in can view the content in those channels. It's kind of like a rocket.chat server as well, but I didn't want to just copy someone's creation, I wanted to make my own, hence Parity"
+        </blockquote>
+
+        <p>It's wild to me how similar my writing style still is to this lol.</p>
+
+        <p>But anyway, SQLi time.</p>
+
+        <p>The login form is right below the signup form. We already know someone's username in here (admin), so let's hit it with the ol' <code>admin' OR 1=1;--</code> trick...</p>
+
+        <p>Oh hey, look at that! It actually didn't work. I'm surprised, can't lie.</p>
+
+        <p>Ok, no big deal. Let's try logging in as <code>admin' / randompassword</code>, see what happens. I'm pretty sure SQL errors just get thrown straight back at you...</p>
+
+        <p>BAHAHA YEP THEY'RE EVEN NICELY FORMATTED FOR YOU, CHECK THAT OUT</p>
+
+        <img src="/assets/img/capstone/auth/index_sql_error.png"><br>
+
+        <p>Alrighty, so that tells us that our query is:</p>
+        <pre><code>LINE 1: ...ELECT * FROM users WHERE uname='admin'' and pass='randompass...</code></pre>
+
+        <p>I bet we can just hit it with username=<code>admin';--</code> then, and any random password, and we should be good. Aaaaand....</p>
+
+        <p>Oh, wow! The app's actually holding up somehow. Alright, lemme look back at my work from Web Gauntlet. I remember there was a SQLi bypass I did with booleans that was super weird but happened to work. Might work here too.</p>
+
+        <p>Found it, it was password=<code>a' is not 'b</code>. That would work about as well here as the other payloads did though—I see what's going on. Our input is being directly appended into the query, which we've confirmed through the reported SQL error, so we <i>can</i> prevent the second half of the query from executing. But when that happens, it just throws an invalid username/password message at us. That struck me as weird so I've just looked in my code, and here's why it's not working:</p>
+
+        <pre><code>$data = $query->fetch(PDO::FETCH_ASSOC);
+if ($data) {
+    if ($query->rowCount() > 0) {
+        if (($data['uname'] == $uname) && ($data['pass'] == $pass)) {
+            // that above line right there</code></pre>
+
+        <p>Instead of just checking whether a row of <code>uname=our_username</code> and <code>pass=our_password</code> exists at all, it's pulling down the entire row—pulling down both the username and password from the db—and comparing them to our inputs again after the fact. So even if we do bypass the password matching in the initial <code>SELECT</code> statement, we're still not gonna be able to get in because our inputs themselves aren't gonna match the data returned in the query. I think it's time to pull out Burpsuite—maybe something's being exposed that I can't see.</p>
+
+        <p>Or... not? Burp isn't launching for some reason. Goddamn you.</p>
+
+        <p>I just tried running it from cli instead of from the app launcher, just typed <code>burpsuite</code> in the terminal emu. It's throwing a <code>NullPointerException</code> somewhere. What the hell man.</p>
+
+        <p>Ok, Google says I roll back to Java 21 and try again. Screw it, why not.</p>
+
+        <p>And of course that didn't do anything. Splendid. I see Java 26 is available in apt, maybe that'll do something?</p>
+
+        <p>Nah. Ok, what happens when I reinstall burp altogether?</p>
+
+        <p>Absolutely nothing.</p>
+
+        <p>This tangent is getting unnecessarily long. Lemme cut ahead a little: basically, what eventually worked was deleting <code>~/.BurpSuite</code> and relaunching. Don't know what the hell happened but I'll take it man.</p>
+
+        <p>Back to what I was doing now—that entire thing was essentially useless. I see nothing new here in Burpsuite lol, same stuff.</p>
+
+        <p>Ok, well this <i>is</i> still very much SQL-injectable. Even if we can't bypass login here, I bet we could get up to other shenanigans—I'm seeing potential blind SQLi here. If I enter something completely random for my login credentials, like <code>asefasef/frsfrfsdrgf</code>, we don't get any error messages back. But if I make the query resolve, like with username=<code>admin'--</code>, then we get the Invalid Username/Password message. It's invalid because it doesn't match the final username/password check, but it <i>does</i> act like a "true" indicator.</p>
+
+        <p>Yes! Ok. If I have my username be <code>admin' and 1=1--</code>, we get the Invalid Username/Password error. If I set it to <code>admin' and 1=0--</code> then we don't get any error message at all. You could <i>definitely</i> write like a python script or something to do very bad things with that. Best part is there's not even any rate limiting so it'd probably be pretty quick too.</p>
+
+        <p>Cool, we got something!</p>
+
+        <blockquote>Number of Findings Today: 3</blockquote>
+
+        <p>Let's take a look at that signup form. First thing I noticed in the code: this is a really fun error message!</p>
+        <img src="/assets/img/capstone/auth/pass_exists.png">
+        <p>"To ensure security." Yeah. Ok bud. I love how it succeeded anyway though lol.</p>
+
+        <blockquote>Number of Findings Today: 4</blockquote>
+
+        <p>Wait a GODDAMN MINUTE. I just went back in the file to check out the database logic for the signup form... and look what I found at the very top of the file.</p>
+        <pre><code>&lt;?php
+            session_set_cookie_params([ /* ... */ ]);
+            session_start();
+            if (isset($_COOKIE["Username"])) {
+                if (!$_COOKIE["Username"] == null) {$_SESSION["Username"] = $_COOKIE["Username"]; header("Location: landing.php");}
+            }
+        ?&gt;</code></pre>
+
+        <p>So that suggests that if you set a cookie called <code>Username</code> with, like, ANY value in it, then you can just bypass logging in entirely, and it'll just <i>assume</i> that that's your username. Sick. Let's try.</p>
+
+        <p>Beautiful.</p>
+        <video controls src="/assets/video/capstone/auth/literally_anything.mp4"></video>
+        <p>Why the HELL did I make it like this 😭✌️</p>
+
+        <blockquote>Number of Findings Today: 5</blockquote>
+      </section><br>
+
+      <!-- blacklist.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p><strong>Note for all you readers: this section is mostly about <code>blacklist.php</code>, but I got to that point because of something I tried in <code>index.php</code>. That's why I'm talking about the login form below. Thought that was confusing—just wanna clear that up real quick.</strong></p><br>
+
+        <p>Back to the login form now: what happens when we try registering users with weird usernames? Like <code>&lt;script&gt;alert(1337)&lt;/script&gt;</code>? Pretty sure our username is gonna be embedded somewhere or the other, so I bet this can cause some weird BS.</p>
+
+        <p>Heh, yeah, like that:</p>
+
+        <img src="/assets/img/capstone/auth/landing_1337.png">
+
+        <p>That's what <code>landing.php</code> looks like, by the way. The snippet of code up at the top there is coming from our <code>blacklist.php</code> which we'll look at in a bit. The relevant part is here:</p>
+
+        <pre><code>if ((list.includes(fingerprint)) // where `list` is an array of blacklisted client fingerprints
+        && (![/* whitelisted usernames */].includes("&lt;?=$_SESSION['Username']?&gt;"))) {
+            location.href='about:blank'
+        }</code></pre>
+
+        <p><code>landing.php</code> does a <code>require("./blacklist.php")</code> in there somewhere, so the javascript in blacklist.php gets dropped into this file as a <code>&lt;script&gt;</code> element at the top. It's looking like when our <code>&lt;script&gt;alert(1337)&lt;/script&gt;</code> gets dropped into the JS there, it's seeing the <code>&lt;/script&gt;</code> in the username and interpreting it as the actual end of the script tag itself, so the rest of the file just gets dumped into the DOM.</p>
+
+        <p>That's actually some really interesting behavior—it allows for some really weird injections lol. With a simple <code>&lt;/script&gt;</code> in the username, we can inject straight HTML into the page. But that's only on our own page... Not too sure how an attacker would actually use this. It's kinda like a self-XSS scenario, except I can't really see any reasons why that'd be useful in an application like this.</p>
+
+        <p>Well, unless this username gets rendered in the chat window the same way it's being rendered on <code>landing.php</code>. I'm kinda doubtful of this one though, because when we tried XSS in messages yesterday, the script tags just rendered as plain text rather than embedding (except in the potato room). Might be worth a shot anyway though.</p>
+
+        <p>I just registered a user with username <code>&lt;/script&gt;&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;</code> and password "e". Side note - that's a <i>really</i> short password lol, don't really think that should be allowed. But anyway, let's see what happens when I enter the landing page.</p>
+
+        <p>Ok, self-XSS confirmed:</p>
+
+        <video controls src="/assets/video/capstone/auth/selfxss.mp4"></video>
+
+        <blockquote>Number of Findings Today: 6</blockquote>
+
+        <p>There is one problem though, which is that since we terminated the script tag early, everything's freaking broken in the actual chatroom lol. Seems like the <code>blacklist.php</code> isn't the only place I'm using the <code>&lt;?=$_SESSION['Username']?&gt;</code> trick. So what I'm seeing here is we gotta make a payload that doesnt just end the script willy nilly but instead just injects straight into the script itself. Makes a lot more sense in hindsight lol.</p>
+
+        <p>Something like <code>"); alert("hi!"); //</code> maybe. In the chatroom itself, the <code>$_SESION</code> references are being made inside of <code>conn.send()</code> calls, like <code>conn.send("&lt;txt&gt;&lt;?=$_SESSION['Username']?&gt; has left the chat...&lt;txt&gt;");</code>. If we just end the function call cleanly then this might work.</p>
+
+        <p>Wait, but how are we gonna make that affect other users again?</p>
+
+        <p>Idk, this one's kind of a weird rabbit hole entirely.</p>
+      </section><br>
+
+      <!-- login.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>The <code>/api/login.php</code> file is almost entirely the same logic as the signup/login in <code>index.php</code>, so I'm just gonna be checking for differences here—as far as I can see, all the same vulns in <code>index.php</code> exist here too.</p>
+
+        <p>Wait, scratch that. The big one in <code>index.php</code> with the Username cookie actually isn't a problem here. We've replaced it with the following though, which might be worse?</p>
+        <pre><code>&lt;?php
+            header("Access-Control-Allow-Origin: *");
+            header("Access-Control-Allow-Headers: *");
+            $_POST = json_decode(file_get_contents('php://input'), true);
+        ?&gt;</code></pre>
+
+        <p>Yeah, screw CORS. Nobody ever liked that anyway.</p>
+
+        <p>The only other diff I see between this and <code>index.php</code>'s system is that it's using JSON for the POST body—but it seems functionally the same.</p>
+
+        <p>Ooh, wait, this is cool! Not a diff, but I missed this in <code>index.php</code> as well—apparently I actually did prepare my queries somewhere! The signup form. Not the login form, though. So you can have absolutely whatever in your username when you're signing up, but you can absolutely shoot yourself in the foot there too because your username might break the login form.</p>
+
+        <p>That aside though, I think we're done here.</p>
+      </section><br>
+
+      <!-- landing.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>The main things I see here, looking in the code:</p>
+        <ul>
+            <li>This file requires <code>blacklist.php</code>, which is why the funky little self-xss thing was happening here.</li>
+            <li>It does the same thing <code>index.php</code> does with setting <code>$_SESION['Username']</code> to <code>$_COOKIE['Username']</code> if that cookie is set; the only thing different about this part is that <code>landing.php</code> will redirect you back to <code>index.php</code> if the cookie <i>isn't</i> set.</li>
+            <li>That's pretty much it. Rest of it is really straightforward. It just redirects you to whatever room you choose in the dropdown using some simple javascript.</li>
+        </ul>
+
+        <p>Don't really know what else to say about this file. The only real vuln here is that thing with the Username cookie, though we've covered that well already.</p>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Ok, a lot just happened. Not all of it was fruitful. The fruit we <i>did</i> find though:</p>
+
+        <ul>
+            <li>There's a <code>mailto:</code> link on the homepage that goes straight to my personal email. Everyone who visits this site and keeps their eyes slightly open now has my personal email address. Whoopsie.</li>
+            <li>The link to download the apps is literally just 404'ing. The download page doesn't exist anymore. Not a security risk but still a bug.</li>
+            <li>You can do blind SQLi using the error message div.</li>
+            <li>If someone has the same password as you, the signup form will kindly let you know!</li>
+            <li>To bypass signing up/logging in, all you gotta do is set a cookie called "Username" with whatever value you want, and it'll just <i>work</i>.</li>
+            <li>Weird potential self-XSS for every page that has a <code>&lt;?=$_SESSION['Username']?&gt;</code> in it. Maybe this would be useful in some strange way but I can't find it.</li>
+        </ul>
+
+        <p>It's like 2 AM. I'm gonna call it for the night.</p>
+
+        <p>We'll dig into those random little admin utilities I have laying around at the web root next. Should be pretty straightforward.</p>
+
+        <p>Probably.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "User Auth & Session Management";
+    const DATE = "2026-07-24";
+    const TAGS = ["Capstone", "Learning Journey", "PHP", "SQLi", "XSS"];
+    const SECTIONS = ["The Plan", "index.php", "blacklist.php", "login.php", "landing.php", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
