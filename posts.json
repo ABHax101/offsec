@@ -1,5 +1,12 @@
 [
   {
+    "title": "A Handful of Admin Utilities",
+    "file": "posts/utils.html",
+    "date": "2026-07-27",
+    "excerpt": "DELETE FROM common_sense;",
+    "tags": ["Capstone", "Learning Journey", "PHP", "SQLi", "JavaScript", "XSS"]
+  },
+  {
     "title": "User Auth & Session Management",
     "file": "posts/auth_system.html",
     "date": "2026-07-24",

