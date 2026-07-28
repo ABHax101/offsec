@@ -60,18 +60,12 @@ blockquote {
     color: var(--pico-muted-color);
 }
 
-img {
+img, video {
+    display: block;
+    margin: 1rem auto;
     max-width: 100%;
     height: auto;
     border-radius: 0.5rem;
-    margin: 1rem 0;
-}
-
-video {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem;
-    margin: 1rem 0;
 }
 
 .footer {
