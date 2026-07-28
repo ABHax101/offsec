@@ -66,7 +66,7 @@
             <li><strong>users.php</strong> - this one's dangerous. Simple little HTML form. If you enter the right admin password (which I bet you is hardcoded lmao) then it'll go to the db and dump the entire <code>users</code> table for you.</li>
             <li><strong>clear.php</strong> - this one's pretty wild too. Another HTML form—this one has a dropdown for you to pick a database table. Enter the right admin password and it'll literally DELETE EVERY ROW from that table for you. WHY??</li>
             <li><strong>blacklist.php</strong> - this one's coming back because it writes to a file called <code>log.txt</code>, and we might be able to find a way to turn it into a side channel.</li>
-            <li><strong>conn.php</strong> - not technically an <i>admin</i> utility per se, but this is the file that gets <code>require()</code>'d by every file which interact with the database. It basically creates the PDO object that the other files use to run db queries. I wouldn't be surprised to find more hardcoded credentials lol, worth a look.</li>
+            <li><strong>conn.php</strong> - not technically an <i>admin</i> utility per se, but this is the file that gets <code>require()</code>'d by every file which interacts with the database. It basically creates the PDO object that the other files use to run db queries. I wouldn't be surprised to find more hardcoded credentials lol, worth a look.</li>
         </ul>
 
         <p>Alrighty. <code>conn.php</code> looks the simplest right now, so we'll start from there. After that, we'll just go from the top of the list and work our way down. <code>users.php</code> and <code>clear.php</code> are honestly way too risky to even <i>exist</i>, but they're here for some reason lol, so let's see what I can do with em.</p>
@@ -229,7 +229,7 @@ import time
 
 url = "https://parity.nimbusdigital.org/clear.php"
 passwd = "redacted123"
-chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "_.-: ()"
+chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "_.,-: ()+~"
 
 print("Starting...")
 
@@ -422,7 +422,7 @@ Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
       <section class="blog-section">
         <h2 class="sectheading"></h2>
 
-        <p>We've already covered a good bit of <code>blacklist.php</code> in the last one, with the funky self-XSS vuln. There are a good few more things that catch my eye with this, though—seeing as it's the only way I have to ban users, it's <i>really</i> poorly written lol.</p>
+        <p>We've already covered a good bit of <code>blacklist.php</code> in the last one, with the funky self-XSS vuln. There are a couple more things that catch my eye with this, though—seeing as it's the only way I have to ban users, it's <i>really</i> poorly written lol.</p>
 
         <p>First of all, the "ban" is literally just an act of redirecting you to <code>about:blank</code>. That's it. There's nothing more to it. Look:</p>
 
@@ -462,7 +462,7 @@ Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
             <li>Re-enable javascript and then we should be fine, so long as it pulls from cache.</li>
         </ul>
 
-        <p>If you're logged in, you can visit any room just by its absolute path—you don't need to go through <code>/landing.php</code>. You could just as easily visit <code>/rooms/general/room.php</code> and it'd put you straight in the general room, everything working as expected, no catches or anything. That <code>room.php</code> file also includes <code>blacklist.php</code> so that'll be my target for now: see if I can execute the above plan on the general room's <code>room.php</code> and then still send messages in it.</p>
+        <p>If you're logged in, you can visit any room just by its absolute path—you don't need to go through <code>/landing.php</code>. You could just as easily visit <code>/rooms/general/room.php</code> and it'd put you straight in the general room, everything working as expected—there's no catch. That <code>room.php</code> file also includes <code>blacklist.php</code> so that'll be my target for now: see if I can execute the above plan on the general room's <code>room.php</code> and then still send messages in it.</p>
 
         <p>Ok, so here's me visiting <code>blacklist.php</code>—we can see that I am indeed repeatedly being "banned" (sent to about:blank):</p>
         <video controls src="/assets/video/capstone/utils/banned.mp4"></video>
@@ -492,12 +492,12 @@ Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
     fclose($handle);
 }</code></pre>
 
-        <p>So that log line is <code>date + username + id + IP addr + useragent</code>. Of those five fields, we, as the client, can control three of them: the <code>$_SESSION['Username']</code>, the <code>$id</code>, and the <code>$_SERVER['HTTP_USER_AGENT']</code>. The id param there is just the POST body—that one's probably the most straightforward. But of course, the useragent string is also really easy to spoof, and we can create any new user to manipulate our username.</p>
+        <p>So that log line is <code>date + username + id + IP addr + useragent</code>. Of those five fields, we, as the client, can control three of them: the <code>$_SESSION['Username']</code>, the <code>$id</code>, and the <code>$_SERVER['HTTP_USER_AGENT']</code>. The id param there is just the POST body—that one's probably the most straightforward. But of course, the useragent string is also really easy to spoof, and—as we learned last time—we can just edit the <code>Username</code> cookie.</p>
 
         <p>Once again, user input is being stored in the app verbatim, zero validation of any sort.</p>
 
         <ul>
-            <li>We could POST 50 characters, 500 MB, or like 5 GB if the server allows—we could make this file absolutely massive.</li>
+            <li>We could POST 50 characters, 500 MB, or like 5 GB if the server allows—we could make this file absolutely massive. There's no limit defined here; it just depends on PHP's default config.</li>
             <ul>
                 <li>Since the blacklist is operated manually in this app, an admin needs to manually look in <code>log.txt</code> in order to identify the fingerprints to blacklist—we could make the file so big it's essentially unusable.</li>
             </ul>
@@ -532,7 +532,7 @@ Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
             <li>Very easy stored XSS in <code>users.php</code> because there's no input validation in the signup form.</li>
             <li>Time-based blind SQLi in <code>clear.php</code></li>
             <li>The blacklist is just a client-side script, so it's not hard at all to bypass.</li>
-            <li>No input validation AGAIN in <code>blacklist.php</code>, so you can completely flood the <code>log.txt</code></li>
+            <li>No input validation AGAIN in <code>blacklist.php</code>, so you can completely flood the <code>log.txt</code> and make admin's life hell.</li>
         </ul>
 
         <p>Dang, 7 whole findings. That's a new record!</p>
@@ -543,7 +543,7 @@ Done! Result: PostgreSQL 13.23 (Ubuntu 13.23-1.pgdg22.04+1) on x86_64-pc-linux-g
 
         <p>Digging into the image-sending pipeline next. My bet is some file polyglot crap. Might not be, though—I don't really know yet.</p>
 
-        <i>I guess we'll have to wait and see 👀</i>
+        <p>I guess we'll have to wait and see 👀</p>
       </section><br>
 
       <h3>Cheers!</h3>
