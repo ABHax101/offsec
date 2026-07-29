@@ -1,5 +1,12 @@
 [
   {
+    "title": "A Hell of an Image Pipeline",
+    "file": "posts/image_system.html",
+    "date": "2026-07-28",
+    "excerpt": "The cleanest, most beautiful SQLi yet! I don't know if we'll be able to top that one.",
+    "tags": ["Capstone", "Learning Journey", "PHP", "SQLi", "XSS"]
+  },
+  {
     "title": "A Handful of Admin Utilities",
     "file": "posts/utils.html",
     "date": "2026-07-27",

