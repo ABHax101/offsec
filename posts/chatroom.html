@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>This is going to be the biggest session yet: I'm finally auditing the chatrooms themselves.</p>
+
+        <p>There are four chatrooms in this app, and each one of them contains ten files each. Thankfully though, as far as I can see, they're all just copies of each other, and the diffs are only cosmetic. So we really only have to audit ten files today.</p>
+
+        <p>I have no idea what to expect with this one.</p>
+
+        <p>Let's go.</p>
+      </section><br>
+    
+      <!-- Planning -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Ok, actually, remember how I said there were ten files to audit here? Scratch that—only five of them really need attention.</p>
+        <ul>
+            <li><strong>messages.php</strong> - this is the file that pulls all of the messages for this chatroom from the database and renders them.</li>
+            <li><strong>newmessage.php</strong> - this is the file that contains the textbox that users use to send messages, and handles all of the "send message" logic.</li>
+            <li><strong>room.php</strong> - this is the big file that ties it all together. It has a frameset with three panels: one for <code>messages.php</code>, one for <code>newmessage.php</code>, and one for <code>sidebar.php</code> (which is a pretty tame file; we won't be going into depth there today). It also handles sending entry and exit messages to chat—like "Welcome, jerry!" and "jerry has left the chat."</li>
+            <li><strong>exitmessage.php</strong> - this file is a POST endpoint; you POST it the text "Someone left!" and it sends a push notification to let people know that someone (whatever the value of <code>$_SESSION['Username']</code> is) left the chat.</li>
+            <li><strong>vc.php</strong> - in the <code>sidebar.php</code>, there's a button to open voice chat which adds a new frame to the frameset; this <code>vc.php</code> is the src file for that new frame. This <i>is</i> getting into the voice chat app a little bit, which is out of scope, but I want to include it here because <code>vc.php</code> has a reference to <code>$_SESSION['Username']</code>. Since we've shown that the value of that session var can have unintended effects, I wanna make sure once that we're not exposing the voice chat app to any weird shenanigans by including that there.</li>
+        </ul>
+
+        <p>The other five files are:</p>
+        <ul>
+            <li><strong>landing.php</strong> - this just checks to see if the WebSocket server is reachable, and then redirects you to <code>room.php</code> if it is. There's no funny business in here.</li>
+            <li><strong>log.txt</strong> - this is just like the other <code>log.txt</code> we explored a couple sessions ago. Exact same thing, except specific only to this chatroom. We've already covered what you can do to the <code>log.txt</code>s in this app.</li>
+            <li><strong>notif.mp3</strong> - the sound that plays to let you know that someone's sent a message when you've navigated away from the app. Nothing here lol.</li>
+            <li><strong>socket.js</strong> - the entire file is simply <strong>let conn = new WebSocket('wss://ws.parity.nimbusdigital.org/general');</strong>. That's the entire thing. This isn't vulnerable, per se—an attacker can find out the WebSocket endpoint in the network tab too. We're not missing anything by not covering it today.</li>
+            <li><strong>sidebar.php</strong> - I talked about this one a second ago; it's involved today in that it injects <code>$_SESSION['Username']</code> into <code>vc.php</code>, but that's literally it. And that's happening when you click on the Voice Channels button on the homepage as well—if you removed this file, literally nothing would change for anyone else in the chatroom. There's no SQL involved, no other funny business. Any potential impact here is only to the self, so it's not all that useful to an attacker.</li>
+            <ul>
+                <li>You may have seen a little "Room Warp" thing in the sidebar in previous screen recordings. That's basically just a little feature that allows you to travel between rooms without having to go back to the homepage. It's actually correctly implemented though—user input can't break it because the paths are hardcoded. For the first time, I'm so glad I did that lol.</li>
+            </ul>
+        </ul>
+
+        <p>Alright, so we've got our work cut out for us in this one. It's looking like <code>$_SESSION['Username']</code> is going to be a throughline today for pretty much all of this—my bet is more stored XSS with the <code>&lt;img onload=""&gt;</code> trick.</p>
+
+        <p>I think we're ready.</p>
+      </section><br>
+
+      <!-- vc.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+                
+        <p>I'm starting here because I think this is gonna be the quickest to test. The whole file is essentially just one iframe pointed at the voice chat app. Here's what it looks like:</p>
+        <pre><code>&lt;iframe id=&quot;vc&quot; frameborder=0 allow=&quot;camera; microphone; display-capture; autoplay&quot; width=100% height=100% src=&quot;https://vc.parity.nimbusdigital.org/join?room=general&amp;name=&lt;?=$_SESSION[&#39;Username&#39;]?&gt;&amp;audio=1&amp;video=0&amp;notify=1&quot;&gt;&lt;/iframe&gt;</code></pre>
+
+        <p>Let's look closer at that <code>src</code>:</p>
+        <pre><code>https://vc.parity.nimbusdigital.org/join?room=general&amp;name=&lt;?=$_SESSION[&#39;Username&#39;]?&gt;&amp;audio=1&amp;video=0&amp;notify=1</code></pre>
+
+        <p>It's explicitly setting the <code>name</code> URL param equal to <code>$_SESSION['Username']</code>. That's the username that gets rendered inside of the voice chat room, for everyone who's connected. What happens if we use the img onload trick there in that name field?</p>
+
+        <p>Let's give it a shot. I'll have one "bystander" client in there, just as a control, with username "jerry". Then I'll visit the following URL from a different tab:</p>
+        <pre><code>https://vc.parity.nimbusdigital.org/join?room=general&amp;name=&lt;img src=&#39;https://google.com/favicon.ico&#39; onload=&#39;alert(1337)&#39;&gt;&amp;audio=1&amp;video=0&amp;notify=1</code></pre>
+
+        <p>So in theory, when that client connects, if the voice app isn't correctly configured, then the bystander client will get an alert with content "1337" once our attacker client joins.</p>
+
+        <p>As I said in yesterday's post, the image src url there doesn't actually matter, as long as it's a real image url that'll actually load. We could use pretty much anything there—Google's favicon was just the first image URL I could think of, off the top of my head, that'd be easy to use for testing lol.</p>
+
+        <p>And...</p>
+
+        <video controls src="/assets/video/capstone/room/vcxss.mp4"></video>
+
+        <p>Check it out! Little bit of scope creep here, but I can confirm that it <i>is</i> possible for the text-chat app to be the root of a problem like this: once again, there's no input validation in the signup form, so it's entirely possible for a rogue <code>$_SESSION['Username']</code> from my app to enter the voice chat. Scope creep or not, that's still a liability.</p>
+
+        <blockquote>Number of Findings Today: 1</blockquote>
+      </section><br>
+
+      <!-- The <img> Trick -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>In my planning, I said that <code>$_SESSION['Username']</code> is going to be the throughline of today's test, yes? Let's test that.</p>
+
+        <p>I think that <code>&lt;img onload=""&gt;</code> trick we used yesterday (and a second ago) is going to be what makes this work. I have a good (well probably bad, but good as an attacker lol) feeling about this one.</p>
+
+        <p>I'm gonna register a user called <code>&lt;img src=\"https://google.com/favicon.ico\" onload=\"alert(`XSS`)\"&gt;</code>. From there, I'm just going to navigate the site like a normal user, nothing crazy. I'll screen record the whole thing—this one's probably gonna get messy.</p>
+
+        <p>Oh, wait, nevermind. Not working—it wont even let me register; it's just reloading the page over and over, not even any errors. Weird.</p>
+
+        <p>AH, wait, that makes sense now lol. I know that for you, as a reader, you read the line above this one like 10 seconds ago, or something like that. Well I wrote it like a solid 15 minutes ago. I've been digging, and I just realized why this isn't working. The users table schema says usernames can't be >50 characters, so the logic in <code>index.php</code> is just silently failing.</p>
+
+        <p>Honestly, that's not even a problem. We're just trying to set <code>$_SESSION['Username']</code> here right? We've already proven here, as we see in <a href="/posts/auth_system.html#cookiebypass">this</a> screen-recording that we can set our <code>$_SESSION['Username']</code> using the "Username" cookie.</p>
+
+        <p>I've logged back in as jerry. The plan now is simply to change the value of my Username cookie to <code>&lt;img src=\"https://google.com/favicon.ico\" onload=\"alert(`XSS`)\"&gt;</code> rather than registering that as a user.</p>
+
+        <video controls src="/assets/video/capstone/room/usernamexss.mp4"></video>
+
+        <p>Nice! This one's BAD. Once the cookie is set and my <code>$_SESSION['Username']</code> has taken on its value:</p>
+        <ul>
+            <li><code>room.php</code> embeds the <code>$_SESSION['Username']</code> into my entry and exit messages</li>
+            <li><code>newmessage.php</code> embeds the <code>$_SESSION['Username']</code> into every message I send</li>
+            <li><code>messages.php</code> inserts every message it pulls from the db straight into innerHTML, so my <code>$_SESSION['Username']</code> is now embedded into <i>everyone's</i> DOM.</li>
+        </ul>
+
+        <p>So basically, I can be a threat just by <i>existing</i> in the chatroom. I said in my very first session, when I was testing the WebSocket server, that XSS didn't seem to be possible in the main chatrooms—I guess I was wrong.</p>
+        
+        <blockquote>Number of Findings Today: 2</blockquote>
+
+        <p>I have figured out <i>why</i> XSS through messages themselves wasn't working in the main rooms, though. Check out this part of <code>newmessage.php</code>:</p>
+        <pre><code>conn.send(/* ... */ + inputField.value.replaceAll(/[\u00A0-\u9999&lt;&gt;\&]/g, function(i){ return '&#'+i.charCodeAt(0)+';' }) + /* ... */)</code></pre>
+
+        <p>Somehow, this was the one place where I actually <i>did</i> escape HTML entities lol. Nice.</p>
+
+        <p>Can't say the same for the WebSocket server itself, though—XSS with the img onload trick through a separate WebSocket client works perfectly. Check it out:</p>
+        <video controls src="/assets/video/capstone/room/wsxss.mp4"></video>
+
+        <p>Ain't that a problem now, lol.</p>
+      </section><br>
+
+      <!-- exitmessage.php -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Alright, so we've covered <code>vc.php</code>, and we covered <code>room.php</code>, <code>messages.php</code> and <code>newmessage.php</code> just now. That leaves us with <code>exitmessage.php</code> and then I guess we're done for today!</p>
+
+        <p>This is a pretty small file. Have a look:</p>
+        <pre><code>&lt;?php
+    session_start();
+    if ($_SERVER['REQUEST_METHOD'] === "POST") {
+        if (file_get_contents("php://input") === "Someone left!") {         
+            require("../../push.php");
+            push($_SESSION["Username"]." has left the General room.");
+            echo "Done";
+        }
+    }
+?&gt;</code></pre>
+
+        <p>No authentication, nice! We can probably spam the hell out of this one as well. Let's take a look at what that <code>push.php</code> is doing real quick—pretty sure that's what's pinging OneSignal to send push notifications. Here it is:</p>
+        <pre><code>&lt;?php
+    function push($message = "This is a test notification.") {
+        $content = array(
+            "en" => $message
+        );
+        $fields = array(
+            'app_id' => "(redacted)",
+            'included_segments' => array(
+                'Subscribed Users'
+            ),
+            'contents' => $content,
+        );
+        
+        $fields = json_encode($fields);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://onesignal.com/api/v1/notifications");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Authorization: Basic (redacted)'
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_HEADER, FALSE);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
+        return $response;
+    }
+?&gt;</code></pre>
+
+        <p>Ok, that's actually kinda funny lol, it's literally just CURLing the OneSignal API. I'm just glad it's exporting a function rather than just pushing whatever the POST body is or something stupid like that.</p>
+        
+        <p>Yeah, so as I thought, then—we can probably repeatedly spam "Someone left!" POSTs to <code>exitmessage.php</code> and it'll literally broadcast it to every subscribed user. I can't test this right now because that OneSignal app ID is configured for a different domain (one I don't own anymore), but it's pretty easy to see that that's what would happen.</p>
+
+        <blockquote>Number of Findings Today: 3</blockquote>
+
+        <p>The fact that the OneSignal App ID and API keys are hardcoded in here is pretty awesome too lol. Didn't think we'd get any hardcoded creds today. I stand corrected. Make that 4.</p>
+
+        <blockquote>Number of Findings Today: 4</blockquote>
+
+        <p>WOAH, HOLD IT. Remember how I said it's good that <code>push.php</code> isn't just pushing the POST fields? Well check out <code>/api/mpush.php</code>, the one I built for the "mobile" app:</p>
+        <pre><code>&lt;?php
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: *");
+    function push($message = "This is a test notification.") {
+        /* same as the one in `push.php` */
+    }
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        push(file_get_contents('php://input'));
+        echo "Success!";
+    }
+?&gt;</code></pre>
+
+        <p>Right there at the bottom, in that little <code>if</code> block. God dammit.</p>
+
+        <p>Ok, noted, so an attacker can simply POST <i>LITERALLY ANYTHING</i> to <code>https://parity.nimbusdigital.org/api/mpush.php</code> and that POST body will get sent out as a push notification to EVERY SUBSCRIBED USER. That's a hell of a whoopsie right there.</p>
+
+        <blockquote>Number of Findings Today: 5</blockquote>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Ok, that actually went a lot quicker than I thought! There really wasn't all that much today. I mean, there were some pretty crazy findings, but still—that wasn't all that much!</p>
+
+        <p>Going into this capstone project, I expected that the majority of the craziness would happen inside of the rooms themselves, but I guess not?</p>
+        
+        <p>Actually, come to think of it, I guess we haven't stayed <i>completely</i> out of the main rooms for this entire audit. I guess we'd already found much of the in-room craziness before today lol.</p>
+
+        <p>Hey, I mean, I'll take it.</p>
+
+        <p>A quick recap of our findings today:</p>
+
+        <ul>
+            <li>XSS via <code>$_SESSION['Username']</code> in the voice chat app. Scope creep or not, a rogue <code>$_SESSION['Username']</code> from somewhere else in the app is still a liability—and that somewhere else <i>is</i> within scope.</li>
+            <li>Room-wide XSS with <code>$_SESSION['Username']</code> using the img onload trick—all 3 of the chatroom files work together on that one to make it even more terrible.</li>
+            <li>You can send "left the chat" notifications to everyone who's subscribed to push notifications on this app, simply by POSTing "Someone left!" to <code>exitmessage.php</code></li>
+            <li>ANYBODY can send completely customized push notifications to every subscriber via <code>/api/mpush.php</code>. Mmmmm.</li>
+            <li>OneSignal credentials are hardcoded in <code>push.php</code> and <code>mpush.php</code>. While those secrets aren't going to be directly exposed to an attacker, since they're inside the PHP, this is definitely still something to keep in mind.</li>
+        </ul>
+
+        <p>I guess that's pretty much it for this one. XSS galore!</p>
+
+        <p>Tomorrow's gonna be interesting. I'll be looking through the mobile variant of this app, seeing what's different about it, what's better, what's worse. For what it's worth, I <i>did</i> build that bit at least a good few months after the rest of the chat app's codebase had been established—maybe we'll get lucky and not find much funny business there. Who knows.</p>
+
+        <p>I know I don't, lol.</p>
+
+        <p>See you then.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "The Elephant in the Rooms";
+    const DATE = "2026-07-29";
+    const TAGS = ["Capstone", "Learning Journey", "PHP", "XSS", "JavaScript"];
+    const SECTIONS = ["Planning", "vc.php", "The <img onload> Trick", "exitmessage.php", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section.replace("<","&lt;").replace(">","&gt;")}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>
