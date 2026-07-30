@@ -101,7 +101,7 @@
 
         <p>So in theory, when that client connects, if the voice app isn't correctly configured, then the bystander client will get an alert with content "1337" once our attacker client joins.</p>
 
-        <p>As I said in yesterday's post, the image src url there doesn't actually matter, as long as it's a real image url that'll actually load. We could use pretty much anything there—Google's favicon was just the first image URL I could think of, off the top of my head, that'd be easy to use for testing lol.</p>
+        <p>As I said in yesterday's post, the image src url there doesn't actually matter, as long as it's a real image url that'll actually load. We could use pretty much anything there—Google's favicon was just the first image URL I could think of, off the top of my head, that'd be easy to use for testing.</p>
 
         <p>And...</p>
 
@@ -124,7 +124,7 @@
 
         <p>Oh, wait, nevermind. Not working—it wont even let me register; it's just reloading the page over and over, not even any errors. Weird.</p>
 
-        <p>AH, wait, that makes sense now lol. I know that for you, as a reader, you read the line above this one like 10 seconds ago, or something like that. Well I wrote it like a solid 15 minutes ago. I've been digging, and I just realized why this isn't working. The users table schema says usernames can't be >50 characters, so the logic in <code>index.php</code> is just silently failing.</p>
+        <p>AH, wait, that makes sense now lol. I know that for you, as a reader, you read the line above this one like 10 seconds ago, or something like that. Well I wrote it a solid 15 minutes ago. I've been digging, and I just realized why this isn't working. The users table schema says usernames can't be >50 characters, so the logic in <code>index.php</code> is just silently failing.</p>
 
         <p>Honestly, that's not even a problem. We're just trying to set <code>$_SESSION['Username']</code> here right? We've already proven here, as we see in <a href="/posts/auth_system.html#cookiebypass">this</a> screen-recording that we can set our <code>$_SESSION['Username']</code> using the "Username" cookie.</p>
 
@@ -146,7 +146,7 @@
         <p>I have figured out <i>why</i> XSS through messages themselves wasn't working in the main rooms, though. Check out this part of <code>newmessage.php</code>:</p>
         <pre><code>conn.send(/* ... */ + inputField.value.replaceAll(/[\u00A0-\u9999&lt;&gt;\&]/g, function(i){ return '&#'+i.charCodeAt(0)+';' }) + /* ... */)</code></pre>
 
-        <p>Somehow, this was the one place where I actually <i>did</i> escape HTML entities lol. Nice.</p>
+        <p>Somehow, this was the one place where I actually <i>did</i> escape HTML entities, nice.</p>
 
         <p>Can't say the same for the WebSocket server itself, though—XSS with the img onload trick through a separate WebSocket client works perfectly. Check it out:</p>
         <video controls src="/assets/video/capstone/room/wsxss.mp4"></video>
@@ -207,7 +207,7 @@
     }
 ?&gt;</code></pre>
 
-        <p>Ok, that's actually kinda funny lol, it's literally just CURLing the OneSignal API. I'm just glad it's exporting a function rather than just pushing whatever the POST body is or something stupid like that.</p>
+        <p>Ok wait that's actually kinda funny, it's literally just CURLing the OneSignal API, recreating the "test" request that OneSignal provides you to make sure it's all working and stuff. I'm just glad it's exporting a function rather than just pushing whatever the POST body is or something stupid like that.</p>
         
         <p>Yeah, so as I thought, then—we can probably repeatedly spam "Someone left!" POSTs to <code>exitmessage.php</code> and it'll literally broadcast it to every subscribed user. I can't test this right now because that OneSignal app ID is configured for a different domain (one I don't own anymore), but it's pretty easy to see that that's what would happen.</p>
 
@@ -248,7 +248,7 @@
 
         <p>Going into this capstone project, I expected that the majority of the craziness would happen inside of the rooms themselves, but I guess not?</p>
         
-        <p>Actually, come to think of it, I guess we haven't stayed <i>completely</i> out of the main rooms for this entire audit. I guess we'd already found much of the in-room craziness before today lol.</p>
+        <p>Actually, come to think of it, I guess we haven't stayed <i>completely</i> out of the main rooms for this entire audit. I guess we'd already found much of the in-room craziness before today.</p>
 
         <p>Hey, I mean, I'll take it.</p>
 
