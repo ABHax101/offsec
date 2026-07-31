@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header>
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+      </header>
+    
+      <!-- Table of Contents -->
+      <aside class="toc">
+        <h3>Table of Contents</h3>
+        <ul id="toc_ul"></ul>
+      </aside>
+    
+      <!-- Introduction -->
+      <section>
+        <h2>Introduction</h2>
+
+        <p>Hey hey!</p>
+
+        <p>I'm happy to announce that we've tested every bit of the app that was in scope, except for one: the mobile variant.</p>
+
+        <p>Back in 7th grade when I wanted to make Parity mobile apps, my first instinct was to Google how to turn a website into a mobile app. There were plenty of free services online, like Appy Pie and AppMySite and whatnot (note: I'm not affiliated with them in any way), but I guess I didn't like the results or something? I don't know exactly what happened—that was like 5 years ago, after all—but I didn't end up going with any of those free services. I remember trying to rebuild Parity in Android Studio at one point, but that wasn't working too good either—it seemed a lot more complicated than the kind of crap I had going in PHP at the time, so I gave up on that too.</p>
+
+        <p>Eventually, though, I came across Apache Cordova, basically an open-source framework that lets you package regular ol' HTML, CSS, JS into apps for all different platforms, using the operating system's internal browser engine (like Android WebView, for example).</p>
+
+        <p>I really liked that, but there was one problem with it: my entire codebase was in PHP, and I couldn't figure out how to make Cordova work with it. In hindsight, that makes sense—I can't be hosting the entire backend of my app on every mobile device that installs it, that just doesn't work like that.</p>
+
+        <p>My solution? To go into every file in the PHP codebase, strip out all the PHP into separate API files that'd live on my main server, and rewrite the app (almost) from scratch in plain HTML, CSS, JavaScript.</p>
+
+        <p>This should be interesting to look through.</p>
+      </section><br>
+    
+      <!-- Planning -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+        
+        <p>Alright, so today's test is going to be comprised of two directories: <code>/api</code> and <code>/mobile</code>.</p>
+
+        <p>The files in <code>/api</code> are:</p>
+        <ul>
+            <li><strong>/api/conn.php</strong></li>
+            <li><strong>/api/image.php</strong></li>
+            <li><strong>/api/imageget.php</strong></li>
+            <li><strong>/api/login.php</strong></li>
+            <li><strong>/api/messageget.php</strong></li>
+            <li><strong>/api/mpush.php</strong></li>
+        </ul>
+
+        <p>I bet we recognize some of those names now! <code>/api/conn.php</code> is the exact same as <code>/conn.php</code>, so we've got that covered. Same with <code>/api/image.php</code> and <code>/api/imageget.php</code>, as I said in my writeup of the <a href="/posts/image_system.html">image pipeline</a>. And we looked at <code>/api/mpush.php</code>—very similar to <code>/push.php</code>, but much more dangerous—in <a href="/posts/chatroom.html">yesterday's writeup</a>.</p>
+
+        <p>So then that means that the API files that we actually need to look into today are:</p>
+        <ul>
+            <li><strong>/api/login.php</strong> - if I remember correctly, pretty much just the same signup/login logic as we saw in <code>/index.php</code>, but now in this separate file. We'll look at it, see if there are any differences.</li>
+            <li><strong>/api/messageget.php</strong> - since the files in the mobile app can't run the PHP to grab messages from the database themselves, this endpoint runs it for them and sends all the messages back.</li>
+        </ul>
+
+        <p>Alright, so that's the API sorted. Here's what the <code>/mobile</code> directory looks like:</p>
+        <pre><code>+---mobile  
+    |
+    |   index.html
+    |   landing.html
+    |
+    \---rooms
+        +---code
+        |       landing.html
+        |       messages.html
+        |       newmessage.html
+        |       notif.mp3
+        |       room.html
+        |
+        +---general /* same files as the `code` room; only cosmetic diffs */
+        |
+        +---offtopic /* same thing */
+        |
+        \---work /* same thing */</code></pre>
+
+        <p>There's a lot less going on with this one—I like that. We can probably go piece by piece here, similar to how we've gone piece by piece for the rest of the codebase. I don't really know what to expect yet, but we'll find out.</p>
+
+        <p>Alright, let's start with <code>/api</code>—that seems esaier right now.</p>
+      </section><br>
+
+      <!-- The API -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Let's start with that <code>login.php</code>. First thing's first, check that out:</p>
+        <pre><code>&lt;?php
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: *");
+    $_POST = json_decode(file_get_contents('php://input'), true);
+?&gt;</code></pre>
+
+        <p>Right out the gate, this is looking a lot easier to brute force since we're actively turning off CORS. It makes it possible for a Cordova app running from <code>file://</code> origins to log in, but it also makes it possible for an attacker's cheeky little python script to do the same, a whole lotta times per second. If that attacker hadn't found the SQLi in <code>imageget.php</code> yet, this would be a valid strategy to get user logins.</p>
+
+        <p>I'm getting ahead of myself though—we haven't seen anything beyond the first 5 lines of the file yet...</p>
+
+        <p>Ok, I'm looking at this right now, and remember <code>/index.php</code>? Up at the top of that file, before any of the HTML started, I had the signup and login logic, yes? It seems that in this <code>login.php</code> file, I've literally just copypasted that code from the top and changed a couple things so we could make it work on the mobile app. All the vulns we found in the <a href="/posts/auth_system.html">auth system writeup</a> are still there.</p>
+
+        <p>The only meaningful diffs I see here between this file and <code>/index.php</code> are:</p>
+        <ul>
+            <li><code>login.php</code> doesn't check for duplicate passwords—it doesn't throw that error. That's probably actually a good thing lol</li>
+            <li>Upon successful login, <code>index.php</code> sets the value of the "Username" cookie and redirects the user to <code>/landing.php</code>, whereas <code>login.php</code> simply echoes out <code>Success:whatever_username</code>.</li>
+        </ul>
+
+        <p>That's it, just two minor changes. The different success message in <code>login.php</code>, which now contains the user's username, probably has to do with whatever I replaced <code>$_SESSION['Username']</code> with in the mobile variant, how we're keeping track of that state. We'll look at that in a minute.</p>
+
+        <p>Alright, so we've got <code>login.php</code> essentially covered here. Let's take a look at <code>messageget.php</code>.</p>
+
+        <p>Ok, off to a good start again lmao</p>
+
+        <pre><code>&lt;?php
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: *");
+    /* ... */</code></pre>
+
+        <p>Ah, I see. So the rest of this file is essentially any room's <code>messages.php</code> again, but with one pretty important twist. At the top of the file, right under that second access control header line, we have this:</p>
+        <pre><code>$room = file_get_contents("php://input");</code></pre>
+
+        <p>And then our database queries look like this:</p>
+        <pre><code>$query = "SELECT * FROM ".$room." ORDER BY id ASC";</code></pre>
+
+        <p>Where the <code>messages.php</code> files in the PHP rooms just had the table hardcoded, the API file obviously can't do that, because there's four different rooms with different tables, and only one <code>messageget.php</code>—so I guess this was my solution. To create one more SQLi vector. Yippee!</p>
+
+        <p>Oh, and of course, right after that, we're doing this:</p>
+        <pre><code>$data = $conn->query($query);
+			
+foreach ($data as $row)
+{
+    echo $row['msg'].'<br>';
+}</code></pre>
+
+        <p>So not only can we just... <i>tell</i> it, plainly, what table we want it to read from—it'll actually echo out all of the contents for us too, unlike in <code>/clear.php</code>.</p>
+
+        <p>So then that means I should just be able to send a POST to <code>/api/messageget.php</code> with body "users--", for example, and it'll just hand us every username and password?</p>
+        <img src="/assets/img/capstone/mobile/users1.png">
+
+        <p>Ok, that's not quite right...</p>
+
+        <p>Ah wait, it's because the PHP is echoing <code>$row['msg']</code> specifically. Ok, no problem, we can probably just pull one column at a time, return it as "msg".</p>
+        <pre><code>general UNION SELECT NULL,uname FROM users AS msg--</code></pre>
+        <img src="/assets/img/capstone/mobile/users2.png">
+
+        <p>Gotcha! Now we do the same for passwords...</p>
+        <img src="/assets/img/capstone/mobile/users3.png">
+
+        <p>Oh and, of course, you could return anything as "msg" in that UNION statement—don't forget. Here it is with <code>version()</code> again, for example:</p>
+        <img src="/assets/img/capstone/mobile/users4.png">
+
+        <p>Nice! One more SQLi vector for the pile.</p>
+
+        <blockquote>Number of Findings Today: 1</blockquote>
+      </section><br>
+
+      <!-- User Auth on Mobile -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Much like I did for the rest of the app, we're starting with the auth and session management system.</p>
+        
+        <p>I'm looking back at my <a href="/posts/auth_system.html">writeup of that part</a> to see what files I tested there—looks like just <code>index.html</code> and <code>landing.html</code> for this bit.</p>
+
+        <p>Also, apparently I tested <code>/api/login.php</code> in that writeup as well. I said there that "The only other diff I see between this and index.php's system is that it's using JSON for the POST body—but it seems functionally the same." I stand corrected; it's <i>mostly</i> the same. Glad we got to go back over that today—now we know.</p>
+
+        <p>Ok, let's go.</p>
+
+        <h4>index.html</h4>
+
+        <p>Alright, so looking at this bit, it seems like the HTML markup itself is pretty much identical (well, my giant 'description' of the app that I had on <code>/index.php</code> has been replaced with "Welcome to Parity Chatrooms!", but otherwise pretty much identical). The main differences here are in the JS: in the HTML forms, I now have an <code>onsubmit</code> attribute calling functions that POST the contents of each form to <code>/api/login.php</code>.</p>
+
+        <p>The function for the new user form simply POSTs the new user's requested credentials to the API and then puts the response in a div at the top. That response would be either an error message or the "Success! You may log in now" message.</p>
+
+        <p>The function for the existing user form POSTs the user's creds (plaintext btw) to the API. Then, if the response doesn't contain a <code>&lt;div&gt;</code> (which is how we're identifying that there's an error message), then it sets the "Username" cookie according to the content of the success response. As a reminder, that looks like this: <code>Success:whatever_username</code>—if that were the response, then the app would set the Username cookie equal to "whatever_username". If a <code>&lt;div&gt;</code> is found, indicating an error message was returned, then it simply echoes out the response at the top.</p>
+
+        <p>Ok, so we're still doing the Username cookie thing. Check this out:</p>
+        <pre><code>if (!cookie.get("Username") == "") {location.replace('landing.html')}</code></pre>
+
+        <p>So pretty much the exact same logic as <code>index.php</code>—meaning the Username cookie bypass should still work. Let's test that real quick.</p>
+
+        <p>In order to test the mobile app I'm gonna clone the repo on my attacker machine and run an HTTP server with the <code>/mobile</code> directory as root—just so that it behaves as it would in the Cordova runner.</p>
+
+        <p>Ok yeah, cool, just as I thought. Check it out:</p>
+
+        <video controls src="/assets/video/capstone/mobile/cookiebypass.mp4"></video>
+
+        <p>Just like in the PHP version.</p>
+
+        <blockquote>Number of Findings Today: 2</blockquote>
+
+        <p>Now: since this is just POSTing the form data to <code>/api/login.php</code>, and <code>/api/login.php</code> has the same POST logic as <code>/index.php</code>, the SQLi we found in the login form should still be here. Let's see what happens...</p>
+        <video controls src="/assets/video/capstone/mobile/sqlibypass.mp4"></video>
+
+        <p>Ok, that's actually really interesting! That didn't work in the main PHP app.</p>
+
+        <p>My payload there was simply username=<code>anything'--</code>, and just any random password. My hunch is that it returned an error, just not one of my nicely formatted ones in a div—maybe the raw SQL error text or something like that. So since there was no div, it assumed that the creds were right, and just let me in anyway. Not sure why my username is blank there, though.</p>
+
+        <p>I'm gonna do some digging with Burp Suite real quick.</p>
+
+        <p>Oh! Nope, the response is actually just blank. That's weird. Look:</p>
+        <img src="/assets/img/capstone/mobile/blank_response.png">
+
+        <p>Actually, I guess it kinda makes sense. Look at this section of the API code:</p>
+        <pre><code>$query = $conn->prepare('SELECT * FROM users WHERE uname=\''.$uname.'\' and pass=\''.$pass.'\'');
+$query->execute();
+$data = $query->fetch(PDO::FETCH_ASSOC);</code></pre>
+
+        <p>So that query is becoming:</p>
+        <pre><code>SELECT * FROM users WHERE uname='anything' --' and pass='whatever'</code></pre>
+
+        <p>So effectively:</p>
+        <pre><code>SELECT * FROM users WHERE uname='anything'</code></pre>
+
+        <p>That query returns nothing, because there's no user called "anything"—which means the variable <code>$data</code> will return zero rows.</p>
+
+        <p>The next bit of the PHP looks like this:</p>
+        <pre><code>if ($data) {
+if ($query->rowCount() > 0) {
+    if (($data['uname'] == $uname) && ($data['pass'] == $pass)) {
+        $_SESSION['Username'] = $uname;
+        echo "Success:".$_SESSION['Username'];
+        /* ... */</code></pre>
+
+        <p>It's checking there for if the row count is >0, and only then is it doing any actual checks on the input itself. That if statement has no else block, so the program kinda just dies there, and nothing gets echoed out.</p>
+
+        <p>Hence the completely blank API response. Makes sense now. The app assumes that the lack of a <code>&lt;div&gt;</code> means the login was successful, and sets the Username cookie to whatever the API repsonse says—which explains the blank username.</p>
+
+        <p>Makes sense now.</p>
+
+        <blockquote>Number of Findings Today: 3</blockquote>
+
+        <p>That's pretty much all there is to this bit—the new user form, just like in <code>index.php</code>, isn't injectable.</p>
+
+        <p>Onward.</p>
+
+        <h4>landing.html</h4>
+
+        <p>This is a much smaller file—my hope is that it goes a little faster lol. Let's see what we got.</p>
+
+        <p>Ok, right off the bat, we've got more cookie logic:</p>
+
+        <pre><code>if (cookie.get('Username') == undefined) {
+    window.location.replace("index.html");
+} else {
+    window.Username = cookie.get('Username');
+}</code></pre>
+
+        <p>Cool, so just like <code>/landing.php</code>, the user will be sent back to the login page if the Username cookie is blank. The line under that though, the <code>window.Username = cookie.get('Username');</code>—it looks like that's what I decided to replace the <code>$_SESSION['Username']</code> calls with. Noted.</p>
+
+        <p>Aha, check this out, right under that block of code:</p>
+        <pre><code>fetch('https://parity.nimbusdigital.org/api/mpush.php', {
+    method:"POST",body:`${Username} is now online!`
+});</code></pre>
+
+        <p>We've already talked about how dangerous <code>mpush.php</code> is, since anyone can just POST whatever they want and it'll be sent out as a push notification. Well, this file essentially just tells attackers explicitly that that's possible—to someone looking through the source code, that's gonna look pretty interesting.</p>
+
+        <p>Probably worth noting that that's there.</p>
+
+        <blockquote>Number of Findings Today: 4</blockquote>
+
+        <p>That's it for <code>landing.html</code>. Nice and quick!</p>
+      </section><br>
+
+      <!-- The Rooms Themselves -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>Alright, this should be fairly simple. Let's see here...</p>
+
+        <p>The mobile rooms only have five files in them, compared to the main app's ten. That's nice! They are:</p>
+        <ul>
+            <li><strong>messages.html</strong> - fetches all of the existing messages in this chatroom, using <code>messageget.php</code>, and echoes them out for us.</li>
+            <li><strong>newmessage.html</strong> - contains the "new message" textbox and the file input; handles all of the message sending logic, just like the <code>newmessage.php</code>s in the main rooms.</li>
+            <li><strong>room.html</strong> - just like the <code>room.php</code>s in the main app, contains a frameset: one frame for <code>newmessage.html</code>, and one for <code>messages.html</code>.</li>
+            <li><strong>landing.html</strong> - just like the individual room <code>landing.php</code>s in the main app, it tests the WebSocket connection, and redirects you to <code>room.html</code> if it's successful. No funny business we can exploit here.</li>
+            <li><strong>notif.mp3</strong> - the little notification sound that's meant to play when someone sends a message while you're tabbed out. For what it's worth, though, I don't think that logic even works on mobile apps like that lol—I don't think mobile apps can usually play audio while not focused.</li>
+        </ul>
+
+        <p>Ok, so <code>landing.html</code> and <code>notif.mp3</code> are pretty insignificant here—let's dig into the others.</p>
+
+        <h4>room.html</h4>
+
+        <p>Looks like this literally does the exact same thing as the <code>room.php</code> files in the main app do, except instead of concatenating <code>$_SESSION['Username']</code> to the push notification and the entry/exit messages, it concatenates <code>window.Username</code> (which is set to the value of the Username cookie, just like in <code>/mobile/landing.html</code>).</p>
+
+        <p>What I said about <code>/mobile/landing.html</code> having the fetch to <code>mpush.php</code> in plain sight a little bit ago—this file does that too. Once again, good to know I guess lol.</p>
+
+        <p>Other than that, no notes. Any diffs from <code>room.php</code> are minimal and insignificant.</p>
+
+        <h4>messages.html</h4>
+
+        <p>The main thing I'm looking for here—just like in the <code>messages.php</code> files—is whether we're writing directly to innerHTML or not. Let's see...</p>
+
+        <p>Ah, yep. That was quick. Both the API response from <code>messageget.php</code> and the broadcasts from the WebSocket server are being appended to innerHTML, without any escaping. Classic.</p>
+
+        <p>Ok, so then in theory, the <code>&lt;img onload&gt;</code> XSS trick from yesterday will affect mobile users as well. Let's confirm that real quick...</p>
+        <video controls src="/assets/video/capstone/mobile/imgxss.mp4"></video>
+
+        <p>Yeah, just as I thought. Nice! I guess this isn't really a <i>new</i> finding—I spent literal hours writing about it yesterday—so I'm not gonna add that to the counter. Worth noting it works here too though.</p>
+
+        <p>That's literally it for this file lol, no other notes.</p>
+
+        <h4>newmessage.html</h4>
+
+        <p>I don't really even know what I'm looking for here, to be honest. Just gonna stare at this one until I see something, I guess?</p>
+
+        <p>Ok, it's been a little bit. I'm not really seeing much here lol. It's basically just the same as <code>newmessage.php</code> again.</p>
+
+        <p>One thing I do wanna try: does the username-based XSS still work in here? The only difference I see with that in here vs in <code>newmessage.php</code> is the fact that the PHP file inserted the <code>$_SESSION['Username']</code> directly into the JavaScript so it'd act as if it were hardcoded, whereas this uses regular JS string concatenation, like so:</p>
+        <pre><code>/* ... */' + Username + ': ' + inputField.value...</code></pre>
+
+        <p>Nothing about that <code>Username</code> string is being escaped in any way, so I bet it'd still work. Let's try setting my Username cookie to the following:</p>
+        <pre><code>&lt;img src="https://github.com/favicon.ico" onload="alert(`gottem`)"&gt;</code></pre>
+
+        <p>And now we reload the app, try sending a few messages, and...?</p>
+        <video controls src="/assets/video/capstone/mobile/usernamexss.mp4"></video>
+
+        <p>Cool! Still works.</p>
+        
+        <br>
+
+        <p>Dang, I think that's genuinely everything done now.</p>
+
+        <p>No further questions, your honor.</p>
+      </section><br>
+
+      <!-- A Summary -->
+      <section class="blog-section">
+        <h2 class="sectheading"></h2>
+
+        <p>We did it!!</p>
+
+        <p>Apart from writing the report, the capstone project is officially done! Everything within the scope I outlined in <a href="/posts/capstone_planning.html">that first post</a>, where I did all of my planning for this project, has been audited.</p>
+
+        <p>This was a good session—nice and light, mostly just checking diffs. Nice note to end on.</p>
+
+        <p>Now for a short recap of what we found today:</p>
+
+        <ul>
+            <li>More UNION-based SQLi in <code>/api/messageget.php</code></li>
+            <li>The Username cookie bypass works in the mobile variant as well.</li>
+            <li>The mobile variant allows for SQLi-based login bypass because of how it handles the API response. Fun!</li>
+            <li><code>landing.html</code> has a call to <code>mpush.php</code> just laying in the page source. While that in itself isn't inherently vulnerable, it's not improbable that a curious attacker would see that and want to try POSTing it themselves—and that's where the problem is. Not as severe of a finding—more pertaining to <code>mpush.php</code> rather than <code>landing.html</code>—but worth noting.</li>
+        </ul>
+
+        <p>4 findings today—combined with all the others, that makes <strong>31 total findings</strong> across the entire audit. That's genuinely crazy lol, I love it.</p>
+
+        <p>Well, with that, I think I'm good to start writing this report!</p>
+
+        <p>Don't worry—once it's done, you'll all get to see it too! I'll be dropping the GitHub link to this thing as well, for anyone who wants to see just how wonderfully insecure it is for themselves.</p>
+
+        <p>Home stretch!</p>
+        
+        <p>See you soon.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "Home Stretch";
+    const DATE = "2026-07-30";
+    const TAGS = ["Capstone", "Learning Journey", "PHP", "JavaScript", "XSS", "SQLi"];
+    const SECTIONS = ["Planning", "The API", "User Auth on Mobile", "The Rooms Themselves", "A Summary"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags"); let tocUl = document.querySelector("ul#toc_ul");
+    
+    if (SECTIONS.length) {
+      SECTIONS.forEach(section => {
+        tocUl.insertAdjacentHTML(
+          "beforeend",
+          `<li><a class="sectlink" href="#${section.toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "")}">${section.replace("<","&lt;").replace(">","&gt;")}</a></li>`
+        );
+      });
+    }
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+    
+    document.querySelectorAll("section.blog-section").forEach((s, i) => { if (SECTIONS[i]) s.id = SECTIONS[i].toLowerCase().replace(/\s+/g, "_").replace(/\p{P}/gu, "") });
+    document.querySelectorAll("h2.sectheading").forEach((s, i) => { if (SECTIONS[i]) s.innerText = SECTIONS[i] });
+  </script>
+</body>
+</html>

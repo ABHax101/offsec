@@ -1,5 +1,12 @@
 [
   {
+    "title": "Home Stretch",
+    "file": "posts/mobile.html",
+    "date": "2026-07-30",
+    "excerpt": "The final hacking session of this capstone project: a deep dive of the mobile variant",
+    "tags": ["Capstone", "Learning Journey", "PHP", "JavaScript", "XSS", "SQLi"]
+  },
+  {
     "title": "The Elephant in the Rooms",
     "file": "posts/chatroom.html",
     "date": "2026-07-29",
