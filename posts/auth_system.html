@@ -138,7 +138,9 @@ if ($data) {
 
         <p>Ok, well this <i>is</i> still very much SQL-injectable. Even if we can't bypass login here, I bet we could get up to other shenanigans—I'm seeing potential blind SQLi here. If I enter something completely random for my login credentials, like <code>asefasef/frsfrfsdrgf</code>, we don't get any error messages back. But if I make the query resolve, like with username=<code>admin'--</code>, then we get the Invalid Username/Password message. It's invalid because it doesn't match the final username/password check, but it <i>does</i> act like a "true" indicator.</p>
 
-        <p>Yes! Ok. If I have my username be <code>admin' and 1=1--</code>, we get the Invalid Username/Password error. If I set it to <code>admin' and 1=0--</code> then we don't get any error message at all. You could <i>definitely</i> write like a python script or something to do very bad things with that. Best part is there's not even any rate limiting so it'd probably be pretty quick too.</p>
+        <p>Yes! Ok. If I have my username be <code>admin' and 1=1--</code>, we get the Invalid Username/Password error. If I set it to <code>admin' and 1=0--</code> then we don't get any error message at all. You could <i>definitely</i> write like a python script or something to do very bad things with that. Best part is there's not even any rate limiting so it'd probably be pretty quick too. Check it out!</p>
+
+		<video controls src="/assets/video/capstone/auth/blindsqli-err-oracle.mp4"></video>
 
         <p>Cool, we got something!</p>
 
