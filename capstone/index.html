@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="The Offsec Journal - My journey from a script kiddie to a security researcher">
+  <meta name="author" content="Aditya Bhardwaj">
+  
+  <title>The Offsec Journal</title>
+  
+  <link rel="stylesheet" href="/assets/css/pico.green.min.css">
+  <link rel="stylesheet" href="/assets/css/post.css">
+</head>
+
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>The Offsec Journal</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <article>
+      <!-- Post Header -->
+      <header style="border-bottom: 1px solid var(--pico-muted-border-color);">
+        <h1 id="bigtitle"></h1>
+        <div class="post-meta">
+          <time id="date"></time> 
+        </div>
+        <div id="tags"></div>
+        <br>
+      </header>
+
+      <!-- Main Section -->
+      <section>
+        <h3>Ladies and gentlemen. Boys and girls. Employers and admissions officers.</h3>
+        
+        <p><strong>We did it.</strong></p>
+
+        <p>The capstone project—a full security audit of the very chat app that started me off on this journey—is officially complete! In this post, as promised, you'll find the full 53-page report, as well as the GitHub repo for the chat app itself, if you're interested in taking a look at what 7th-grade me was able to achieve.</p>
+
+        <p>Before I get into that, I need to make a quick note: <strong>I used a <i>lot</i> of AI to help me compile that report.</strong> As I said a second ago, that report was 53 pages long—a report of that caliber could genuinely take a whole month to put together, especially with this being my first one. Seeing as college apps opened right around the time I finished the testing phase of the audit, I absolutely DID NOT have a full month to dedicate to the report alone. That would've been nearly 4 times the amount of time that the testing itself took.</p>
+
+        <p>Lucky for me, though, I took pretty good notes—right here, on this blog, lol. Like I've said, it's called The Offsec <i>Journal</i> for a reason. I told Claude explicitly to stick to only the source material I handed it, which consisted of the eight blog posts that made up the whole testing "saga" of this project, as well as <a href="https://www.hackthebox.com/blog/penetration-testing-reports-template-and-guide">HackTheBox's Pentest Report Guide</a>. Claude and I went section by section, and as I transferred it to my Google Doc, I read <i>every</i> word—all 10.7 thousand of them—myself to make sure that the report was as accurate to my testing and experience as possible. Rest assured: what you'll see in that PDF isn't AI slop; it's the result of me using AI as a genuine <i>tool</i>, rather than as a replacement for me and my big beautiful brain.</p>
+
+        <p>Besides, what <i>will</i> AI take over in the near future, if not the busywork?</p>
+
+        <p>That said, here's that <a href="/capstone/parity-pentest-report.pdf">giant report</a> for you guys! This was genuinely a lot of fun.</p>
+
+        <p>And here's that <a href="https://github.com/ABHax101/parity-archive">GitHub repo</a> as well.</p>
+
+        <p>Here are links to the other 8 posts in the saga too, in case you missed them:</p>
+        <ol>
+          <li><a href="/posts/capstone_planning.html"><strong>The Capstone, For Real This Time:</strong> It's time to get this show on the road. Watch me.</a></li>
+          <li><a href="/posts/capstone_getting_started.html"><strong>The Ball Is Officially Rolling!</strong> The painfully unglamorous side of this whole thing—the stuff they'll never see in the report.</a></li>
+          <li><a href="/posts/websocket.html"><strong>A Deep Dive of the WebSocket Server:</strong> My first DoS ever!</a></li>
+          <li><a href="/posts/auth_system.html"><strong>User Auth & Session Management:</strong> It turns out that logging in is *optional* in here. Oh boy.</a></li>
+          <li><a href="/posts/utils.html"><strong>A Handful of Admin Utilities:</strong> DELETE FROM common_sense;</a></li>
+          <li><a href="/posts/image_system.html"><strong>A Hell of an Image Pipeline:</strong> The cleanest, most beautiful SQLi yet! I don't know if we'll be able to top that one.</a></li>
+          <li><a href="/posts/chatroom.html"><strong>The Elephant in the Rooms:</strong> Auditing the chatrooms themselves actually went a lot quicker than I expected. Yay.</a></li>
+          <li><a href="/posts/mobile.html"><strong>Home Stretch:</strong> The final hacking session of this capstone project - a deep dive of the mobile variant</a></li>
+        </ol>
+
+        <p>With that, my friends, the loop has officially been closed, and the promise of my <a href="/posts/bigbang.html">very first post</a> on here has (to the best of my ability) been fulfilled. That's a really cool feeling! At the bottom of that very first post, I said: </p>
+
+        <blockquote><i>"If you want to follow along, bookmark this site...Let's see where I can get in 8 months."</i></blockquote>
+
+        <p>I wrote that post on the 18th of December last year. Well, surprise surprise: today is the 19th of August—exactly 8 months and a day later. I swear that wasn't intentional, lol</p>
+
+        <p>I think it's safe to say I've gotten pretty far from where I started.</p>
+
+        <p>Glad you all got to see it happen, too.</p>
+      </section><br>
+
+      <h3>Cheers!</h3>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        © 2025 ADITYA BHARDWAJ | <a href="mailto:adib334@outlook.com">Email</a>
+      </p>
+      <p><small>All writeups are for educational & documentation purposes only. Happy hacking!</small></p>
+    </footer>
+  </main>
+
+  <script>
+    const TITLE = "The Parity Chatroom Audit - Officially Done!";
+    const DATE = "2026-08-19";
+    const TAGS = ["Capstone", "Learning Journey"];
+    
+    
+    let tagsDiv = document.querySelector("div#tags");
+
+    TAGS.forEach(tag => tagsDiv.innerHTML += `<span class="tag">${tag}</span>` );
+
+    document.querySelector("title").innerText = `The Offsec Journal | ${TITLE}`;
+    document.querySelector("h1#bigtitle").innerText = TITLE;
+    
+    document.querySelector("time#date").setAttribute("datetime", DATE);
+    document.querySelector("time#date").textContent = new Date(DATE).toLocaleString("en-US", { dateStyle: "long", timeZone: "UTC" });
+  </script>
+</body>
+</html>

@@ -1,5 +1,12 @@
 [
   {
+    "title": "The Parity Chatroom Audit",
+    "file": "capstone/",
+    "date": "2026-08-19",
+    "excerpt": "The thing that we set out to do from day one, officially done!",
+    "tags": ["Capstone", "Learning Journey"]
+  },
+  {
     "title": "Home Stretch",
     "file": "posts/mobile.html",
     "date": "2026-07-30",
